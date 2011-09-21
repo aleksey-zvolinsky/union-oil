@@ -1,0 +1,236 @@
+object RezervImageSvodForm: TRezervImageSvodForm
+  Left = 316
+  Top = 230
+  Width = 711
+  Height = 385
+  Caption = #1057#1074#1086#1076#1085#1072#1103' '#1090#1072#1073#1083#1080#1094#1072
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  PixelsPerInch = 96
+  TextHeight = 13
+  object lblBeginDate: TLabel
+    Left = 6
+    Top = 2
+    Width = 38
+    Height = 13
+    Caption = #1044#1072#1090#1072' c:'
+  end
+  object lblEndDate: TLabel
+    Left = 112
+    Top = 2
+    Width = 15
+    Height = 13
+    Caption = #1087#1086':'
+  end
+  object DBGridEh1: TDBGridEh
+    Left = 0
+    Top = 47
+    Width = 703
+    Height = 311
+    Align = alBottom
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    DataSource = DataSource1
+    Flat = False
+    FooterColor = clWindow
+    FooterFont.Charset = DEFAULT_CHARSET
+    FooterFont.Color = clWindowText
+    FooterFont.Height = -11
+    FooterFont.Name = 'MS Sans Serif'
+    FooterFont.Style = []
+    FooterRowCount = 1
+    RowDetailPanel.Color = clBtnFace
+    SumList.Active = True
+    TabOrder = 0
+    TitleFont.Charset = DEFAULT_CHARSET
+    TitleFont.Color = clWindowText
+    TitleFont.Height = -11
+    TitleFont.Name = 'MS Sans Serif'
+    TitleFont.Style = []
+    UseMultiTitle = True
+    Columns = <
+      item
+        EditButtons = <>
+        FieldName = #1053#1077#1092#1090#1077#1073#1072#1079#1072
+        Footers = <>
+        Width = 120
+      end
+      item
+        EditButtons = <>
+        FieldName = #1042#1080#1076' '#1043#1057#1052
+        Footers = <>
+        Width = 93
+      end
+      item
+        EditButtons = <>
+        FieldName = #1054#1089#1090#1072#1090#1086#1082' '#1085#1072' '#1085#1072#1095#1072#1083#1086' '#1087#1077#1088#1080#1086#1076#1072
+        Footer.ValueType = fvtSum
+        Footers = <>
+      end
+      item
+        EditButtons = <>
+        FieldName = #1055#1088#1080#1093#1086#1076
+        Footer.ValueType = fvtSum
+        Footers = <>
+      end
+      item
+        EditButtons = <>
+        FieldName = #1044#1072#1085#1085#1099#1077' '#1087#1086' '#1088#1072#1089#1093#1086#1076#1091
+        Footer.ValueType = fvtSum
+        Footers = <>
+        Title.Caption = #1044#1072#1085#1085#1099#1077' '#1087#1086' '#1088#1072#1089#1093#1086#1076#1091'|'#1051#1080#1090#1088#1099
+        Width = 85
+      end
+      item
+        EditButtons = <>
+        FieldName = 'F6'
+        Footer.ValueType = fvtSum
+        Footers = <>
+        Title.Caption = #1044#1072#1085#1085#1099#1077' '#1087#1086' '#1088#1072#1089#1093#1086#1076#1091'|'#1050#1080#1083#1086#1075#1088#1072#1084#1084#1099
+        Width = 87
+      end
+      item
+        EditButtons = <>
+        FieldName = 'F7'
+        Footers = <>
+        Title.Caption = #1044#1072#1085#1085#1099#1077' '#1087#1086' '#1088#1072#1089#1093#1086#1076#1091'|'#1055#1083#1086#1090#1085#1086#1089#1090#1100
+        Width = 85
+      end
+      item
+        EditButtons = <>
+        FieldName = #1054#1089#1090#1072#1090#1086#1082' '#1085#1072' '#1082#1086#1085#1077#1094' '#1087#1077#1088#1080#1086#1076#1072
+        Footer.ValueType = fvtSum
+        Footers = <>
+      end>
+    object RowDetailData: TRowDetailPanelControlEh
+    end
+  end
+  object deBeginDate: TDateEdit
+    Left = 6
+    Top = 16
+    Width = 86
+    Height = 21
+    CheckOnExit = True
+    DefaultToday = True
+    DirectInput = False
+    NumGlyphs = 2
+    YearDigits = dyFour
+    TabOrder = 1
+    Text = '24.03.2010'
+  end
+  object deEndDate: TDateEdit
+    Left = 112
+    Top = 16
+    Width = 92
+    Height = 21
+    CheckOnExit = True
+    DefaultToday = True
+    DirectInput = False
+    NumGlyphs = 2
+    YearDigits = dyFour
+    TabOrder = 2
+    Text = '24.03.2010'
+  end
+  object ADOTable1: TADOTable
+    ConnectionString = 
+      'Provider=MSDASQL.1;Persist Security Info=False;Extended Properti' +
+      'es="DSN='#1060#1072#1081#1083#1099' Excel;DBQ=D:\Job\!OIL\oil_vss\Pattern\'#1057#1074#1086#1076#1085#1072#1103' '#1090#1072#1073#1083 +
+      #1080#1094#1072'.xls;DefaultDir=D:\Job\!OIL\oil_vss\Pattern;DriverId=790;MaxB' +
+      'ufferSize=2048;PageTimeout=5;"'
+    CursorType = ctStatic
+    TableName = #1057#1074#1086#1076'2'
+    Left = 448
+    Top = 248
+  end
+  object DataSource1: TDataSource
+    DataSet = VirtualTable1
+    Left = 376
+    Top = 248
+  end
+  object VirtualTable1: TVirtualTable
+    Active = True
+    FieldDefs = <
+      item
+        Name = #1053#1077#1092#1090#1077#1073#1072#1079#1072
+        DataType = ftString
+        Size = 255
+      end
+      item
+        Name = #1054#1089#1090#1072#1090#1086#1082' '#1085#1072' '#1085#1072#1095#1072#1083#1086' '#1087#1077#1088#1080#1086#1076#1072
+        DataType = ftFloat
+      end
+      item
+        Name = #1055#1088#1080#1093#1086#1076
+        DataType = ftFloat
+      end
+      item
+        Name = #1042#1080#1076' '#1043#1057#1052
+        DataType = ftString
+        Size = 255
+      end
+      item
+        Name = #1044#1072#1085#1085#1099#1077' '#1087#1086' '#1088#1072#1089#1093#1086#1076#1091
+        DataType = ftFloat
+      end
+      item
+        Name = 'F6'
+        DataType = ftFloat
+      end
+      item
+        Name = 'F7'
+        DataType = ftFloat
+      end
+      item
+        Name = #1054#1089#1090#1072#1090#1086#1082' '#1085#1072' '#1082#1086#1085#1077#1094' '#1087#1077#1088#1080#1086#1076#1072
+        DataType = ftFloat
+      end>
+    Left = 536
+    Top = 248
+    Data = {
+      020008000900CDE5F4F2E5E1E0E7E00100FF001900CEF1F2E0F2EEEA20EDE020
+      EDE0F7E0EBEE20EFE5F0E8EEE4E0060000000600CFF0E8F5EEE4060000000700
+      C2E8E420C3D1CC0100FF001100C4E0EDEDFBE520EFEE20F0E0F1F5EEE4F30600
+      0000020046360600000002004637060000001800CEF1F2E0F2EEEA20EDE020EA
+      EEEDE5F620EFE5F0E8EEE4E00600000000000C0000000A000000D1F3ECF1EAE0
+      FF20EDE1080000000000000070ACF740080000000000000064C1124109000000
+      C02D38302FC02D3736080000000000000024EE1C4108000000000000008CB114
+      4108000000E17A14AE47E1E63F0800000000000000A0D7EF400A000000D1F3EC
+      F1EAE0FF20EDE1080000000000000060DC1F4108000000000000004824314104
+      000000C02D393208000000000000007802384108000000000000001F11324108
+      000000AAF1D24D6210E83F080000000000000004291C410A000000D1F3ECF1EA
+      E0FF20EDE1080000000000000014E1164108000000000000004C602241040000
+      00C02D393508000000000000002AD4294108000000000000007CD02341080000
+      0025068195438BE83F0800000000000000B40014410A000000D1F3ECF1EAE0FF
+      20EDE1080000000000000000553D410800000000000000782A174102000000C4
+      F20800000000000000885F35410800000000000000ABF8314108000000B6F3FD
+      D478E9EA3F0800000000000000F32631410E000000D5E0F0FCEAEEE2F1EAE0FF
+      20EDE108000000343333337B0AFA40080000009A99999987A1144109000000C0
+      2D38302FC02D37360800000034333333C1D21F4108000000343333334DC31641
+      08000000E17A14AE47E1E63F08000000CCCCCCCC6483F1400E000000D5E0F0FC
+      EAEEE2F1EAE0FF20EDE1080000009A9999990186214108000000000000001CDB
+      324104000000C02D3932080000009A9999991D693A41080000009A999919A2DF
+      334108000000AAF1D24D6210E83F08000000CCCCCCCCEAF91E410E000000D5E0
+      F0FCEAEEE2F1EAE0FF20EDE10800000034333333C92A19410800000000000000
+      BA36244104000000C02D3935080000006766666661692C41080000009A999999
+      BBCB25410800000025068195438BE83F0800000000000000C60016410E000000
+      D5E0F0FCEAEEE2F1EAE0FF20EDE10800000034333333F3214041080000000100
+      0000847B194102000000C4F20800000034333333AF823741080000009A999919
+      BCC4334108000000B6F3FDD478E9EA3F08000000CECCCC4C0BDE32410C000000
+      C2EEEBE8EDF1EAE0FF20EDE108000000ED51B81E21A5FC40080000002A5C8FC2
+      AEB1164109000000C02D38302FC02D373608000000F7285C0FB7802141080000
+      00ED51B81E080A194108000000E17A14AE47E1E63F08000000E07A14AEBB43F3
+      400C000000C2EEEBE8EDF1EAE0FF20EDE108000000C3F5285C9B462341080000
+      0000000000D2BD344104000000C02D39320800000090C2F5283A0D3D41080000
+      002A5C8F8265DC354108000000AAF1D24D6210E83F08000000703D0A57740921
+      410C000000C2EEEBE8EDF1EAE0FF20EDE10800000053B81E8510AF1B41080000
+      0001000000333C264104000000C02D3935080000000CD7A3F0B7402F41080000
+      002A5C8FC2B4F927410800000025068195438BE83F08000000000000000D3418
+      410C000000C2EEEBE8EDF1EAE0FF20EDE108000000BA1E85EBF1BE4141080000
+      0002000000DE071C4102000000C4F20800000053B81E858DDC39410800000090
+      C2F5E8CEBE354108000000B6F3FDD478E9EA3F08000000E47A146E0CC13441}
+  end
+end
