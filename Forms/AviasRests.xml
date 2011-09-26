@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Учет" caption="Остатки оперативного отчета для Авиаса" menuposition="7" tablename="OIL_RESTS_AVIAS">
+<editbuttons>
+	<addbutton />
+	<editbutton />
+</editbuttons>
+<sql>
+select r.id,
+       r.inst,
+       r.date_,
+       r.azs_id,
+       azs.name as azs_name,
+       r.np_group_id,
+       npg.name as npg_name,
+       r.rest_litr,
+       r.rest_kg,
+       r.rep_build_date
+  from oil_rests_avias r, v_oil_azs azs, v_oil_np_group npg
+ where r. state = 'Y'
+   and r.azs_id = azs.id
+   and r.azs_id = azs.inst
+   and r.np_group_id = npg.id
+</sql>
+<editclass classname = "TAviasRestsForm">
+</editclass>
+	<columns>
+		<column align="left" width="80">
+			<caption align="center">Дата</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">АЗС</caption>
+			<fieldname>azs_name</fieldname>
+		</column>		
+		<column align="left" width="70">
+			<caption align="center">Группа НП</caption>
+			<fieldname>npg_name</fieldname>
+		</column>
+		<column align="right" width="70">
+			<caption align="center">Литры</caption>
+			<fieldname>rest_litr</fieldname>
+		</column>
+		<column align="right" width="70">
+			<caption align="center">Кол-во, кг.</caption>
+			<fieldname>rest_kg</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Дата построения</caption>
+			<fieldname>rep_build_date</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>date_</fieldname>
+			<default>month_begin</default>
+		</dateedit>
+		<dateedit left="130" top="10" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>date_</fieldname>
+			<default>now</default>
+		</dateedit>
+		<xmlform left="250" top="10" width="300" wholevalue="true" orgref="true" orgtype="2" enableflags="yyn">
+			<name>AZS</name>
+			<caption>АЗС:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>azs_id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>azs_id</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+	</filters>
+</form>

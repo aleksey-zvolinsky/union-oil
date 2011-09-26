@@ -1,0 +1,116 @@
+[GLOBAL]
+  TITLE = Реестр пополнений@Реєстр поповнень
+  MENU = Отчеты\Отчеты по эл. карточкам\Реестр пополнений@Реєстр поповнень
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@З :BeginDate по :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+
+select Emitent_Name as dep_name,
+       NP_Name as npgrp_name,
+       Rec_Date,
+       Card_Number,
+       Client_OKPO,
+       Client_Name,
+       Litr as Litr,
+       Price,
+       nds.GetNoNDS_WithNDS(Price, Rec_Date) PriceNoNds,
+       Amount - nds.GetNDS_WithNDS(Amount, Rec_Date) SumNoNds,
+       nds.GetNDS_WithNDS(Amount, Rec_Date) Nds,
+       Amount as SumNds
+  from (select Emitent.Name as Emitent_Name,
+                Client.Name as Client_Name,
+                Client.Id_Num as Client_OKPO,
+                Oil_NP_Group.Name as NP_Name,
+                Card_Receipt.Card_Number as Card_Number,
+                Card_Receipt.Date_ as Rec_Date,
+                Card_Receipt.Price as Price,
+                Card_Receipt.Litr,
+                round(Card_Receipt.Litr * Card_Receipt.Price, 2) as Amount
+          from v_Card_Receipts Card_Receipt,
+               v_org Client,
+               Oil_NP_Group,
+               v_org Emitent
+         where Date_ between :BeginDate and :EndDate
+           and Card_Receipt.CardAlign = 0
+           and Card.GetDep(Card_Receipt.Card_Number, Card_Receipt.oper_date) =
+               Emitent.Id(+)
+           and Emitent.ID(+) = Emitent.Inst(+)
+           and Card_Receipt.To_Id = Client.Id
+           and Card_Receipt.To_Inst = Client.Inst
+           and Card_Receipt.NP_Type = Oil_NP_Group.Petrol_Id
+           and Card_Receipt.Auto_Id is null)
+
+[FIELDS]
+
+  NAME = DEP_NAME
+  CAPTION = Торговая точка@Торгова точка
+  WIDTH = 25
+
+  NAME = NPGRP_NAME
+  CAPTION = Вид топлива@Вид палива
+  WIDTH = 10
+
+  NAME = REC_DATE
+  CAPTION = Дата пополнения@Дата поповнення
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = CARD_NUMBER
+  CAPTION = Номер карты@Номер карти
+  WIDTH = 10
+
+  NAME = CLIENT_OKPO
+  CAPTION = Потребитель!ОКПО@Споживач!ЄДРПОУ
+  WIDTH = 10
+
+  NAME = CLIENT_NAME
+  CAPTION = Потребитель!Наименование@Споживач!Назва
+  WIDTH = 50
+
+  NAME = LITR
+  CAPTION = Кол-во, л@Кіл-ть, л.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = PRICE
+  CAPTION = Цена за литр c НДС@Ціна за літр з ПДВ
+  WIDTH = 10
+
+  NAME = PRICENONDS
+  CAPTION = Цена за литр без НДС@Ціна за літр без ПДВ
+  WIDTH = 10
+
+  NAME = SUMNONDS
+  CAPTION = Сумма без НДС, грн.@Сума без ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = NDS
+  CAPTION = НДС, грн@ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = SUMNDS
+  CAPTION = Сумма с НДС, грн.@Сума з ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = DEP_NAME,NPGRP_NAME

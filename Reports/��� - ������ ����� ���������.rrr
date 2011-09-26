@@ -1,0 +1,46 @@
+[GLOBAL]
+   TITLE = Реестр расходных накладных по чужим списаниям@Реєстр видаткових накладних по чужих списаннях
+   MENU = Отчеты\Отчеты по эл. карточкам\Чужие списания\Реестр расходных накладных по чужим списаниям@Реєстр видаткових накладних по чужих списаннях
+   VERSION = 1.2
+   MENU_POSITION = 1
+   PAGES_WIDTH = 1
+   PAGE_ORIENT = VER
+
+[PANELS]
+   DATEPANEL
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+
+[SQL]
+select /*+ORDERED USE_HASH(ct,voo)*/
+      voo.oblid,voo.oblname,to_date(oper_date) as date_,doc_number,
+      round(ct.term_price*ct.litr,2) as summa
+from card_transit ct,v_oil_org_norek voo
+where doc_number is not null
+      and GetDepByCardId(SubStr(ct.card_number, 1, 3),trunc(ct.oper_date)) = voo.card_id
+      and to_date(oper_date) between :BeginDate and :EndDate
+
+[FIELDS]
+   NAME = oblname
+   CAPTION = Обл
+   WIDTH = 20
+
+   NAME = date_
+   CAPTION = Дата
+   WIDTH = 15
+
+   NAME = doc_number
+   CAPTION = Номер расходной@Номер видаткової
+   WIDTH = 15
+
+   NAME = summa
+   CAPTION = Сумма@Сума
+   WIDTH = 12
+   FORMAT = 0.00
+   TOSUM = TRUE
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI = oblname

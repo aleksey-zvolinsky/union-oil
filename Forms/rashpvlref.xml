@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Учет\Перевалка" caption="Поручение на отгрузку" tablename="OIL_RASHPVL">
+<sql>
+select 
+  distinct 
+    r_id as id, r_inst as inst, r_numb as numb, r_date as date_, 
+    r_from_id as from_id, r_from_inst as from_inst,r_from_name as from_name, 
+    r_to_id as to_id, r_to_inst as to_inst, r_to_name as to_name
+from v_oil_rashpvl_prih
+where (:partname is null or lower(part_name) like lower('%'||:partname||'%'))
+  and (:tanknum is null or lower(tank_num) like lower('%'||:tank_num||'%'))
+</sql>
+<editclass
+	classname = "TRashPvlForm"
+	resultfilter = "EditNumber">
+</editclass>
+	<columns>
+		<column align="left" width="150">
+			<caption align="center">Поряд. номер</caption>
+			<fieldname>id</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Номер</caption>
+			<fieldname>numb</fieldname>
+		</column>
+		<column align="right" width="100">
+			<caption align="center">Дата</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Отправитель</caption>
+			<fieldname>from_name</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Получатель</caption>
+			<fieldname>to_name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>r_date</fieldname>
+			<default>01.01.1990</default>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>r_date</fieldname>
+			<default>now</default>
+		</dateedit>
+		<edit left="120" top="10" width="100" wholevalue="false">
+			<name>EditNumber</name>
+			<caption>Номер:</caption>
+			<fieldname>id</fieldname>
+		</edit>
+		<edit left="120" top="50" width="100" wholevalue="false">
+			<name>PartName</name>
+			<caption>Партия:</caption>
+		</edit>
+		<edit left="230" top="10" width="100" wholevalue="false">
+			<name>TankNum</name>
+			<caption>№ цистерны:</caption>
+		</edit>
+		<xmlform width="250" left="340" top="10" wholevalue="true" orgref="true" orgtype="0" enableflags="yyy">
+			<name>OrgFrom</name>
+			<caption>Отправитель:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield>r_from_id</destfield>
+			</link>
+			<link>
+				<srcfield> inst </srcfield>
+				<destfield>r_from_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<xmlform width="250" left="340" top="50" wholevalue="true" orgref="true" orgtype="0" enableflags="yyy">
+			<name>OrgTo</name>
+			<caption>Получатель:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield>r_to_id</destfield>
+			</link>
+			<link>
+				<srcfield> inst </srcfield>
+				<destfield>r_to_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+	</filters>
+</form>

@@ -1,0 +1,63 @@
+[GLOBAL]
+    TITLE = Реестр испорченных полисов@Реєстр пошкоджених полісів
+    MENU = Отчеты\Страховые полисы\Приложение №4@Додаток №4
+    RAZM_SYMBOLS = NO
+    PAGES_WIDTH = 1
+    PAGE_ORIENT = VER
+    VERSION = 1.5
+
+[PANELS]
+
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  На \B:BeginDate\b
+  Организация:: \B:org1.Name\b@Організація:: \B:org1.Name\b
+AFTER
+  \1L\BПередал\b __________________________________________      ______________@\1L\BПередав\b __________________________________________      ______________
+  \1L\\I                             фио, подпись поверенного \i@\1L\\I                             фіо, підпис повіреного \i
+  \1N
+  \1L\BПолучил\b __________________________________________      ______________@\1L\BОтримав\b __________________________________________      ______________
+  \1L\\I                              фио, подпись доверителя \i@\1L\\I                              фіо, підпис доручителя \i
+
+[SQL]
+select rownum,t.*
+from
+(
+select
+  1 as n ,
+  ser||' '||num as polis
+from oil_polis
+where state='Y'
+and trunc(oper_date) <=:BeginDate
+and oper_id = 3
+order by to_number(num)
+) t
+
+
+[FIELDS]
+
+  NAME = ROWNUM
+  CAPTION =№ п/п
+  WIDTH = 10
+
+  NAME = POLIS
+  CAPTION = Номер испорченного бланка полиса@Номер пошкодженого бланка поліса
+  WIDTH = 70
+  
+  NAME = n
+  CAPTION =  Кол-во@К-сть
+  WIDTH = 5
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI =

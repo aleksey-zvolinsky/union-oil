@@ -1,0 +1,83 @@
+[GLOBAL]
+  TITLE = Отчёт для ГКСУ@Звіт для ДКСУ
+  MENU = Отчеты\Движение нефтепродуктов\Отчет для ГКСУ@Звіт для ДКСУ
+  VERSION = 1.4
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select from_name,
+       to_name,
+       place,
+       np_grp_name,
+       np_name,
+       decode(OptRozn, 0, 'Опт', 'Розн') as OptRozn,
+       oper_name,
+       tonn,
+       litr,
+       summa
+  from v_oil_npmove_gksu g
+ where g.date_ between :BeginDate and :EndDate
+
+[FIELDS]
+  COL_NUMERATION = TRUE
+
+  NAME = FROM_NAME
+  CAPTION = Где произведен отпуск@Де здійснений відпуск
+  WIDTH = 30
+
+  NAME = TO_NAME
+  CAPTION = Клиент@Клієнт
+  WIDTH = 30
+
+  NAME = PLACE
+  CAPTION = Место отпуска@Місце відпуску
+  WIDTH = 10
+
+  NAME = NP_GRP_NAME
+  CAPTION = Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = NP_NAME
+  CAPTION = Тип НП
+  WIDTH = 15
+
+  NAME = OPTROZN
+  CAPTION = Тип отпуска для ГКСУ@Тип відпуску для ДКСУ
+  WIDTH = 10
+
+  NAME = OPER_NAME
+  CAPTION = Наименование операции@Назва операції
+  WIDTH = 15
+
+  DEFAULT TOSUM = TRUE
+
+  NAME = TONN
+  CAPTION = Отпущено!тонн@Відпущено!тон
+  WIDTH = 10
+  FORMAT = 0.000000
+
+  NAME = LITR
+  CAPTION = Отпущено!литров@Відпущено!літрів
+  WIDTH = 10
+  FORMAT = 0.000
+
+  NAME = SUMMA
+  CAPTION = Сумма с НДС@Сума з ПДВ
+  WIDTH = 10
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = OPTROZN
+  UNCHECKED = TO_NAME
+
+  CAPTION = С клиентами@З клієнтами
+  ITOGI = OPTROZN

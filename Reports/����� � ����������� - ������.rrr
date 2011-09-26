@@ -1,0 +1,120 @@
+#REGISTERED
+[GLOBAL]
+   TITLE = Отчет о транзакциях
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+[DESCRIPTION]
+   От :BeginDate по :EndDate
+
+[SQL]
+select /*+ORDERED USE_HASH(tr, OrgWhere, OrgWho, AZS, sb)*/
+  tr.Oper_date,
+  tr.Card_Number,
+  np.name as NpName,
+  purse.name as PurseName,
+  OrgWhere.Name as OrgWhere,
+  OrgWho.Name as OrgWho,
+  AZS.Name as AZS,
+  tr.Count_Litr,
+  tr.Count_Purse,
+  tr.term_price as PriceNds,
+  round(tr.Term_Price* f_getdiscount(2,trunc(tr.oper_date),orgWhere.id, orgWhere.inst,tr.np_type),2) as PriceNdsDis,
+  round(tr.Count_Litr*round(tr.Term_Price* f_getdiscount(2,trunc(tr.oper_date),orgWhere.id, orgWhere.inst,tr.np_type),2),2) as Amount_litr,
+  round(tr.Count_Purse*round(tr.Term_Price* f_getdiscount(2,trunc(tr.oper_date),orgWhere.id, orgWhere.inst,tr.np_type),2),2) as Amount_purse
+from 
+  andriy.card_transaction_money tr,
+  andriy.oil_org OrgWhere,
+  andriy.oil_org OrgWho,
+  andriy.oil_org AZS,
+  andriy.oil_sale_book sb,
+  andriy.oil_np_group np,
+  andriy.oil_np_group purse
+where
+  tr.terminal_number+1000000=azs.id(+) and
+  tr.terminal_number+1000000 = decode(azs.inst(+),1,azs.id(+),azs.inst(+)) and
+  tr.Em_where = OrgWhere.Card_Id (+) and
+  tr.Em_Who = OrgWho.Card_Id (+) and
+  tr.Np_Type = np.petrol_id (+) and
+  tr.Purse = purse.petrol_id (+) and
+  tr.oil_nn_id = sb.id (+) and
+  tr.oil_nn_inst = sb.Inst (+) and 
+  trunc(tr.oper_date) between :BeginDate. and :EndDate. 
+
+[FIELDS]
+   NAME = oper_date
+   CAPTION = Дата
+   WIDTH = 10
+
+   NAME =OrgWho
+   CAPTION = Эмитент кто
+   WIDTH = 30
+
+   NAME =OrgWhere
+   CAPTION = Эмитент где
+   WIDTH = 30
+
+   NAME =AZS
+   CAPTION = АЗС
+   WIDTH = 30
+  
+   NAME =Card_Number
+   CAPTION = № карты
+   WIDTH = 10
+
+   NAME =NpName
+   CAPTION = Тип НП
+   WIDTH = 10
+
+   NAME =PurseName
+   CAPTION = Кошелек
+   WIDTH = 10
+
+   NAME =PriceNds
+   CAPTION = Цена АЗС
+   WIDTH = 10
+   FORMAT = 0.00
+
+   NAME =PriceNdsDis
+   CAPTION = Цена с учетом скидки
+   WIDTH = 15
+   FORMAT = 0.00
+
+   NAME =Count_Litr
+   CAPTION = К-во, л
+   WIDTH = 10
+   FORMAT = 0.00
+   TOSUM = TRUE
+
+   NAME =Count_Purse
+   CAPTION = К-во, грн
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.00
+
+   NAME=Amount_litr
+   CAPTION = Сумма за что (грн)
+   WIDTH = 20
+   TOSUM = TRUE
+   FORMAT = 0.00
+
+   NAME = Amount_purse
+   CAPTION = Сумма чем
+   WIDTH = 20
+   TOSUM = TRUE
+   FORMAT = 0.00
+
+
+[TYPES]
+   
+   CAPTION = Итоги по типу НП, Контрагенту, АЗС
+   ITOGI  =  OrgWhere, AZS, npname
+
+   CAPTION = Итоги по облу, АЗС
+   ITOGI  = OrgWho, NpName
+   

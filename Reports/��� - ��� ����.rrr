@@ -1,0 +1,174 @@
+[GLOBAL]
+  TITLE = Реестр отоваренных по ОАО@Реєстр отоварених на ВАТ
+  MENU = Отчеты\Отчеты по талонам\Отоваривание ОАО@Отоварені на ВАТ
+  VERSION = 1.5
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1=Подразделение@Підрозділ
+    CAPTION2=Клиент@Клієнт
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Клиент:: :org2.Name@Клієнт:: :org2.Name
+
+[SQL]
+select /*+ORDERED USE_HASH(v,odep,azs,oo,npg)*/
+  odep.name as prih_dep_name,
+  oo.name as out_org_name,
+  oo.id_num as out_org_okpo,
+  npg.name as np_group,
+  dog,sub_part,azs.name as azs_name,smena_num,
+  nominal,ser,v.num,
+  out_date, prih_date,
+  out_price,
+  1 as co,
+  nvl(litr_azs,nominal) as litr_azs,
+  tonn_azs,
+  round(out_price*litr_azs,2) as out_summa,
+  price_azs as azs_price,
+  round(price_azs*litr_azs,2) as azs_summa
+from
+  (select to_id as dep_id,to_inst as dep_inst,
+     decode(prev_is_filial,0,prev_to_id,
+       decode(prev_oper_id,200,prev3_to_id,190,dinst.value,to_number(null))
+     ) as org_id,
+     decode(prev_is_filial,0,prev_to_inst,
+       decode(prev_oper_id,200,prev3_to_inst,190,dinst.value,to_number(null))
+     ) as org_inst,
+     npgrp_id,dog,sub_part,smena_num,
+     from_id as azs_id,from_inst as azs_inst,
+     nominal,ser,num,prev_date as out_date,
+     date_ as prih_date,
+     decode(prev_is_filial,0,prev_price,
+       decode(prev_oper_id,200,prev3_price,190,price_azs,to_number(null))
+     ) as out_price,
+     price_azs,
+     litr_azs,tonn_azs
+   from andriy.v_oil_talon_sropl_un v, v_dual_inst dinst
+   where v.is_filial=0
+     and tip='P' and prev_tip='O'
+     and oper_id=180 and
+     (prev_oper_id=190 or prev_is_filial=1 and prev_oper_id=200)
+   ) v,
+   oil_org odep, oil_org azs,
+  (select id,inst,state,name,id_num from andriy.oil_org
+   union
+   select id,inst,state,name,id_num from oil_old.oil_org
+   where not inst in (id,1)) oo,
+  oil_np_group npg
+where prih_date between :BeginDate and :EndDate
+  and dep_id=odep.id and dep_inst=odep.inst
+  and v.org_id=oo.id and v.org_inst=oo.inst
+  and v.azs_id=azs.id and v.azs_inst=azs.inst
+  and v.npgrp_id=npg.id
+  and (:org1.id in (odep.id,odep.par) or :org1.id is null)
+  and (:org2.id=oo.id and :org2.inst=oo.inst or :org2.id is null)
+
+[FIELDS]
+  HEAD_DEPTH = 2
+
+  NAME = PRIH_DEP_NAME
+  CAPTION = Оприходовавшее подразделение@Підрозділ, що оприбуткував
+  WIDTH = 20
+
+  NAME = OUT_ORG_NAME
+  CAPTION = Клиент@Клієнт
+  WIDTH = 15
+
+  NAME = OUT_ORG_OKPO
+  CAPTION = ОКПО клиента@ЄДРПОУ клієнта
+  WIDTH = 10
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION = Партия@Партія
+  WIDTH = 10
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 10
+
+  NAME = SMENA_NUM
+  CAPTION = № смены@№ зміни
+  WIDTH = 10
+
+  NAME = NOMINAL
+  CAPTION = Номинал@Номінал
+  WIDTH = 10
+
+  NAME = SER
+  CAPTION = Серия@Серія
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  NAME = OUT_DATE
+  CAPTION = Дата отпуска@Дата відпуску
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = PRIH_DATE
+  CAPTION = Дата прихода@Дата приходу
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = OUT_PRICE
+  CAPTION = Цена отпуска с НДС@Ціна відпуску з ПДВ
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = CO
+  CAPTION = Кол-во@К-сть
+  WIDTH = 10
+  FORMAT = 0
+  TOSUM = TRUE
+
+  NAME = LITR_AZS
+  CAPTION = Литры@Літри
+  WIDTH = 10
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = TONN_AZS
+  CAPTION =Тонны@Тони
+  WIDTH = 10
+  FORMAT = 0.000000
+  TOSUM = TRUE
+
+  NAME = OUT_SUMMA
+  CAPTION = Сумма с НДС по цене отпуска@Сума з ПДВ за ціною відпуска
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = AZS_PRICE
+  CAPTION = Цена на АЗС с НДС@Ціна на АЗС з ПДВ
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = AZS_SUMMA
+  CAPTION = Сумма с НДС по цене АЗС@Сума з ПДВ по ціні АЗС
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = OUT_ORG_NAME

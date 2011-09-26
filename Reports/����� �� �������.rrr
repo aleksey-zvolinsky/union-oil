@@ -1,0 +1,101 @@
+[GLOBAL]
+   TITLE = Отчет по партиям@Звіт за партіями
+   MENU = Отчеты\Отчет по партиям@Звіт за партіями
+   VERSION = 1.0
+   PAGES_WIDTH = 1
+   PAGE_ORIENT = VER
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Тип товара:: :KOS.GetCaptions@Тип товару:: :KOS.GetCaptions
+
+[SQL]
+   select p.dog,p.ss,p.dog_date,npt.name as npt_name,
+	  decode(dim.IsShtuki,'Y',0,amount_fact) as tonn,
+          decode(dim.IsShtuki,'Y',amount_fact,0) as shtuki,
+          ss*amount_fact as summ,ss*Round(amount_fact*1.2,2) as summnds,
+          Round(ss*amount_fact*0.2,2) as nds
+   from oil_part p,oil_np_type npt,v_oil_dim dim
+   where p.state='Y' and plan_id is not null
+ 	 and dog_date between :BeginDate and :EndDate
+         and npt.id=p.np_type
+         and p.dim_id=dim.id
+         and p.own_goods in (:KOS.GetValues)
+
+[FIELDS]
+   NAME = npt_name
+   CAPTION = НП
+   WIDTH = 20
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 15
+
+   NAME = ss
+   CAPTION = Уч.цена@Облікова ціна
+   WIDTH = 15
+
+   NAME = dog_date
+   CAPTION = Дата
+   WIDTH=15
+
+   NAME = tonn
+   CAPTION = Тонны@Тони
+   WIDTH = 15
+   FORMAT = 0.000000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = shtuki
+   CAPTION = Штуки
+   WIDTH = 10
+   FORMAT = 0
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+   HIDEIFEMPTY = TRUE
+
+   NAME = summ
+   CAPTION = Сумма без НДС@Сума без ПДВ
+   WIDTH = 15
+   FORMAT = 0.00
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = nds
+   CAPTION = НДС@ПДВ
+   WIDTH = 15
+   FORMAT = 0.00
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = summnds
+   CAPTION = Сумма c НДС@Сума з ПДВ
+   WIDTH = 15
+   FORMAT = 0.00
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+[TYPES]
+   
+   CAPTION = НП - Партия@НП - Партія
+   ITOGI = npt_name,dog
+
+   CAPTION = Партия@Партія
+   ITOGI = dog
+

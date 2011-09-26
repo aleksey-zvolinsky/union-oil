@@ -1,0 +1,44 @@
+# REGISTERED
+[GLOBAL]
+   TITLE = Проверки эмиссий с АЗС
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+[DESCRIPTION]
+   С :BeginDate по :EndDate
+
+[SQL]
+select * from v_oil_talon_srae_test
+where date_ between :BeginDate and :EndDate
+  
+[FIELDS]
+   NAME = date_
+   CAPTION = Дата
+   WIDTH = 10
+
+   NAME = azs_name
+   CAPTION = АЗС
+   WIDTH=35
+
+   NAME = np_group
+   CAPTION = Нефтепродукт
+   WIDTH = 10
+
+   NAME = srae_litr
+   CAPTION = Сменный отчет
+   WIDTH = 10
+   FORMAT = 0
+
+   NAME = ae_litr
+   CAPTION = Эмиссия
+   WIDTH = 10
+   FORMAT=0
+
+
+[TYPES]
+   CAPTION = Основной

@@ -1,0 +1,146 @@
+[GLOBAL]
+  TITLE = Перемещение@Переміщення
+  VERSION = 1.2
+  MENU = Отчеты\Выгрузка в 1С\Перемещение@Переміщення
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select
+  from_inst,to_inst,rep_date,part_from,part_to,spart_from,spart_to,
+  tonn,litr,ss,price,oper_type,ud_weight,first_inst
+from
+(select R.FROM_INST, R.To_inst, R.Date_ as rep_date, P.dog as part_from, P.dog as part_to,
+       '' as spart_from, to_char(DR.sub_part) as spart_to, DR.pr_count as tonn, DR.pr_litr litr,
+       P.ss, DR.s_price as price, '' as oper_type, dr.pr_ud_weig as ud_weight
+from oil_rashod R, oil_dr_data DR, oil_part P
+where DR.state = 'Y' and
+      R.state = 'Y' and
+      DR.oper_type =0 and
+      DR.Ttn_Id = R.id and
+      DR.TTN_INST = R.inst and
+      R.part_id = P.id and
+      R.part_inst = P.inst and
+      R.Date_ between :BeginDate and :EndDate
+union all
+select D.Azs_Id "Откуда", SR.Org_Inst "Куда", trunc(D.REP_DATE) "Дата", P.dog "Партия откуда", P.dog "Партия куда",
+       to_char(DR.sub_part) "Подпартия откуда", '' "Подпартия куда", SR.Count_t "Вес", SR.Litr "Литры",
+       P.ss "Учетная цена", SR.Price "Цена реализации", '' "Тип переброски", dr.pr_ud_weig as ud_weight
+from oil_srother SR, oil_dr_data DR, oil_daily_rep D, oil_rashod R, oil_part P
+where SR.state='Y' and
+      DR.state = 'Y' and
+      D.state = 'Y' and
+      SR.oper_id = 55 and
+      SR.Srep_Id = DR.id and
+      SR.Srep_Inst = DR.inst and
+      DR.Ttn_Id = R.ID and
+      DR.Ttn_Inst = R.inst and
+      DR.Rep_Id = D.id and
+      DR.Rep_Inst = D.inst and
+      R.Part_Id = P.id and
+      R.Part_Inst = P.inst and
+      trunc(D.Rep_Date) between :BeginDate and :EndDate
+union all
+select R.From_Inst "Откуда", R.To_Inst "Куда", R.Date_ "Дата", P.Dog "Партия откуда", null "Партия куда",
+       '' "Подпартия откуда", '' "Подпартия куда", R.Count_ "Все", R.Litr "Литры",
+       P.ss "Учетная цена", to_number(null) "Цена реализации", '' "Тип переброски", r.ud_weig as ud_weight
+from oil_rashod R, oil_part P
+where R.oper_id =150 and
+      R.state = 'Y' and
+      R.part_id = P.id and
+      R.Part_Inst = P.inst and
+      R.date_ between :BeginDate and :EndDate
+union all
+select from_inst,to_inst,date_,rash_dog,dog,'','',
+       rash_tonn, rash_litr, rash_ss,to_number(null),
+       to_char(rash_oper_id), rash_ud_weight
+from v_oil_prih_perem v
+where date_ between :BeginDate and :EndDate
+  and not ((from_obl_id<>to_obl_id
+    or from_obl_id is null
+    or from_id<>from_inst) and rash_oper_id is null
+    or rash_own_goods='S' and own_goods='O')
+  and not (from_obl_id=to_obl_id
+    and from_id<>to_id
+    and from_id=from_inst)
+) Q,
+(select dog,to_ as first_inst
+from
+  (select p.dog,pr.to_,
+     row_number() over (partition by p.dog order by pr.date_,pr.id) rnum
+   from oil_prihod pr,oil_part p
+   where pr.state='Y' and p.state='Y'
+     and pr.part_id=p.id and pr.part_inst=p.inst
+  )
+where rnum=1) pr
+
+where Q.part_from=pr.dog(+)
+
+[FIELDS]
+
+  NAME = FROM_INST
+  CAPTION =Откуда@Звідки
+  WIDTH = 10
+
+  NAME = TO_INST
+  CAPTION =Куда@Куди
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION =Дата
+  WIDTH = 10
+
+  NAME = PART_FROM
+  CAPTION =Партия откуда@Партія звідки
+  WIDTH = 15
+
+  NAME = PART_TO
+  CAPTION =Партия куда@Партія куди
+  WIDTH = 15
+
+  NAME = SPART_FROM
+  CAPTION =Подпартия откуда@Підпартія звідки
+  WIDTH = 10
+
+  NAME = SPART_TO
+  CAPTION =Подпартия куда@Підпартія куди
+  WIDTH = 10
+
+  NAME = TONN
+  CAPTION =Кол-во тонн@К-сть,тон
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION =Литры@Літри
+  WIDTH = 10
+
+  NAME = SS
+  CAPTION =Себестоимость@Собівартість
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION =Цена@Ціна
+  WIDTH = 10
+
+  NAME = OPER_TYPE
+  CAPTION =Тип переброски@Тип переміщення
+  WIDTH = 10
+
+  NAME = UD_WEIGHT
+  CAPTION =Вес@Вага
+  WIDTH = 10
+
+  NAME = FIRST_INST
+  CAPTION =Кому
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

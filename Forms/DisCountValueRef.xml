@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Общие" caption="Скидки" tablename="OIL_DISCOUNTVALUE">
+<sql>
+select id, code, name, discount, datestart, datefinish, shiftcount 
+  from oil_discountvalue t
+ where state = 'Y' 
+ order by code, datestart desc
+</sql>
+	<columns>
+		<column align="left" width="80">
+			<caption align="center">Код карточки</caption>
+			<fieldname>code</fieldname>
+		</column>
+		<column align="left" width="140">
+			<caption align="center">Название карточки</caption>
+			<fieldname>Name</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption align="center">Скидка</caption>
+			<fieldname>Discount</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption align="center">Дата начала</caption>
+			<fieldname>DateStart</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption align="center">Дата конца</caption>
+			<fieldname>DateFinish</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Кол-во на день</caption>
+			<fieldname>shiftcount</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="300" wholevalue="false">
+			<name>name</name>
+			<caption>Название карточки:</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

@@ -1,0 +1,102 @@
+[GLOBAL]
+  TITLE = Выгрузка в 1С (банковские карты)@Вивантаження в 1С (банківські карти)
+  VERSION = 1.3.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  MENU = Отчеты\Банковские, топливные и скретч карты\Выгрузка в 1С@Вивантаження в 1С
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate
+  Организация:: :org1.Name
+
+[EXEC_BEFORE]
+  declare cnt number;
+  begin
+    select count(*) into cnt from v_bank_card_check where delta <> 0 and to_date(begin_date,'dd.mm.rrrr hh24:mi') = to_date(:begindate,'dd.mm.rrrr hh24:mi') ;
+    if cnt > 0 then
+      RAISE_APPLICATION_ERROR(-20001,'Банковские карты:'||chr(13)||
+         'Имеется расхождение присланных из банка и введенных в сменном отчете сумм.'||chr(13)||
+         'Отчет недоступен');
+    end if;
+  end;
+
+[SQL]
+select o.name as azs_name,
+       o.par_name,
+       b.azs_id,
+       b.azs_inst,
+       b.part,
+       b.sub_part,
+       b.price,
+       b.litr,
+       b.money,
+       b.weight,
+       b.rep_date,
+       b.bank_mfo
+  from v_bank_card_equal b,
+       (select id, inst, par_name, name
+          from v_oil_org o
+         group by id, inst, par_name, name) o
+ where trunc(b.rep_date) between :BeginDate and :EndDate
+   and b.azs_id = o.id(+)
+   and b.azs_inst = o.inst(+)
+
+[FIELDS]
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 50
+
+  NAME = PAR_NAME
+  CAPTION = Организация@Організація
+  WIDTH = 50
+
+  NAME = REP_DATE
+  CAPTION = Дата см. отчета@Дата зм. звіту
+  WIDTH = 20
+
+  NAME = PART
+  CAPTION = Партия@Партія
+  WIDTH = 15
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = BANK_MFO
+  CAPTION = МФО банка@МФО банку
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION = Цена@Ціна
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION = К-во, л@К-ть, л
+  WIDTH = 10
+  TOSUM= TRUE
+  FORMAT = 0.00
+
+  NAME = WEIGHT
+  CAPTION = К-во, т@К-ть, т
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.000000
+
+  NAME = MONEY
+  CAPTION = К-во, грн@К-ть, грн
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = Azs_name

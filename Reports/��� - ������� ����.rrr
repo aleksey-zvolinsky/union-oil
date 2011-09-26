@@ -1,0 +1,101 @@
+[GLOBAL]
+  TITLE = Реестр отоваренных по Броварам
+  MENU = Отчеты\Отчеты по талонам\Отоваривание Бровары
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1=Подразделение
+    CAPTION2=Клиент
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate
+  Клиент:: :org2.Name
+
+[SQL]
+select 
+  oo.name as out_org_name,
+  oo.id_num as out_org_okpo,
+  npg.name as np_group,
+  nominal, ser, opl.num,
+  prev_date as out_date, 
+  date_ as prih_date,
+  prev_price as out_price,
+  1 as co, nominal as litr, 
+  round(prev_price*nominal,2) as out_summa
+from v_oil_talon_opl opl, oil_org oo, oil_np_group npg
+where opl.date_ between :BeginDate and :EndDate
+  and opl.prev_to_id=oo.id 
+  and opl.prev_to_inst=oo.inst
+  and opl.npgrp_id=npg.id
+  and opl.tip='P' and opl.prev_tip='O'
+  and opl.oper_id=180
+
+[FIELDS]
+  HEAD_DEPTH = 2
+
+  NAME = OUT_ORG_NAME
+  CAPTION = Клиент
+  WIDTH = 15
+
+  NAME = OUT_ORG_OKPO
+  CAPTION = ОКПО клиента
+  WIDTH = 10
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП
+  WIDTH = 10
+
+  NAME = NOMINAL
+  CAPTION = Номинал
+  WIDTH = 10
+
+  NAME = SER
+  CAPTION = Серия
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  NAME = OUT_DATE
+  CAPTION = Дата отпуска
+  WIDTH = 10
+
+  NAME = PRIH_DATE
+  CAPTION = Дата прихода
+  WIDTH = 10
+
+  NAME = OUT_PRICE
+  CAPTION = Цена отпуска с НДС
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = CO
+  CAPTION = Кол-во
+  WIDTH = 10
+  FORMAT = 0
+  TOSUM = TRUE
+
+  NAME = LITR
+  CAPTION = Литры
+  WIDTH = 10
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = OUT_SUMMA
+  CAPTION = Сумма с НДС по цене продажи
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = OUT_ORG_NAME

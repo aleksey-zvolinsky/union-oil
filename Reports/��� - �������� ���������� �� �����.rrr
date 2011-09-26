@@ -1,0 +1,334 @@
+[GLOBAL]
+  TITLE = Проверка транзакций по карте@Перевірка транзакцій по картці
+  MENU = Отчеты\Отчеты по эл. карточкам\Проверка транзакций по карте@Перевірка транзакцій по картці
+  VERSION = 1.9.4
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  PANEL
+      ELEMENT Fnumber:Edit
+        CAPTION =Номер карты@Номер карти
+      END
+  END
+
+
+[DESCRIPTION]
+  Карта: :FNumber
+
+[SQL]
+select
+  cc.cause_name,
+  tr.oper_date,
+  tr.card_number,
+  oo.name as client_name,
+  np.fullname as np_name,
+  tr.litr,
+  tr.term_number,
+  azs.par_name as azs_par_name,
+  azs.name as azs_name,
+  tr.term_price,
+  decode(petrol.oper_num,null,null,'x') as petrol,
+  decode(oil.oper_num,null,null,'x') as oil,
+  decode(oil_old.oper_num,null,null,'x') as oil_old,
+  decode(victory.oper_num,null,null,'x') as victory,  
+  petrol.ost as ost_petrol,
+  oil.ost as ost_oil,
+  oil_old.ost as ost_oil_old,
+  victory.ost as ost_victory,  
+  decode(petrol.oper_num, 8,null,9,null,10,null,11,null,12,null, petrol.price ) as petrol_price,
+  decode(oil_old.oper_num, 8,null,9,null,10,null,11,null,12,null, oil_old.price ) as oil_old_price,
+  decode(oil.oper_num, 8,null,9,null,10,null,11,null,12,null, oil.price ) as oil_price,
+  decode(victory.oper_num, 8,null,9,null,10,null,11,null,12,null, victory.price ) as victory_price
+from
+(
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    to_number(litr) as litr,
+    term_number,
+    nvl(term_price,0) as term_price
+  from
+  (
+     select
+       t.*,
+       decode(oper_num,5,1,6,-1,7,1,9,-1,10,1,0)*litr as card_litr
+     from
+     (
+     select
+      andriy.get_card_oper_num(t.gr_nomer, t.nomer_terminala,t.id_prichiny,t.operatziya, decode(t.NOMER_SCHEMY,3,2,t.NOMER_SCHEMY),trn_guid) as oper_num,
+       t.data + t.vremya /86400 as oper_date,
+       t.gr_nomer as card_number,
+       t.id_kosh_za_chto as np_type,
+       t.summa_za_chto as litr,
+       t.tzena_perescheta/100 as price,
+       t.tzena_terminala/100 as term_price,
+       t.em_gde_obsl as emitent_gde,
+       t.nomer_terminala as term_number,
+       decode(nvl(t.oldid,0), 0, to_char( t.trn_guid), to_char(t.oldid)) as id
+     from  magicash5.ecfil139 t
+     where gr_nomer >  0
+     ) t
+  )
+  where oper_num > 2
+  union
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    litr,
+    to_number(номер_терминала) as term_number ,
+    nvl(price_nds,0) as term_price
+  from andriy.v_card_transaction
+  where oper_num > 2
+  union
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    litr,
+    to_number(номер_терминала) as term_number ,
+    nvl(price_nds,0) as term_price
+  from oil_old.v_card_transaction
+  where oper_num > 2
+  union
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    litr,
+    to_number(номер_терминала) as term_number ,
+    nvl(price_nds,0) as term_price
+  from victory.v_card_transaction
+  where oper_num > 2  
+) tr,
+(
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    to_number(litr) as litr,
+    term_number,
+    term_price as term_price,
+    price,
+    sum(card_litr) over (partition by card_number,np_type order by oper_date,id) as ost
+  from
+  (
+     select
+       t.*,
+       decode(oper_num,5,1,6,-1,7,1,9,-1,10,1,0)*litr as card_litr
+     from
+     (
+     select
+      andriy.get_card_oper_num(t.gr_nomer, t.nomer_terminala,t.id_prichiny,t.operatziya, decode(t.NOMER_SCHEMY,3,2,t.NOMER_SCHEMY),trn_guid) as oper_num,
+       t.data + t.vremya /86400 as oper_date,
+       t.gr_nomer as card_number,
+       t.id_kosh_za_chto as np_type,
+       t.summa_za_chto as litr,
+       t.tzena_perescheta/100 as price,
+       t.tzena_terminala/100 as term_price,
+       t.em_gde_obsl as emitent_gde,
+       t.nomer_terminala as term_number,
+       decode(nvl(t.oldid,0), 0, to_char( t.trn_guid), to_char(t.oldid)) as id
+     from  magicash5.ecfil139 t
+     where gr_nomer >  0
+     ) t
+  )
+  where oper_num > 2
+) petrol,
+(
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    litr,
+    to_number(номер_терминала) as term_number ,
+    price_nds as term_price,
+    price_dog_nds as price,
+    sum(card_litr) over (partition by card_number,np_type order by oper_date,id) as ost
+  from andriy.v_card_transaction
+) oil,
+(
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    litr,
+    to_number(номер_терминала) as term_number ,
+    price_nds as term_price,
+    price_dog_nds as price,
+    sum(card_litr) over (partition by card_number,np_type order by oper_date,id) as ost
+  from oil_old.v_card_transaction
+  where oper_num > 2
+) oil_old,
+(
+  select
+    oper_num,
+    oper_date,
+    card_number,
+    np_type,
+    litr,
+    to_number(номер_терминала) as term_number ,
+    price_nds as term_price,
+    price_dog_nds as price,
+    sum(card_litr) over (partition by card_number,np_type order by oper_date,id) as ost
+  from victory.v_card_transaction
+  where oper_num > 2
+) victory,
+v_card_azs azs,
+card_cause cc,
+oil_np_group np,
+oil_org oo,
+v_card_transaction ct
+where
+/*oil*/
+ tr.oper_num = oil.oper_num (+)
+    and tr.oper_date = oil.oper_date (+)
+    and tr.card_number = oil.card_number (+)
+    and tr.np_type = oil.np_type (+)
+    and tr.litr = oil.litr (+)
+    and tr.term_number = oil.term_number (+)
+    and nvl(tr.term_price,0) = nvl(oil.term_price (+),0)
+/*petrol*/
+    and tr.oper_num = petrol.oper_num (+)
+    and tr.oper_date = petrol.oper_date (+)
+    and tr.card_number = petrol.card_number (+)
+    and tr.np_type = petrol.np_type (+)
+    and tr.litr = petrol.litr (+)
+    and tr.term_number = petrol.term_number (+)
+    and nvl(tr.term_price,0) = nvl(petrol.term_price (+) ,0)
+/*oil_old*/
+    and tr.oper_num = oil_old.oper_num (+)
+    and tr.oper_date = oil_old.oper_date (+)
+    and tr.card_number = oil_old.card_number (+)
+    and tr.np_type = oil_old.np_type (+)
+    and tr.litr = oil_old.litr (+)
+    and tr.term_number = oil_old.term_number (+)
+    and nvl(tr.term_price,0) = nvl(oil_old.term_price(+),0)
+/*victory*/
+    and tr.oper_num = victory.oper_num (+)
+    and tr.oper_date = victory.oper_date (+)
+    and tr.card_number = victory.card_number (+)
+    and tr.np_type = victory.np_type (+)
+    and tr.litr = victory.litr (+)
+    and tr.term_number = victory.term_number (+)
+    and nvl(tr.term_price,0) = nvl(victory.term_price(+),0)
+/*others*/
+    and tr.oper_num = cc.id (+)
+    and tr.np_type = np.petrol_id (+)
+    and tr.term_number + 1000000 = azs.id (+)
+    and azs.id (+) = azs.inst (+)
+    and tr.card_number = :Fnumber
+    and ct.card_number (+)= :Fnumber
+    and oo.id(+) = ct.to_id and oo.inst(+) = ct.to_inst
+    and tr.oper_date = ct.oper_date(+)
+order by np_name, oper_date
+
+[FIELDS]
+  NAME = NP_NAME
+  CAPTION =Тип НП
+  WIDTH = 15
+
+  NAME = OPER_DATE
+  CAPTION = Дата
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+  
+  NAME = CAUSE_NAME
+  CAPTION = Тип транзакции@Тип транзакції
+  WIDTH = 25
+
+  NAME = CARD_NUMBER
+  CAPTION = Карта@Картка
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION = К-во, л@К-сть,л.
+  WIDTH = 10
+
+  NAME = TERM_NUMBER
+  CAPTION = № терм
+  WIDTH = 10
+  
+  NAME = AZS_PAR_NAME
+  CAPTION = Подразделение АЗС@Підрозділ АЗС
+  WIDTH = 45
+  
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 30
+
+  NAME = CLIENT_NAME
+  CAPTION =Клиент
+  WIDTH = 30
+
+  NAME = TERM_PRICE
+  CAPTION =Ц.терм
+  WIDTH = 10
+
+  NAME = PETROL
+  CAPTION = Наличие!PETROL@Наявність!PETROL
+  WIDTH = 10
+
+  NAME = VICTORY
+  CAPTION = Наличие!VICTORY@Наявність!VICTORY
+  WIDTH = 10
+
+  NAME = OIL
+  CAPTION =Наличие!OIL@Наявність!OIL
+  WIDTH = 10
+
+  NAME = OIL_OLD
+  CAPTION = Наличие!OIL_OLD@Наявність!OIL_OLD
+  WIDTH = 10
+
+  NAME = OST_PETROL
+  CAPTION =Остаток!PETROL@Залишок!PETROL
+  WIDTH = 10
+
+  NAME = OST_VICTORY
+  CAPTION =Остаток!VICTORY@Залишок!VICTORY
+  WIDTH = 10
+
+  NAME = OST_OIL
+  CAPTION =Остаток!OIL@Залишок!OIL
+  WIDTH = 10
+
+  NAME = OST_OIL_OLD
+  CAPTION =Остаток!OIL_OLD@Залишок!OIL_OLD
+  WIDTH = 10
+
+  NAME = PETROL_PRICE
+  CAPTION =Цена пополнения!PETROL@Ціна поповнення!PETROL
+  WIDTH = 10
+  OPTIONAL = TRUE
+
+  NAME = VICTORY_PRICE
+  CAPTION =Цена пополнения!VICTORY@Ціна поповнення!VICTORY
+  WIDTH = 10
+  OPTIONAL = TRUE
+
+  NAME = OIL_PRICE
+  CAPTION =Цена пополнения!OIL@Ціна поповнення!OIL
+  WIDTH = 10
+  OPTIONAL = TRUE
+
+  NAME = OIL_OLD_PRICE
+  CAPTION =Цена пополнения!OIL_OLD@Ціна поповнення!OIL_OLD
+  WIDTH = 10
+  OPTIONAL = TRUE
+
+[TYPES]
+  CAPTION = С ценами пополнений@Із цінами поповнень
+
+  CAPTION = Основной@Основний
+  UNCHECKED = PETROL_PRICE, OIL_PRICE, OIL_OLD_PRICE, VICTORY_PRICE

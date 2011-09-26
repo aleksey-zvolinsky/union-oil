@@ -1,0 +1,133 @@
+[GLOBAL]
+   TITLE = Остатки талонов в кассе@Залишки талонів в касі
+   MENU = Отчеты\Отчеты по талонам\Наличие талонов в кассе@Наявність талонів в касі
+   VERSION = 1.2
+   NAME_FOR_SAVE = ТалоныОст
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+       ELEMENT Ser:Edit
+          CAPTION = Серия@Серія
+       END
+   END
+
+   PANEL
+      CAPTION = Тип талонов@Тип талонів
+      ELEMENT TALT:CheckBoxGroup
+         LIST = Региональные,Всеукраинские@Регіональні,Всеукраїнські
+         VALUES = -1,1
+      END
+   END
+
+[DESCRIPTION]
+   На :BeginDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Тип талонов:: :TALT.GetCaptions@Тип талонів:: :TALT.GetCaptions
+
+[SQL]
+select TalPrih.DepName,
+       TalPrih.NPGrpName,
+       TalPrih.Ser,
+       TalPrih.Num,
+       TalPrih.Nominal,
+       TalPrih.Nominal as Litr,
+       1 as Kol,
+       TalPrih.Prih_Date as PrihDate
+  from (select Oil_Org.Name as DepName,
+               Date_ as Prih_Date,
+               t.Ser,
+               t.Num,
+               Nominal,
+               Oil_NP_Group.Name as NPGrpName
+          from V_Oil_Talon_Op t, Oil_Org, Oil_NP_Group
+         where Tip = 'P'
+           and t.Ser is not null
+           and Date_ <= :BeginDate
+           and (Dep_Inst = :Org1.Id or :Org1.Id is null)
+           and (Ser = :Ser or :Ser is null)
+           and Dep_Id = Oil_Org.Id
+           and Dep_Inst = Oil_Org.Inst
+           and NPGrp_Id = Oil_NP_Group.Id
+           and (t.Ser, t.Num) not in
+               (select ser, num
+                  from oil_srtalon srt, oil_dr_data dr
+                 where srt.state = 'Y'
+                   and dr.state = 'Y'
+                   and srt.srep_id = dr.id
+                   and srt.srep_Inst = dr.inst
+                   and dr.oper_type = 1
+                   and intheway = 4
+                   and dr.rep_id = t.srep_id
+                   and dr.rep_inst = t.srep_inst
+                   and srt.Ser = t.Ser
+                   and srt.Num = t.Num)) TalPrih,
+       (select Ser, Num, Trunc(max(SamDate), 'DD') MaxDate
+          from (select Ser,
+                       Num,
+                       decode(Tip, 'P', Date_ + 0.1, Date_) as SamDate
+                  from V_Oil_Talon_Op
+                 where Ser is not null
+                   and (Ser = :Ser or :Ser is null)
+                   and Date_ <= :BeginDate) TalMax
+         group by Ser, Num
+        having(max(SamDate) - Trunc(max(SamDate), 'DD')) > 0) TalMax
+ where TalPrih.Ser = TalMax.Ser
+   and TalPrih.Num = TalMax.Num
+   and TalPrih.Prih_Date = TalMax.MaxDate
+   and sign(TalPrih.Num-500000000) in (:TALT.GetValues)
+
+[FIELDS]
+   NAME = DepName
+   CAPTION = Организация@Організація
+   WIDTH=25
+
+   NAME = NpGrpName
+   CAPTION = Нефтепродукт@Нафтопродукт
+   WIDTH = 20
+
+   NAME = ser
+   CAPTION = Серия@Серія
+   WIDTH = 10
+
+   NAME = num
+   CAPTION = Номер
+   WIDTH = 10
+
+   NAME = nominal
+   CAPTION = Номинал@Номінал
+   WIDTH = 10
+
+   NAME = litr
+   CAPTION = Литраж@Літраж
+   WIDTH = 10
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = kol
+   CAPTION = Кол-во@К-сть
+   WIDTH = 10
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = prihdate
+   CAPTION = Приход в кассу@Прихід в касу
+   FORMAT = dd.mm.yyyy
+   WIDTH = 15
+
+[TYPES]
+   CAPTION = С номерами талонов@З номерами талонів
+   ITOGI = depname,npgrpname,ser
+
+   CAPTION = Без номеров талонов@Без номерів талонів
+   ITOGI = depname,npgrpname,ser
+   UNCHECKED = num

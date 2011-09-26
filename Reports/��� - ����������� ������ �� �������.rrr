@@ -1,0 +1,89 @@
+[GLOBAL]
+  TITLE = Недостающие данные по транзакциям "Чужие у нас"@Відсутні дані по транзакціях "Чужі у нас"
+  MENU = Отчеты\Отчеты по эл. карточкам\Чужие списания\Недостающие данные по транзакциям "Чужие у нас"@Відсутні дані по транзакціях "Чужі у нас"
+  VERSION = 1.0
+  MENU_POSITION = 6
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select azs_obl_name,
+       azs_name,
+       card_obl_name,
+       card_number,
+       to_char(oper_date, 'DD.MM.YYYY HH24:MI:SS') as oper_date,
+       np_grp_name,
+       litr
+  from (select ct.*, ctp.azs_obl_id as q_inst
+          from (select ct.azs_obl_name,
+                       ct.azs_name,
+                       ct.azs_obl_id,
+                       ct.azs_id,
+                       ct.card_number,
+                       ct.oper_date,
+                       npg.id as np_grp,
+                       npg.name as np_grp_name,
+                       ct.litr,
+                       ct.card_obl_id
+                  from v_card_transit_azs ct, oil_np_group npg
+                 where trunc(ct.oper_date) between :BeginDate and :EndDate
+                   and ct.np_type = npg.petrol_id) CT,
+               (select cto.azs_obl_id,
+                       cto.card_number,
+                       cto.azs_id,
+                       cto.oper_date,
+                       decode(npt.id, 4, 5, npt.id) as np_grp,
+                       sum(cto.litr) as litr
+                  from card_transaction_owner cto, oil_np_group npt
+                 where cto.np_id = npt.petrol_id
+                   and cto.state = 'Y'
+                 group by cto.azs_obl_id,
+                          cto.card_number,
+                          cto.azs_id,
+                          cto.oper_date,
+                          decode(npt.id, 4, 5, npt.id)) CTP
+         where ct.card_number = ctp.card_number(+)
+           and ct.oper_date = ctp.oper_date(+)
+           and decode(ct.np_grp, 4, 5, ct.np_grp) = ctp.np_grp(+)
+           and ct.azs_obl_id = ctp.azs_obl_id(+)
+           and ct.litr = ctp.litr(+)),
+       v_org o
+ where q_inst is null
+   and card_obl_id = o.id
+   and card_obl_id = o.inst
+   and o.id = o.inst
+
+[FIELDS]
+  NAME = CARD_OBL_NAME
+  CAPTION = Организация@Організація
+  WIDTH = 50
+
+  NAME = CARD_NUMBER
+  CAPTION = № карточки@№ картки
+  WIDTH = 15
+
+  NAME = OPER_DATE
+  CAPTION = Дата и время@Дата і час
+  WIDTH = 20
+
+  NAME = NP_GRP_NAME
+  CAPTION = Группа НП@Група НП
+  WIDTH = 12
+
+  NAME = LITR
+  CAPTION = Литры@Літри
+  WIDTH = 15
+  TOSUM = TRUE
+  FORMAT = 0.000
+  OPTIONAL = FALSE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = CARD_OBL_NAME

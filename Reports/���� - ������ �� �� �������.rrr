@@ -1,0 +1,114 @@
+[GLOBAL]
+  TITLE = Данные из сменных отчетов (банковские карты)@Дані з змінних звітів(банківські карти)
+  VERSION = 1.3.3
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  MENU = Отчеты\Банковские, топливные и скретч карты\Данные из сменных отчетов@Дані з змінних звітів
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select azs.obl_name as fil_name,
+       azs.name as azs_name,
+       begin_date,
+       end_date,
+       rep_num,
+       smena_num,
+       sub_part,
+       litr,
+       weight,
+       money,
+       price,
+       part,
+       np_type_name,
+       oper_name
+  from v_bank_srother s,
+       v_oil_azs azs
+ where s.azs_id = azs.id (+) 
+   and s.azs_inst = azs.inst (+) 
+   and trunc(s.begin_date) between :BeginDate and :EndDate 
+   and s.obl_id = :Org1.Inst
+ order by azs_name, begin_date
+
+[FIELDS]
+
+  NAME = FIL_NAME
+  CAPTION = Филиал@Філія
+  WIDTH = 30
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 10
+
+  NAME = BEGIN_DATE
+  CAPTION = Начало смены@Початок зміни
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = END_DATE
+  CAPTION = Конец смены@Кінець зміни
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = REP_NUM
+  CAPTION = № см.отчета@№ зм.звіту
+  WIDTH = 10
+
+  NAME = SMENA_NUM
+  CAPTION = № смены@№ зміни
+  WIDTH = 10
+
+  NAME = PART
+  CAPTION = Партия@Партія
+  WIDTH = 10
+
+  NAME = SUB_PART
+  CAPTION =Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = NP_TYPE_NAME
+  CAPTION = Тип НП
+  WIDTH = 25
+
+  NAME = OPER_NAME
+  CAPTION = Тип отпуска@Тип відпуску
+  WIDTH = 25
+
+  NAME = PRICE
+  CAPTION = Цена@Ціна
+  WIDTH = 10
+  
+  NAME = LITR
+  CAPTION = К-во,л@К-сть,л
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM=TRUE
+
+  NAME = WEIGHT
+  CAPTION = К-во,т@К-сть,т
+  WIDTH = 10
+  FORMAT = 0.000000
+  TOSUM=TRUE
+
+  NAME = MONEY
+  CAPTION = Сумма,грн@Сума,грн
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM=TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = fil_name, azs_name, OPER_NAME
+  UNCKECKED = PART, SUB_PART

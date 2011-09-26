@@ -1,0 +1,163 @@
+[GLOBAL]
+   TITLE = Замеры резервуаров на АЗС@Заміри резервуарів на АЗС
+   NAME_FOR_SAVE = АЗС_Замеры
+   MENU = Отчеты\Отчеты по АЗС\Замеры резервуаров на АЗС@Заміри резервуарів на АЗС
+   MENU_POSITION = 2
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   VERSION = 1.4
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NUM = 2
+     CAPTION1 = Организация@Организація
+     CAPTION2 = АЗС
+   END
+
+[DESCRIPTION]
+   На :BeginDate
+   Организация:: :org1.name@Организація:: :org1.name
+   АЗС:: :org2.name@АЗС:: :org2.name
+
+[SQL]
+select azs.name as azs_name,
+       np.name as np_name,
+       dr.rep_date,
+       dr.rep_num,
+       dr.smena_num,
+       tp.id,
+       tp.mdate,
+       tp.litres_all - tp.curamount as diff,
+       tp.curamount,
+       tp.litres_all,
+       LITRES_FUEL,
+       LITRES_WATER,
+       MM_ALL,
+       MM_FUEL,
+       MM_WATER,
+       COMMENT_,
+       t.minamount,
+       t.maxamount,
+       t.tumb
+  from oil_daily_rep dr,
+       oil_azs_tankparams tp,
+       (select dr.azs_id,
+               t.tank_id,
+               t.fuel_id,
+               to_number(substr(max(to_char(dr.rep_date, 'ddmmyyyy_') ||
+                                    t.minamount),
+                                10)) as minamount,
+               to_number(substr(max(to_char(dr.rep_date, 'ddmmyyyy_') ||
+                                    t.maxamount),
+                                10)) as maxamount,
+               to_number(substr(max(to_char(dr.rep_date, 'ddmmyyyy_') ||
+                                    t.tumb),
+                                10)) as tumb
+          from oil_daily_rep dr, oil_azs_tanks t
+         where dr.state = 'Y'
+           and t.state = 'Y'
+           and dr.id = t.rep_id
+           and dr.inst = t.rep_inst
+           and dr.rep_date = (select max(dr2.rep_date)
+                        from oil_daily_rep dr2, oil_azs_tanks t
+                       where dr2.state = 'Y'
+                         and t.state = 'Y'
+                         and dr2.id = t.rep_id
+                         and dr2.inst = t.rep_inst
+                         and dr2.azs_id = dr.azs_id and dr2.azs_inst = dr.azs_inst
+                         and ((dr.azs_id = :org2.id and dr.azs_inst = :org2.id) or :org2.id is null))
+         group by dr.azs_id, t.tank_id, t.fuel_id) t,
+       oil_np_group np,
+       v_oil_azs azs
+ where dr.id = tp.rep_id
+   and dr.inst = tp.rep_inst
+   and t.tank_id = tp.tanks_id
+   and dr.state = 'Y'
+   and tp.state = 'Y'
+   and t.fuel_id = np.id
+   and t.azs_id = dr.azs_id
+   and dr.azs_id = azs.id
+   and dr.azs_inst = azs.inst
+   and ((azs.obl_id = :org1.id and azs.obl_id = :org1.id) or :org1.id is null)
+   and ((dr.azs_id = :org2.id and dr.azs_inst = :org2.id) or :org2.id is null)
+   and trunc(dr.rep_date) between :BeginDate and :EndDate
+ order by dr.azs_id, np.name, rep_date, mdate
+
+[FIELDS]
+   NAME = azs_name
+   CAPTION = АЗС@АЗС
+   WIDTH = 30
+
+   NAME = np_name
+   CAPTION = Резервуар!Группа НП@Резервуар!Група НП
+   WIDTH = 12
+
+   NAME = minamount
+   CAPTION = Резервуар!Мин.объем, л@Резервуар!Мін.об'єм, л
+   WIDTH = 12
+
+   NAME = maxamount
+   CAPTION = Резервуар!Макс.объем, л@Резервуар!Макс.об'єм, л
+   WIDTH = 12
+
+   NAME = tumb
+   CAPTION = Резервуар!Объем трубопровода, л@Резервуар!Об'єм трубопроводу, л
+   WIDTH = 12
+
+   NAME = rep_date
+   CAPTION = Дата/время см.отчета@Дата/час зм.звіту
+   WIDTH = 20
+   FORMAT = dd.mm.yyyy hh:mm:ss
+
+   NAME = mdate
+   CAPTION = Дата/время замера@Дата/час заміру
+   WIDTH = 20
+   FORMAT = dd.mm.yyyy hh:mm:ss
+
+   NAME = diff
+   CAPTION = Разница
+   WIDTH = 12
+
+   NAME = curamount
+   CAPTION = Книжный остаток
+   WIDTH = 12
+
+   NAME = litres_all
+   CAPTION = Замер!Объем всего, л@Замір!Об'єм всього, мм
+   WIDTH = 12
+
+   NAME = LITRES_FUEL
+   CAPTION = Замер!Объем топлива, л@Замір!Об'єм палива, мм
+   WIDTH = 12
+
+   NAME = LITRES_WATER
+   CAPTION = Замер!Объем воды, л@Замір!Об'єм води, мм
+   WIDTH = 12
+
+   NAME = MM_ALL
+   CAPTION = Замер!Всего, мм@Замір!Всього, мм
+   WIDTH = 12
+
+   NAME = MM_FUEL
+   CAPTION = Замер!Топлива, мм@Замір!Палива, мм
+   WIDTH = 12
+
+   NAME = MM_WATER
+   CAPTION = Замер!Воды, мм@Замір!Води, мм
+   WIDTH = 12
+
+   NAME = COMMENT_
+   CAPTION = Комментарий оператора@Коментар оператора
+   WIDTH = 30
+
+   NAME = id
+   CAPTION = Код БД
+   WIDTH = 1
+
+[TYPES]
+   CAPTION = Основной
+   ITOGI = azs_name,np_name
+   UNCHECKED =

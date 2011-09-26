@@ -1,0 +1,61 @@
+[GLOBAL]
+  TITLE = Ошибки в учете бланков@Помилки в обліку бланків
+  MENU = Отчеты\Отчеты по эл. карточкам\Бланки\Ошибки в учете бланков@Помилки в обліку бланків
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+[DESCRIPTION]
+
+[SQL]
+
+select * from V_CARD_BLANK_TEST where is_error_card=1
+
+[FIELDS]
+
+  NAME = CARD_NUMBER
+  CAPTION = Карта
+  WIDTH = 12
+
+  NAME = RN
+  CAPTION = Порядок операций
+  WIDTH = 8
+
+  NAME = IS_ERROR
+  CAPTION = Ошибка
+  WIDTH = 8
+
+  NAME = DATE_
+  CAPTION = Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = NUMB
+  CAPTION = Номер
+  WIDTH = 8
+
+  NAME = OPER_NAME
+  CAPTION = Операция
+  WIDTH = 15
+
+  NAME = FROM_NAME
+  CAPTION = От кого
+  WIDTH = 20
+
+  NAME = TO_NAME
+  CAPTION = Кому
+  WIDTH = 20
+
+  NAME = INST
+  CAPTION = INST
+  WIDTH = 10
+
+  NAME = RN_INST
+  CAPTION = INST РН
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = CARD_NUMBER

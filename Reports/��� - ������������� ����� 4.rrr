@@ -1,0 +1,448 @@
+[GLOBAL]
+  TITLE = Движение товара сокращенный (выгрузка в 1С - txt)@Рух товару скорочений (выгрузка в 1С - txt)
+  MENU = Отчеты\Сопутствующий товар\Движение сокращенный (выгрузка в 1С - txt)@Рух скорочений (выгрузка в 1С - txt)
+  VERSION = 2.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@від :BeginDate до :EndDate
+
+[SQL]
+select X.azsname,
+       X.np_name,
+       X.date_,
+       X.vid_otpuska,
+       X.price,
+       X.rash_period,
+       X.rash_money_period,
+       nvl(X.doc_number, '0') as doc_number,
+       nvl(X.azs_to, '0') as azs_to
+  from (select Q.*
+          from (select date_,
+                       azsname,
+                       -11 as vid_otpuska,
+                       np_name,
+                       max(price) as price,
+                       sum(rash) as rash_period,
+                       sum(rash_money) as rash_money_period,
+                       '0' as doc_number,
+                       '0' as azs_to
+                  from (select to_char(drep.rep_date, 'dd.mm.yy') as date_,
+                               el.out_code as azsname,
+                               npt.codavias as np_name,
+                               dr.s_price as price,
+                               nvl(dr.pr_count, 0) as prih,
+                               nvl(dr.out_nal_count, 0) +
+                               nvl(dr.out_ved_count, 0) as rash,
+                               nvl(dr.out_nal_money, 0) +
+                               nvl(dr.out_ved_money, 0) as rash_money,
+                               nvl(dr.out_sn_count, 0) + nvl(dr.out_count, 0) as rash_other
+                          from oil_daily_rep   drep,
+                               oil_dr_data     dr,
+                               oil_rashod      r,
+                               oil_part        p,
+                               v_oil_org_norek azs,
+                               oil_np_type     npt,
+                               v_oil_dim       dim,
+                               exe_link        el
+                         where drep.state = 'Y'
+                           and dr.state = 'Y'
+                           and r.state = 'Y'
+                           and p.state = 'Y'
+                           and dr.rep_id = drep.id
+                           and dr.rep_inst = drep.inst
+                           and dr.ttn_id = r.id
+                           and dr.ttn_inst = r.inst
+                           and r.part_id = p.id
+                           and r.part_inst = p.inst
+                           and drep.azs_id = azs.id
+                           and drep.azs_inst = azs.inst
+                           and p.np_type = npt.id
+                           and p.dim_id = dim.id
+                           and trunc(drep.rep_date) <= :EndDate
+                           and trunc(drep.rep_date) >= :BeginDate
+                           and dim.IsShtuki = 'Y'
+                           and (dr.out_litr <> 0 or dr.out_sn_litr <> 0 or
+                               dr.out_nal_litr <> 0)
+                           and el.oil_table_name = 'OIL_ORG'
+                           and azs.id = el.oil_id
+                           and el.out_program = 8)
+                 group by date_, azsname, np_name
+                having(sum(rash_other) = 0 or sum(rash) <> 0)) Q
+        union
+        select w.*
+          from (select date_,
+                       azsname,
+                       decode(vid_otpuska,
+                              55,
+                              -5,
+                              201,
+                              -15,
+                              286,
+                              2,
+                              7,
+                              -6,
+                              10,
+                              -6,
+                              44,
+                              -6,
+                              -2),
+                       np_name,
+                       to_number(0) as price,
+                       sum(decode(vid_otpuska, 286, -rash_other, rash_other)) as rash_period,
+                       sum(round(decode(vid_otpuska,
+                                        286,
+                                        -rash_other,
+                                        rash_other) *
+                                 decode(vid_otpuska, 55, 0, price),
+                                 2)) as rash_money_period,
+                       decode(vid_otpuska, 55, doc_number, 0),
+                       decode(vid_otpuska, 55, azs_to, 0)
+                  from (select to_char(drep.rep_date, 'dd.mm.yy') as date_,
+                               el.out_code as azsname,
+                               npt.codavias as np_name,
+                               dr.s_price as price,
+                               nvl(dr.pr_count, 0) as prih,
+                               nvl(dr.out_nal_count, 0) +
+                               nvl(dr.out_ved_count, 0) as rash,
+                               nvl(dr.out_nal_money, 0) +
+                               nvl(dr.out_ved_money, 0) as rash_money,
+                               nvl(dr.out_sn_count, 0) + nvl(dr.out_count, 0) as rash_other,
+                               sr.oper_id as vid_otpuska,
+                               pr.number_doc doc_number,
+                               (select el.out_code
+                                  from exe_link el
+                                 where el.out_program = 8
+                                   and pr.np_type = p.np_type
+                                   and pr.state = 'Y'
+                                   and pr.to_ = el.oil_id
+                                   and trunc(drep.rep_date) = pr.date_
+                                   and pr.oper_id = 54
+                                   and pr.from_ = drep.azs_id) as azs_to
+                          from oil_daily_rep   drep,
+                               oil_dr_data     dr,
+                               oil_rashod      r,
+                               oil_prihod      pr,
+                               oil_part        p,
+                               v_oil_org_norek azs,
+                               v_oil_np_type   npt,
+                               v_oil_dim       dim,
+                               oil_srother     sr,
+                               exe_link        el
+                         where drep.state = 'Y'
+                           and dr.state = 'Y'
+                           and r.state = 'Y'
+                           and p.state = 'Y'
+                           and pr.state = 'Y'
+                           and dr.rep_id = drep.id
+                           and dr.rep_inst = drep.inst
+                           and dr.ttn_id = r.id
+                           and dr.ttn_inst = r.inst
+                           and r.part_id = p.id
+                           and r.part_inst = p.inst
+                           and drep.azs_id = azs.id
+                           and drep.azs_inst = azs.inst
+                           and p.np_type = npt.id
+                           and p.dim_id = dim.id
+                           and trunc(drep.rep_date) <= :EndDate
+                           and trunc(drep.rep_date) >= :BeginDate
+                           and trunc(drep.rep_date) = pr.date_
+                           and pr.oper_id = 54
+                           and pr.from_ = drep.azs_id
+                           and pr.np_type = p.np_type
+                           and dim.IsShtuki = 'Y'
+                           and sr.srep_inst = dr.inst
+                           and sr.srep_id = dr.id
+                           and sr.state = 'Y'
+                           and sr.oper_id in ('55')
+                           and (dr.out_litr <> 0 or dr.out_sn_litr <> 0 or
+                               dr.out_nal_litr <> 0 or dr.pr_litr = 0)
+                           and el.oil_table_name = 'OIL_ORG'
+                           and azs.id = el.oil_id
+                           and el.out_program = 8)
+                 group by date_,
+                          azsname,
+                          vid_otpuska,
+                          np_name,
+                          doc_number,
+                          azs_to
+                having(sum(rash_other) <> 0)) w
+        union
+        select w2.*
+          from (select date_,
+                       azsname,
+                       decode(vid_otpuska,
+                              55,
+                              -5,
+                              201,
+                              -15,
+                              286,
+                              2,
+                              7,
+                              -6,
+                              10,
+                              -6,
+                              44,
+                              -6,
+                              -2),
+                       np_name,
+                       max(price) as price,
+                       sum(decode(vid_otpuska, 286, -rash_other, rash_other)) as rash_period,
+                       sum(round(decode(vid_otpuska,
+                                        286,
+                                        -rash_other,
+                                        rash_other) *
+                                 decode(vid_otpuska, 55, 0, price),
+                                 2)) as rash_money_period,
+                       decode(vid_otpuska, 55, doc_number, 0),
+                       decode(vid_otpuska, 55, azs_to, 0)
+                  from (select to_char(drep.rep_date, 'dd.mm.yy') as date_,
+                               el.out_code as azsname,
+                               npt.codavias as np_name,
+                               dr.s_price as price,
+                               nvl(dr.pr_count, 0) as prih,
+                               nvl(dr.out_nal_count, 0) +
+                               nvl(dr.out_ved_count, 0) as rash,
+                               nvl(dr.out_nal_money, 0) +
+                               nvl(dr.out_ved_money, 0) as rash_money,
+                               nvl(dr.out_sn_count, 0) + nvl(dr.out_count, 0) as rash_other,
+                               sr.oper_id as vid_otpuska,
+                               '0' doc_number,
+                               '0' azs_to
+                          from oil_daily_rep   drep,
+                               oil_dr_data     dr,
+                               oil_rashod      r,
+                               oil_part        p,
+                               v_oil_org_norek azs,
+                               v_oil_np_type   npt,
+                               v_oil_dim       dim,
+                               oil_srother     sr,
+                               exe_link        el
+                         where drep.state = 'Y'
+                           and dr.state = 'Y'
+                           and r.state = 'Y'
+                           and p.state = 'Y'
+                           and dr.rep_id = drep.id
+                           and dr.rep_inst = drep.inst
+                           and dr.ttn_id = r.id
+                           and dr.ttn_inst = r.inst
+                           and r.part_id = p.id
+                           and r.part_inst = p.inst
+                           and drep.azs_id = azs.id
+                           and drep.azs_inst = azs.inst
+                           and p.np_type = npt.id
+                           and p.dim_id = dim.id
+                           and trunc(drep.rep_date) <= :EndDate
+                           and trunc(drep.rep_date) >= :BeginDate
+                           and dim.IsShtuki = 'Y'
+                           and sr.srep_inst = dr.inst
+                           and sr.srep_id = dr.id
+                           and sr.state = 'Y'
+                           and sr.oper_id not in ('55', '286')
+                           and (dr.out_litr <> 0 or dr.out_sn_litr <> 0 or
+                               dr.out_nal_litr <> 0 or dr.pr_litr = 0)
+                           and el.oil_table_name = 'OIL_ORG'
+                           and azs.id = el.oil_id
+                           and el.out_program = 8)
+                 group by date_,
+                          azsname,
+                          vid_otpuska,
+                          np_name,
+                          doc_number,
+                          azs_to
+                having(sum(rash_other) <> 0)) w2
+        union
+        select w1.*
+          from (select date_,
+                       azsname,
+                       decode(vid_otpuska,
+                              55,
+                              -5,
+                              201,
+                              -15,
+                              286,
+                              2,
+                              7,
+                              -6,
+                              10,
+                              -6,
+                              44,
+                              -6,
+                              -2),
+                       np_name,
+                       max(price) as price,
+                       sum(decode(vid_otpuska, 286, -rash_other, rash_other)) as rash_period,
+                       sum(round(decode(vid_otpuska,
+                                        286,
+                                        -rash_other,
+                                        rash_other) * price,
+                                 2)) as rash_money_period,
+                       doc_number,
+                       azs_to
+                  from (select to_char(drep.rep_date, 'dd.mm.yy') as date_,
+                               el.out_code as azsname,
+                               npt.codavias as np_name,
+                               dr.s_price as price,
+                               nvl(dr.pr_count, 0) as prih,
+                               nvl(dr.out_nal_count, 0) +
+                               nvl(dr.out_ved_count, 0) as rash,
+                               nvl(dr.out_nal_money, 0) +
+                               nvl(dr.out_ved_money, 0) as rash_money,
+                               nvl(dr.out_sn_count, 0) + nvl(dr.out_count, 0) as rash_other,
+                               sr.oper_id as vid_otpuska,
+                               r.ttn_num as doc_number,
+                               (select el.out_code
+                                  from exe_link el
+                                 where sr.org_id = el.oil_id) as azs_to
+                          from oil_daily_rep   drep,
+                               oil_dr_data     dr,
+                               oil_rashod      r,
+                               oil_part        p,
+                               v_oil_org_norek azs,
+                               v_oil_np_type   npt,
+                               v_oil_dim       dim,
+                               oil_srother     sr,
+                               exe_link        el
+                         where drep.state = 'Y'
+                           and dr.state = 'Y'
+                           and r.state = 'Y'
+                           and p.state = 'Y'
+                           and dr.rep_id = drep.id
+                           and dr.rep_inst = drep.inst
+                           and dr.ttn_id = r.id
+                           and dr.ttn_inst = r.inst
+                           and r.part_id = p.id
+                           and r.part_inst = p.inst
+                           and drep.azs_id = azs.id
+                           and drep.azs_inst = azs.inst
+                           and p.np_type = npt.id
+                           and p.dim_id = dim.id
+                           and trunc(drep.rep_date) <= :EndDate
+                           and trunc(drep.rep_date) >= :BeginDate
+                           and dim.IsShtuki = 'Y'
+                           and sr.srep_inst = dr.inst
+                           and sr.srep_id = dr.id
+                           and sr.state = 'Y'
+                           and sr.oper_id in ('286')
+                           and (dr.out_litr <> 0 or dr.out_sn_litr <> 0 or
+                               dr.out_nal_litr <> 0 or dr.pr_litr = 0)
+                           and el.oil_table_name = 'OIL_ORG'
+                           and azs.id = el.oil_id
+                           and el.out_program = 8)
+                 group by date_,
+                          azsname,
+                          vid_otpuska,
+                          np_name,
+                          doc_number,
+                          azs_to
+                having(sum(rash_other) <> 0)) w1
+        union
+        select Z.*
+          from (select date_,
+                       azsname,
+                       vid_otpuska,
+                       np_name,
+                       max(price) as price,
+                       sum(prih) as rash_period,
+                       sum(round(prih * price, 2)) as rash_money_period,
+                       doc_number,
+                       azs_to
+                  from (select to_char(drep.rep_date, 'dd.mm.yy') as date_,
+                               el.out_code as azsname,
+                               npt.codavias as np_name,
+                               dr.s_price as price,
+                               nvl(dr.pr_count, 0) as prih,
+                               nvl(dr.out_nal_count, 0) +
+                               nvl(dr.out_ved_count, 0) as rash,
+                               nvl(dr.out_nal_money, 0) +
+                               nvl(dr.out_ved_money, 0) as rash_money,
+                               nvl(dr.out_sn_count, 0) + nvl(dr.out_count, 0) as rash_other,
+                               decode(r.oper_id, 286, 6, 10, 1, 2) as vid_otpuska,
+                               r.ttn_num as doc_number,
+                               (select max(el.out_code)
+                                  from exe_link el
+                                 where r.from_id = el.oil_id
+                                   and r.from_inst = el.oil_inst
+                                   and el.out_program = 8) as azs_to
+                          from oil_daily_rep   drep,
+                               oil_dr_data     dr,
+                               oil_rashod      r,
+                               oil_part        p,
+                               v_oil_org_norek azs,
+                               oil_np_type     npt,
+                               v_oil_dim       dim,
+                               exe_link        el
+                         where drep.state = 'Y'
+                           and dr.state = 'Y'
+                           and r.state = 'Y'
+                           and p.state = 'Y'
+                           and dr.rep_id = drep.id
+                           and dr.rep_inst = drep.inst
+                           and dr.ttn_id = r.id
+                           and dr.ttn_inst = r.inst
+                           and r.part_id = p.id
+                           and r.part_inst = p.inst
+                           and drep.azs_id = azs.id
+                           and drep.azs_inst = azs.inst
+                           and p.np_type = npt.id
+                           and p.dim_id = dim.id
+                           and trunc(drep.rep_date) <= :EndDate
+                           and trunc(drep.rep_date) >= :BeginDate
+                           and dim.IsShtuki = 'Y'
+                           and (dr.pr_litr <> 0)
+                           and el.oil_table_name = 'OIL_ORG'
+                           and azs.id = el.oil_id
+                           and el.out_program = 8)
+                 group by date_,
+                          azsname,
+                          vid_otpuska,
+                          np_name,
+                          doc_number,
+                          azs_to
+                having sum(prih) <> 0) Z) X
+
+
+[FIELDS]
+  NAME = date_
+  CAPTION = Дата
+  WIDTH = 10
+
+  NAME = AZSNAME
+  CAPTION = АЗС
+  WIDTH = 10
+
+  NAME = VID_OTPUSKA
+  CAPTION = Вид отпуска@Вид відпуску
+  WIDTH = 15
+
+  NAME = NP_NAME
+  CAPTION = Продукт
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION = Цена (грн.)@Ціна (грн.)
+  WIDTH = 10
+
+  NAME = RASH_PERIOD
+  CAPTION = Кол-во (шт.)@Кіл-ть (шт.)
+  WIDTH = 10
+
+  NAME = RASH_MONEY_PERIOD
+  CAPTION = Сумма (грн.)@Сума (грн.)
+  WIDTH = 10
+
+  NAME = doc_number
+  CAPTION = № накладной@№ накладної
+  WIDTH = 15
+
+  NAME = azs_to
+  CAPTION = № нефтебазы откуда пришло@№ нафтобази звідки прийло
+  WIDTH = 15
+
+[TYPES]  
+   CAPTION = Основной

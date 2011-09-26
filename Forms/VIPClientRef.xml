@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Справочники" caption="VIP клиенты" tablename="OIL_VIPCLIENTS">
+<sql>
+select id, inst, family, name, patronymic, characterstroke, dateactivation, discountcode, country, 
+       region, city, address, telephone, flagcar, line, state
+  from oil_vipclients
+ order by id
+</sql>
+	<columns>
+		<column align="left" width="30">
+			<caption align="center">№</caption>
+			<fieldname>id</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption align="center">Активность</caption>
+			<fieldname>state</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Фамилия</caption>
+			<fieldname>family</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Имя</caption>
+			<fieldname>name</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Отчество</caption>
+			<fieldname>patronymic</fieldname>
+		</column>
+		<column align="left" width="90">
+			<caption align="center">Штрих-код</caption>
+			<fieldname>characterstroke</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Дата активации</caption>
+			<fieldname>dateactivation</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption align="center">Код карточки</caption>
+			<fieldname>discountcode</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption align="center">Страна</caption>
+			<fieldname>country</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption align="center">Регион</caption>
+			<fieldname>region</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption align="center">Город</caption>
+			<fieldname>city</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Адрес</caption>
+			<fieldname>address</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption align="center">Телефон</caption>
+			<fieldname>telephone</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption align="center">Наличие авто</caption>
+			<fieldname>flagcar</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption align="center">Тип деятельности</caption>
+			<fieldname>line</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="100" wholevalue="false">
+			<name>id</name>
+			<caption>Номер:</caption>
+			<fieldname>id</fieldname>
+		</edit>	
+		<edit left="120" top="10" width="300" wholevalue="false">
+			<name>name</name>
+			<caption>Фамилия:</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

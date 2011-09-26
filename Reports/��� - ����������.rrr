@@ -1,0 +1,128 @@
+[GLOBAL]
+    TITLE = Отчет по оказанным услугам@Звіт про надані послуги
+    MENU = Отчеты\Страховые полисы\Приложение №3@Додаток 3
+    RAZM_SYMBOLS = NO
+    PAGES_WIDTH = 1
+    PAGE_ORIENT = VER
+    VERSION = 1.5
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+  
+[VARIABLES]
+
+   VAR PolisBad :varSql
+        select
+          count(*)
+        from oil_polis
+        where state='Y'
+        and oper_id = 3
+        and trunc(oper_date) between :BeginDate and :EndDate
+   END
+   
+   VAR PolisOut :varSql
+        select
+          count(*)
+        from oil_polis
+        where state='Y'
+        and oper_id = 2
+        and trunc(oper_date) between :BeginDate and :EndDate
+   END
+   
+   VAR PolisPrih :varSql
+        select
+          count(*)
+        from oil_polis
+        where state='Y'
+        and oper_id = 1
+   END
+   
+   VAR PolisRest :varSql
+        select
+          count(*)
+        from
+        (
+        select
+        ser||' '||num as polis
+        from oil_polis
+        where oper_id = 1
+        minus
+        select
+        ser||' '||num as polis
+        from oil_polis
+        where oper_id in (2,3)
+        and trunc(oper_date) between :BeginDate and :EndDate
+        )
+   END
+           
+
+[DESCRIPTION]
+  C \B:BeginDate\b по \B:EndDate\b@З \B:BeginDate\b до \B:EndDate\b
+  Организация:: \B:org1.Name\b@Організація:: \B:org1.Name\b
+  
+AFTER
+  \1L\BВсего эмиссия:\b \1L:PolisPrih@\1L\BВсього емисія:\b \1L:PolisPrih
+  \1L\BРеализовано за период:\b \1L:PolisOut@\1L\BРеалізовано за період:\b \1L:PolisOut
+  \1L\BСписано за период:\b \1L:PolisBad@\1L\BСписано за період:\b \1L:PolisBad
+  \1L\BОстаток на конец периода:\b \1L:PolisRest@\1L\BЗалишок на кінець періода:\b \1L:PolisRest
+
+  \3N\1LПоверенный ___________________________ (Подпись ФИО)@\3N\1LПовірений ___________________________ (Підпис ФІО)
+  
+
+[SQL]
+
+select rownum, t.*
+from
+(
+select
+ toorg.name as name,
+ to_char(trunc(p.oper_date)) as oper_date,
+ p.ser||' '||p.num as polis,
+ p.amount
+from
+  oil_polis p,
+  oil_org toorg
+where
+  p.state = 'Y' and
+  p.state = toorg.state (+) and
+  p.to_id = toorg.id (+) and
+  p.to_inst = toorg.inst (+) and
+  oper_id = 2 and
+  trunc(oper_date) between :BeginDate and :EndDate
+) t
+order by name,amount
+
+[FIELDS]
+
+  NAME = ROWNUM
+  CAPTION =№ п/п
+  WIDTH = 7
+
+  NAME = NAME
+  CAPTION = Страхователь@Страхувальник
+  WIDTH = 50
+
+  NAME = OPER_DATE
+  CAPTION =Дата оплаты@Дата оплати
+  WIDTH = 15
+
+  NAME = POLIS
+  CAPTION = Полис@Поліс
+  WIDTH = 15
+
+  NAME = AMOUNT
+  CAPTION = Сумма@Сума
+  TOSUM = TRUE
+  FORMAT = 0.00
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = NAME

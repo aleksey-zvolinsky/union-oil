@@ -1,0 +1,161 @@
+[GLOBAL]
+  TITLE = План-Факт
+  MENU = Финансы\Отчеты\План-Факт
+  VERSION = 1.6
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+   За период от@За період від :BeginDate до :EndDate
+   Организация:@Організація:: :org1.name
+
+[CONDITIONS]
+   CONDITION
+     select count(*)
+       from ve_bill
+      where dlr_rate is null
+        and inst = :org1.inst
+        and date_ between :BeginDate and :EndDate
+
+   END
+   TEXT=За выбранный период указаны не все курсы валют@За обраний період зазначені не всі курси валют
+
+[SQL]
+select budget_id,
+       budget_name,
+
+       sum(summ_plan_grn) as summ_plan_grn,
+       sum(summ_fakt_grn) as summ_fakt_grn,
+       sum(summ_delta_grn) as summ_delta_grn,
+       Sum(FactInB_grn) as FactInB_grn,
+       Sum(FactNotInB_grn) as FactNotInB_grn,
+
+       sum(summ_plan_dlr) as summ_plan_dlr,
+       sum(summ_fakt_dlr) as summ_fakt_dlr,
+       sum(summ_delta_dlr) as summ_delta_dlr,
+       Sum(FactInB_dlr) as FactInB_dlr,
+       Sum(FactNotInB_dlr) as FactNotInB_dlr
+  from (select budget_id,
+               budget_name,
+
+               Sum(summ_plan_grn) as summ_plan_grn,
+               Sum(summ_fakt_grn) as summ_fakt_grn,
+               sum(summ_plan_grn) - decode(spring_id, 2, SUM(summ_fakt_grn), 0) as summ_delta_grn,
+               decode(spring_id, 2, SUM(summ_fakt_grn), 0) as FactInB_grn,
+               decode(spring_id, 2, 0, SUM(summ_fakt_grn)) as FactNotInB_grn,
+
+               Sum(summ_plan_dlr) as summ_plan_dlr,
+               Sum(summ_fakt_dlr) as summ_fakt_dlr,
+               sum(summ_plan_dlr) - decode(spring_id, 2, SUM(summ_fakt_dlr), 0) as summ_delta_dlr,
+               decode(spring_id, 2, SUM(summ_fakt_dlr), 0) as FactInB_dlr,
+               decode(spring_id, 2, 0, SUM(summ_fakt_dlr)) as FactNotInB_dlr
+          from (select vp.plan_inst as inst,
+                       vp.e_budget_id as budget_id,
+                       vp.budget_name,
+                       decode(vp.currency_id,
+                              1,
+                              vp.summa,
+                              round(decode(nvl(vp.currency_summ, 0),
+                                           0,
+                                           0,
+                                           vp.summa * vp.currency_summ),
+                                    2)) as summ_plan_grn,
+                       decode(vp.currency_id,
+                              2,
+                              vp.summa,
+                              round(decode(nvl(vp.currency_summ, 0),
+                                           0,
+                                           0,
+                                           vp.summa / vp.currency_summ),
+                                    2)) as summ_plan_dlr,
+                       0 as summ_fakt_grn,
+                       0 as summ_fakt_dlr,
+                       vp.date_begin,
+                       vp.date_end,
+                       -1 as spring_id,
+                       1 as debkr
+                  from ve_plan vp
+                union all
+                select vb.inst,
+                       vb.budget_id as budget_id,
+                       vb.budget_name,
+                       0 as summ_plan_grn,
+                       0 as summ_plan_dlr,
+                       vb.summ as summ_fakt_grn,
+                       round(decode(nvl(vc.rate, 0), 0, 0, vb.summ / vc.rate),
+                             2) as summ_fakt_dlr,
+                       vb.date_ as date_begin,
+                       vb.date_ as date_end,
+                       vb.spring_id as spring_id,
+                       vb.debkr
+                  from ve_bill vb, ve_currency_rate vc
+                 where vc.date_ = vb.date_)
+         where (:BeginDate between date_begin and date_end or
+               :EndDate between date_begin and date_end or
+               date_begin between :BeginDate and :EndDate or
+               date_end between :BeginDate and :EndDate)
+           and inst = :org1.inst
+         group by budget_id, budget_name, spring_id, debkr)
+ group by budget_id, budget_name
+
+[FIELDS]
+  NAME = BUDGET_ID
+  CAPTION = № Ст.@№ Ст.
+  WIDTH = 7
+
+  NAME = BUDGET_NAME
+  CAPTION = Стаття бюджета@Стаття бюджету
+  WIDTH = 40
+
+  NAME = SUMM_PLAN_GRN
+  CAPTION = План(грн.)
+  FORMAT = 0.00
+  WIDTH = 11
+
+  NAME = FACTINB_GRN
+  CAPTION = Факт в пр.бюдж.(грн.)@Факт у меж.бюдж.(грн.)
+  FORMAT = 0.00
+  WIDTH = 24
+
+  NAME = SUMM_DELTA_GRN
+  CAPTION = Дельта в пр.бюдж.(грн.)@Дельта у меж.бюдж.(грн.)
+  FORMAT = 0.00
+  WIDTH = 24
+
+  NAME = FACTNOTINB_GRN
+  CAPTION = Факт вне бюдж.(грн.)@Факт поза бюдж.(грн.)
+  FORMAT = 0.00
+  WIDTH = 24
+
+  NAME = SUMM_PLAN_DLR
+  CAPTION = План($)
+  FORMAT = 0.00
+  WIDTH = 11
+
+  NAME = FACTINB_DLR
+  CAPTION = Факт в пр.бюдж.($)@Факт у меж.бюдж.($)
+  FORMAT = 0.00
+  WIDTH = 24
+
+  NAME = SUMM_DELTA_DLR
+  CAPTION = Дельта в пр.бюдж.($)@Дельта у меж.бюдж.($)
+  FORMAT = 0.00
+  WIDTH = 24
+
+  NAME = FACTNOTINB_DLR
+  CAPTION = Факт вне бюдж.($)@Факт поза бюдж.($)
+  FORMAT = 0.00
+  WIDTH = 24
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI =

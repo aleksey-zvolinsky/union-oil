@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form menu="Смарт-карты" caption="Заявки на пополнения смарт-карт" menuname="CardRequestRef" menuposition="0" filters="true" editbuttons="true" version="1.0" tablename="CARD_REQUEST">
+	<editbuttons>
+		<addbutton />
+		<editbutton />
+		<deletebutton />
+		<showtotalbutton />
+		<showdetailcheckbox />
+	</editbuttons>
+	<sql>
+select r.*, r.numb as name from v_card_request r
+ order by date_ desc
+	</sql>
+	<sqldetail>
+select card_number, np_group_fullname, price, litr
+  from v_card_request_det t
+ where head_id = :id
+   and head_inst = :inst
+ order by card_number
+	</sqldetail>
+	<editclass classname="TCardRequestForm" printable="true">
+		<print>
+			<caption>Печать заявки</caption>
+			<menuname>miPrintRequest</menuname>
+			<printnumber>0</printnumber>
+			<conditionvisible>
+				<fieldname></fieldname>
+				<value></value>
+			</conditionvisible>
+		</print>
+	</editclass>
+	<columns>
+		<column align="left" width="80">
+			<caption>Дата</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="50">
+			<caption>Номер</caption>
+			<fieldname>numb</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption>Поставщик</caption>
+			<fieldname>from_name</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption>Получатель</caption>
+			<fieldname>to_name</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption>Договор</caption>
+			<fieldname>dog</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption>Дата дог.</caption>
+			<fieldname>dog_date</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption>Отпуск бланков</caption>
+			<fieldname>blank_num</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption>Дата отп.бланков</caption>
+			<fieldname>blank_date</fieldname>
+		</column>
+	</columns>
+	<columnsdetail>
+		<column align="left" width="100">
+			<caption>Номер карты</caption>
+			<fieldname>card_number</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption>Вид топлива</caption>
+			<fieldname>np_group_fullname</fieldname>
+		</column>
+				<column align="left" width="50">
+			<caption>Цена</caption>
+			<fieldname>price</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption>Количество</caption>
+			<fieldname>litr</fieldname>
+		</column>
+	</columnsdetail>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>date_</fieldname>
+			<default>month_ago</default>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>date_</fieldname>
+			<default>now</default>
+		</dateedit>
+		<edit left="120" top="10" width="100" wholevalue="false">
+			<name>EditNumber</name>
+			<caption>Номер:</caption>
+			<fieldname>numb</fieldname>
+		</edit>
+		<xmlform width="250" left="230" top="10" wholevalue="true" orgref="true" orgtype="3" enableflags="yyy">
+			<name>FromOrg</name>
+			<caption>Поставщик:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>from_id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>from_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<xmlform width="250" left="230" top="50" wholevalue="true" orgref="true" orgtype="3" enableflags="yyy">
+			<name>ToOrg</name>
+			<caption>Получатель:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>to_id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>to_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+	</filters>
+</form>

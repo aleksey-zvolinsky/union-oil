@@ -1,0 +1,97 @@
+[GLOBAL]
+  TITLE = Реестр сопутствующих с кодами товара
+  TITLE_COORD = G3
+  MENU = Отчеты\Отчеты по нефтебазе\Реестр сопутст. с кодами
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1 = От кого
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+    CAPTION2 = Кому
+    OPTIONS1=yyyyynnn
+    STARTCONDITION2=2
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate
+  Организация:: :org1.Name
+
+[SQL]
+select
+  r.group_num,
+  r.date_,
+  azs.name,
+  npt.id as np_id, npt.name as np_name,
+  p.dog,
+  r.count_,
+  p.ss,
+  r.price,
+  round(r.count_*r.price,2) as summa
+from oil_rashod r, oil_part p, oil_org azs, v_oil_np_type npt, v_oil_dim dim
+where r.state='Y' and p.state='Y'
+  and r.group_num is not null
+  and r.part_id=p.id and r.part_inst=p.inst
+  and p.np_type=npt.id
+  and p.dim_id=dim.id
+  and r.to_id=azs.id and r.to_inst=azs.inst
+  and r.date_ between :BeginDate and :EndDate
+  and r.from_id=nvl(:org1.id,r.from_id)
+  and r.to_id=nvl(:org2.id,r.to_id)
+  and r.to_inst=nvl(:org2.inst,r.to_inst)
+
+[FIELDS]
+  DEFAULT WIDTH = 10
+
+  NAME = GROUP_NUM
+  CAPTION = Номер отпуска
+
+  NAME = DATE_
+  CAPTION = Дата
+
+  NAME = NAME
+  CAPTION = Куда отпущено
+  WIDTH = 25
+
+  NAME = NP_ID
+  CAPTION = Код товара
+  FORMAT = 0
+
+  NAME = NP_NAME
+  CAPTION = Тип товара
+  WIDTH = 20
+
+  NAME = DOG
+  CAPTION = Партия
+
+  NAME = COUNT_
+  CAPTION = Кол-во
+  WIDTH = 10
+  FORMAT = 0
+  TOSUM = TRUE
+  OPTIONAL = FALSE
+
+  DEFAULT FORMAT = 0.00
+
+  NAME = SS
+  CAPTION = Уч. цена
+
+  NAME = PRICE
+  CAPTION = Реал. цена
+
+  NAME = SUMMA
+  CAPTION = Сумма
+  TOSUM = TRUE
+  OPTIONAL = FALSE
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = GROUP_NUM

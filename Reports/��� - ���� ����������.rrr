@@ -1,0 +1,84 @@
+[GLOBAL]
+  TITLE = Топливо в баке автомобиля@Паливо в баці автомобіля
+  MENU = Отчеты\Движение топлива в баках ТС\По одному автомобилю@По одному автомобілю
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+
+   PANEL
+      ELEMENT AUTO:ComboEdit
+	 CAPTION = Автомобиль@Автомобіль
+	 TYPE = OIL_AUTO
+	 NAMEFIELD = NUMB
+      END
+   END
+
+[DESCRIPTION]
+   На :BeginDate
+   Автомобиль:: :AUTO.NUMB@Автомобіль:: :AUTO.NUMB
+
+[SQL]
+select Q1.*,
+  sum(litr) over (order by rnum) as sum_litr
+from
+  (select Q.*,
+    row_number() over (partition by np_name order by rep_date,sign(litr) desc) as rnum
+  from
+    (select
+      trunc(rep_date) as rep_date, np_name,
+      refuel_type_name as tip,
+      litr as litr
+    from v_oil_own_refuel
+    where auto_id=:auto.id and auto_inst=:auto.inst
+      and trunc(rep_date)<:BeginDate
+    union all
+    select
+      w.waybill_date as rep_date,
+      npt.np_grp_name as np_name,
+      'Путевой лист' as tip,
+      -litres as litr
+    from oil_waybills w, oil_auto_oper aop, v_oil_np_type npt
+    where w.state='Y' and aop.state='Y'
+      and aop.waybill_id=w.id
+      and aop.waybill_inst=w.inst
+      and w.np_type=npt.id
+      and w.auto_id=:auto.id and w.auto_inst=:auto.inst
+      and w.waybill_date<:BeginDate
+    ) Q
+  ) Q1
+order by rnum
+
+
+
+[FIELDS]
+  DEFAULT WIDTH = 12
+
+  NAME = NP_NAME
+  CAPTION = НП
+
+  NAME = REP_DATE
+  CAPTION = Дата
+  ITOGIFIELD = RNUM
+
+  NAME = TIP
+  CAPTION = Тип операции@Тип операції
+  WIDTH = 18
+
+  NAME = LITR
+  CAPTION = Кол-во, л.@К-сть, л.
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = SUM_LITR
+  CAPTION = Остаток, л.@Залишок, л.
+  FORMAT = 0.000
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = NP_NAME

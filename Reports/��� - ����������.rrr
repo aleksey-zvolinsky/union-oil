@@ -1,0 +1,143 @@
+[GLOBAL]
+   TITLE = Реализация с АЗС@Реалізація з АЗС
+   VERSION = 1.1
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організация:: :org1.name
+
+[SQL]
+select nvl(pponname,oblname) as podrname,azsname,np_group,
+       sum(decode(operid,14,0,153,0,tonn)) as r_tonn,
+       sum(decode(operid,14,0,153,0,litr)) as r_litr,
+       sum(decode(operid,14,0,153,0,summa)) as r_summa,
+       sum(decode(operid,14,tonn,0)) as tal_tonn,
+       sum(decode(operid,14,litr,0)) as tal_litr,
+       sum(decode(operid,14,summa,0)) as tal_summa,
+       sum(decode(operid,153,tonn,0)) as card_tonn,
+       sum(decode(operid,153,litr,0)) as card_litr,
+       sum(decode(operid,153,summa,0)) as card_summa,
+       sum(tonn) as tonn,sum(litr) as litr,sum(summa) as summa
+from v_oil_npmove
+where nbazs=1 and rashprih=0 and IsSummary<>'Y'
+      and IsTalonDet<>'Y'
+      and date_ between :BeginDate and :EndDate
+      and :org1.id in (AzsId,PponId,OblId)
+group by azsname,pponname,oblname,np_group
+
+ 
+[FIELDS]
+   NAME = podrname
+   CAPTION = Подразделение@Підрозділ
+   WIDTH = 30
+
+   NAME = azsname
+   CAPTION = АЗС
+   WIDTH = 14
+
+   NAME = np_group
+   CAPTION = НП
+   WIDTH = 14
+
+   NAME = r_litr
+   CAPTION = Реализация!Литров@Реалізація!Літрів
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000
+   OPTIONAL = FALSE
+
+   NAME = r_tonn
+   CAPTION = Реализация!Тонн@Реалізація!Тон
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000000
+   OPTIONAL = FALSE
+
+   NAME = r_summa
+   CAPTION = Реализация!грн@Реалізація!грн
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+
+   NAME = tal_litr
+   CAPTION = Талоны!Литров@Талони!Літрів
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000
+   OPTIONAL = FALSE
+
+   NAME = tal_tonn
+   CAPTION = Талоны!Тонн@Талони!Тон
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000000
+   OPTIONAL = FALSE
+
+   NAME = tal_summa
+   CAPTION = Талоны!грн@Талони!грн
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+   NAME = card_litr
+   CAPTION = Эл.карты!Литров@Ел.карти!Літрів
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000
+   OPTIONAL = FALSE
+
+   NAME = card_tonn
+   CAPTION = Эл.карты!Тонн@Ел.карти!Тон
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000000
+   OPTIONAL = FALSE
+
+   NAME = card_summa
+   CAPTION = Эл.карты!грн@Ел.карти!грн
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+   NAME = litr
+   CAPTION = Итого!Литров@Всього!Літрів
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000
+   OPTIONAL = FALSE
+
+   NAME = tonn
+   CAPTION = Итого!Тонн@Всього!Тон
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.000000
+   OPTIONAL = FALSE
+
+   NAME = summa
+   CAPTION = Итого!грн@Всього!грн
+   WIDTH = 10
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+   
+[TYPES]
+   
+   CAPTION = ППОН-АЗС-НП
+   ITOGI = podrname,azsname
+
+   CAPTION = ППОН-НП-АЗС
+   ITOGI = podrname,np_group
+   ORDER = podrname,np_group,azsname

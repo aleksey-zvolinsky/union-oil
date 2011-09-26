@@ -1,0 +1,87 @@
+[GLOBAL]
+   TITLE = Реализация с АЗС фасованного товара@Реалізація з АЗС фасованого товара
+   MENU = Отчеты\Отчеты по АЗС\Реализация фасованного товара@Реалізація фасованого товара
+   MENU_POSITION = 7
+   TITLE_COORD = A3
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип товара
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Хранение,Собственный@Комісія,Зберігання,Власний
+         VALUES = 'K','S','O'
+      END
+   END
+
+   PANEL
+      CAPTION = Дополнительно@Додатково
+      ELEMENT NpList:List
+	  CAPTION = Группы НП@Групи НП
+          DEFAULT = 8
+          TABLENAME = oil_np_group
+      END
+      ELEMENT OperList:List
+	  CAPTION = Операции:@Операції:
+          DEFAULT = 11,12
+          TABLENAME = oil_oper_type
+      END
+   END   
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Тип товара:: :KOS.GetCaptions@Тип товара:: :KOS.GetCaptions
+   Группы НП:: :NpList.NameList@Групи НП:: :NpList.NameList
+   Операции:: :OperList.NameList@Операції:: :OperList.NameList
+
+[SQL]
+   select pponname,azsname,sum(shtuki) as shtuki,sum(summa) as summa
+   from v_oil_npmove
+   where NbAzs=1 and RashPrih=0 and IsShtuki='Y' and IsSummary<>'Y'
+         and np_groupid=8
+         and IsCard<>'Y' and SellTypeId not in (4,9)
+         and OperId in (11,12)
+         and :org1.id in (AzsId,PponId,OblId)
+         and date_ between :BeginDate and :EndDate
+         and own_goods in (:KOS.GetValues)
+         and :NpList.IsInList{np_groupid} 
+         and :OperList.IsInList{operid}
+   group by pponname,azsname
+      
+
+[FIELDS]
+   NAME = pponname
+   CAPTION = Нефтебаза@Нафтобаза
+   WIDTH=25
+
+   NAME = azsname
+   CAPTION = АЗС
+   WIDTH = 10
+
+   NAME = shtuki
+   CAPTION = Кол-во, шт@К-сть, шт
+   WIDTH = 15
+   TOSUM = TRUE
+   FORMAT = 0
+   OPTIONAL = FALSE
+
+   NAME = summa
+   CAPTION = Сумма, грн@Сума, грн
+   WIDTH = 15
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+[TYPES]
+   
+   CAPTION = С группировкой по НБ@З групуванням по НБ
+   ITOGI = pponname

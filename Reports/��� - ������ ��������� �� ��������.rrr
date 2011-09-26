@@ -1,0 +1,122 @@
+[GLOBAL]
+  TITLE = Реестр расходных по филиалам@Реєстр видаткових по філіях
+  MENU = Отчеты\Отчеты по эл. карточкам\Чужие списания\Реестр расходных по филиалам@Реєстр видаткових по філіях
+  VERSION = 1.1
+  MENU_POSITION = 4
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1=От кого@Від кого
+    CAPTION2=Кому
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Филиал:: :org1.Name@Філія:: :org1.Name
+
+[SQL]
+select
+  ofrom.id as from_id, ofrom.name as from_name,
+  oto.id as to_id, oto.name as to_name,
+  rn.date_, rn.from_svid, rn.from_id_num,
+  rn.num, rn.avizo_num,
+  rnd.azs_id, rnd.azs_name,
+  rnd.part_id, rnd.part_inst,
+  rnd.dog, rnd.cert,
+  rnd.card_number,
+  rnd.dim_name,
+  decode(rn.rn_type,1,npt.name,2,npg.name) as np_name,
+  rnd.litr, rnd.count_, rnd.price, rnd.summ
+from
+  card_alien_rn rn, card_alien_rn_det rnd, v_org ofrom, v_org oto,
+  oil_np_type npt, oil_np_group npg
+where rnd.state='Y' and rn.state='Y'
+  and rnd.rn_id=rn.id and rnd.rn_inst=rn.inst
+  and rn.from_id=ofrom.id and rn.from_inst=ofrom.inst
+  and rn.to_id=oto.id and rn.to_inst=oto.inst
+  and rnd.np_type=npt.id(+)
+  and rnd.np_type=npg.id(+)
+  and rn.date_ between :BeginDate and :EndDate
+  and ofrom.id=nvl(:org1.id,ofrom.id)
+  and oto.id=nvl(:org2.id,oto.id)
+
+[FIELDS]
+  NAME = FROM_NAME
+  CAPTION = От кого@Від кого
+  WIDTH = 25
+
+  NAME = TO_NAME
+  CAPTION = Кому
+  WIDTH = 25
+
+  NAME = DATE_
+  CAPTION = Дата
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = № расходной@№ витратної
+  WIDTH = 10
+
+  NAME = AVIZO_NUM
+  CAPTION = № авизо@№ авізо
+  WIDTH = 10
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 20
+
+  NAME = DOG
+  CAPTION = Партия@Партія
+  WIDTH = 15
+
+  NAME = CERT
+  CAPTION = Сертификат@Сертифікат
+  WIDTH = 15
+
+  NAME = CARD_NUMBER
+  CAPTION = № карточки@№ картки
+  WIDTH = 15
+
+  NAME = NP_NAME
+  CAPTION = Нефтепродукт@Нафтопродукт
+  WIDTH = 15
+
+  NAME = PRICE
+  CAPTION = Цена с НДС@Ціна з ПДВ
+  WIDTH = 10
+  FORMAT = 0.00
+
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+
+  NAME = LITR
+  CAPTION = Литров@Літрів
+  WIDTH = 14
+  FORMAT = 0.000
+
+  NAME = COUNT_
+  CAPTION = Тонн@Тон
+  WIDTH = 14
+  FORMAT = 0.000000
+
+  NAME = SUMM
+  CAPTION = Сумма с НДС@Сума з ПДВ
+  WIDTH = 14
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  UNCHECKED = FROM_NAME
+  ITOGI = TO_NAME,DATE_
+
+  CAPTION = Краткий
+  UNCHECKED = AZS_NAME,DOG,CERT,CARD_NUMBER
+  ITOGI = TO_NAME,DATE_

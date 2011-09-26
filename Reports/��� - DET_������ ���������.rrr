@@ -1,0 +1,68 @@
+[GLOBAL]
+  TITLE = Отчет по версиям програмного обеспечения@Звіт по версіям програмного забезпечення
+  MENU = Отчеты\Отчеты по АЗС\Информация с АЗС\Отчет по версиям програмного обеспечения@Звіт по версіям програмного забезпечення
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+  END
+
+  ORGPANEL
+    OPTIONS1=yyynnynn
+    STARTCONDITION1=2
+  END
+
+[DESCRIPTION]
+  На :BeginDate
+  АЗС:: :org1.Name
+
+[SQL]
+select o.name as azs_name,
+       dr.rep_date,
+       t.paramname as parameter_name,
+       t.value as param_value
+  from oil_azs_versions t, oil_daily_rep dr, v_org o
+ where t.state = 'Y'
+   and dr.state = 'Y'
+   and o.state = 'Y'
+   and t.rep_id = dr.id
+   and t.rep_inst = dr.inst
+   and o.id = dr.azs_id
+   and o.inst = dr.azs_inst
+   and o.id = :org1.id
+   and o.inst = :org1.id
+   and dr.rep_date = (select max(dr2.rep_date)
+                        from oil_daily_rep dr2, oil_azs_versions t2
+                       where dr2.state = 'Y'
+                         and t2.state = 'Y'
+                         and dr2.azs_id = dr.azs_id
+                         and dr2.azs_inst = dr.azs_inst
+                         and dr2.id = t2.rep_id
+                         and dr2.inst = t2.rep_inst)
+   and dr.rep_date <= :BeginDate
+ order by o.name, dr.rep_date
+
+[FIELDS]
+   NAME = azs_name
+   CAPTION = Название АЗС@Назва АЗС
+   WIDTH = 20
+
+   NAME = rep_date
+   CAPTION = Дата выгрузки@Дата вивантаження
+   WIDTH = 12
+
+   NAME = parameter_name
+   CAPTION = Название параметра@Назва параметру
+   WIDTH = 15
+
+   NAME = param_value
+   CAPTION = Значение параметра@Значення параметру
+   WIDTH = 15
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = NP_NAME

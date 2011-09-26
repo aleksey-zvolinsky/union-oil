@@ -1,0 +1,44 @@
+[GLOBAL]
+  TITLE = Движение одной цистерны@Рух однієї цистерни
+  MENU = Отчеты\Перевалка\Движение одной цистерны@Рух однієї цистерни
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  PANEL
+    ELEMENT TankNum:Edit
+      CAPTION = Номер цистерны@Номер цистерни
+    END
+  END
+
+[DESCRIPTION]
+  Цистерна:: :TankNum
+
+[SQL]
+select
+  q_name,
+  head_id as num,
+  date_
+from v_oil_tank_move
+where tank_num=:TankNum
+order by date_,q_id,id
+
+[FIELDS]
+
+  NAME = Q_NAME
+  CAPTION = Операция@Операція
+  WIDTH = 15
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  NAME = DATE_
+  CAPTION = Дата
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

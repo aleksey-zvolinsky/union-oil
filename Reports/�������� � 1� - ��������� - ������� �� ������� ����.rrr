@@ -1,0 +1,115 @@
+[GLOBAL]
+  TITLE = Нефтебаза - продажа по мелкому опту@Нафтобаза - продаж за невеликим оптом
+  VERSION = 1.0
+  MENU = Отчеты\Выгрузка в 1С\Нефтебаза - продажа по мелкому опту@Нафтобаза - продаж за невеликим оптом
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select /*+ORDERED USE_HASH(r,p,o,odet2,d,pr)*/
+       R.from_id as Filial_Id,
+       nvl(O.id_num,odet2.fake_id_num) as Id_Num,
+       decode(R.Oper_Id, 12, 0, 1) as NAL,
+       P.dog as Part,
+       D.Dog as Dog,
+       D.dog_Date as Dog_Date,
+       R.Price,
+       R.Litr,
+       ROUND(R.PRICE*R.COUNT_,2) + ROUND(R.PRICE*R.COUNT_ * DECODE(R.UCH_PRICE,'Y',0,0.2),2) as Money,
+       R.count_ as Weight,
+       pr.first_inst,
+       R.Date_ as Rep_Date,
+       substr(o.name,1,127) as org_name
+  from oil_rashod R, oil_part P, oil_org O, OIl_Org_Det2 odet2, oil_dog D,
+      (select dog,to_ as first_inst
+       from
+         (select /*+ORDERED USE_HASH(pr,p)*/
+            p.dog,pr.to_,
+            row_number() over (partition by p.dog order by pr.date_,pr.id) rnum
+          from oil_prihod pr,oil_part p
+          where pr.state='Y' and p.state='Y'
+            and pr.part_id=p.id and pr.part_inst=p.inst
+         )
+       where rnum=1) pr
+ where R.oper_id in (11,12)
+   and R.Date_ >= :BeginDate
+   and R.Date_ <= :EndDate
+   and R.prih is null
+   and R.part_id = P.id
+   and R.part_inst = P.inst
+   and R.Dog = D.id(+)
+   and R.Dog_Inst = D.inst(+)
+   and R.To_Id = O.Id
+   and R.TO_INST = O.Inst
+   and R.state = 'Y'
+   and p.dog=pr.dog(+)
+   and odet2.state(+)='Y'
+   and odet2.org_id(+)=o.id and odet2.org_inst(+)=o.inst
+   and P.OWN_GOODS <> 'S'
+   and (P.GOAL_PART_TYPE <> 7 OR P.GOAL_PART_TYPE IS NULL)
+ order by Rep_Date
+
+[FIELDS]
+
+  NAME = FILIAL_ID
+  CAPTION =Код филиала@Код філії
+  WIDTH = 10
+
+  NAME = ID_NUM
+  CAPTION =Идентификационный код@Ідентифікаційний код
+  WIDTH = 15
+
+  NAME = NAL
+  CAPTION =Тип операции@Тип операції
+  WIDTH = 10
+
+  NAME = PART
+  CAPTION =Партия@Партія
+  WIDTH = 15
+
+  NAME = DOG
+  CAPTION =Договор@Договір
+  WIDTH = 10
+
+  NAME = DOG_DATE
+  CAPTION =Дата договора@Дата договору
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION =Цена бес НДС@Ціна без ПДВ
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION =Литры@Літри
+  WIDTH = 10
+
+  NAME = MONEY
+  CAPTION =Стоимость@Вартість
+  WIDTH = 15
+
+  NAME = WEIGHT
+  CAPTION =Вес@Вага
+  WIDTH = 10
+
+  NAME = FIRST_INST
+  CAPTION =Куда@Куди
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION =Дата
+  WIDTH = 10
+
+  NAME = ORG_NAME
+  CAPTION =Название организации@Назва організації
+  WIDTH = 25
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

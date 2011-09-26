@@ -1,0 +1,75 @@
+#REGISTERED
+
+[GLOBAL]
+  TITLE = 
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  MENU=Отчеты\Отчеты по эл. карточкам\Проверка цен чужих транзакций и тарифов Petrol@Перевірка цін чужих трнзакцій і тарифів Petrol
+
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select
+oper_date,
+np_type,
+azs.name as azs_name,
+card_number,
+litr,
+tarif_price,
+trans_price
+from
+  v_check_card_transit_price p,
+  oil_org azs
+where p.azs_id = azs.id and azs.id=azs.inst
+and azs.state='Y'
+and trunc(p.oper_date) between :BeginDate and :EndDate
+order by azs.name, oper_date, np_type
+
+
+[FIELDS]
+
+  NAME = OPER_DATE
+  CAPTION =Дата транзакции@Дата транзакції
+  WIDTH = 20
+
+  NAME = NP_TYPE
+  CAPTION =Тип НП
+  WIDTH = 10
+
+  NAME = AZS_NAME
+  CAPTION =АЗС
+  WIDTH = 40
+
+  NAME = CARD_NUMBER
+  CAPTION =№ карты@№ картки
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION =Кол-во, л@К-сть, л.
+  WIDTH = 10
+
+  NAME = TARIF_PRICE
+  CAPTION =Цена согласно тарифа Petrol@Ціна згідно тарифу Petrol
+  WIDTH = 20
+
+  NAME = TRANS_PRICE
+  CAPTION =Цена в Oil@Ціна в Oil
+  WIDTH = 14
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

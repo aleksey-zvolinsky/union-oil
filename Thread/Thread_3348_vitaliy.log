@@ -1,0 +1,10 @@
+19.11.2010 10:28:26 Создание ...
+19.11.2010 10:28:28 TOraQuery(qChartBase, 1), TThreadMethod(True)
+19.11.2010 10:28:32 Выполнение ...
+19.11.2010 10:28:32 SQL: select * from v_oil_rez_equal Q5
+ order by Q5.mdate
+
+19.11.2010 10:28:59 TOraQuery(qChartBase, 1929)
+19.11.2010 10:28:59 TOraQuery(qChartBase, 1)
+19.11.2010 10:28:59 FCreateQNew := True
+19.11.2010 10:29:12 Уничтожение ...

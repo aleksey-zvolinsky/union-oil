@@ -1,0 +1,115 @@
+[GLOBAL]
+   TITLE = Отчет о транзакциях@Звіт про транзакції
+   MENU = Отчеты\Отчеты по эл. карточкам\Отчет о транзакциях@Звіт про транзакції
+   CARD_RECALC = YES
+   VERSION = 1.1
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+    STARTCONDITION1=3
+   END
+
+[DESCRIPTION]
+   От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+   Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+
+select  /*+first_rows*/
+       tr.doc_number,
+       tr.doc_date,
+       tr.chek_number,
+       tr.chek_date,
+       tr.date_,
+       tr.time_,
+       tr.card_number,
+       azs.obl_name || ' ' || azs.name as ExpWhere,
+       tr.npname,
+       tr.PriceNds,
+       tr.litr,
+       tr.SumNds,
+       tr.rest,
+       tr.litr as expense_litr,
+       tr.doglitr as receipt_litr
+  from v_card_equal_ls tr,
+       v_card_azs azs
+ where tr.date_ between :BeginDate and :EndDate
+   and ((tr.to_id = :org1.id and tr.to_inst = :org1.inst) or
+       (:org1.id is null and :org1.inst is null))
+   and tr.term_number + 1000000 = azs.id(+)
+   and tr.term_number + 1000000 = decode(azs.inst(+), 1, azs.id(+), azs.inst(+))
+
+[FIELDS]
+   NAME = doc_number
+   CAPTION = № РН@№ ВН
+   WIDTH = 10
+
+   NAME = doc_date
+   CAPTION = Дата РН@Дата ВН
+   WIDTH = 30
+
+   NAME = chek_number
+   CAPTION = № счета@№ рахунку
+   WIDTH = 30
+
+   NAME =chek_date
+   CAPTION = Дата счета@Дата рахунку
+   WIDTH = 30
+  
+   NAME =date_
+   CAPTION = Дата
+   WIDTH = 10
+
+   NAME =time_
+   CAPTION = Время@Час
+   WIDTH = 10
+
+   NAME =card_number
+   CAPTION = № карты@№ картки
+   WIDTH = 10
+
+   NAME = ExpWhere 
+   CAPTION = АЗС
+   WIDTH = 10
+
+   NAME =npname
+   CAPTION = Тип НП
+   WIDTH = 10
+
+   NAME =PriceNds
+   CAPTION = Цена@Ціна
+   DEFAULT FORMAT = 0.00
+   WIDTH = 15
+
+   NAME =Litr
+   CAPTION = К-во, л@К-сть,л
+   WIDTH = 10
+   TOSUM = TRUE 
+
+   NAME =SumNds
+   CAPTION = Сумма, грн@Сума,грн
+   WIDTH = 10
+   TOSUM = TRUE 
+
+
+[TYPES]
+   CAPTION = Итоги по № карты@Всього по № картки
+   ITOGI = Card_Number  
+
+   CAPTION = Итоги по типу НП@Всього по типу НП
+   ITOGI  =  NpName
+
+   CAPTION = Итоги по РН, типу НП@Всього по ВН, типу НП
+   ITOGI  =  Doc_Number, NpName
+
+   CAPTION = Итоги по Счетам, типу НП@Всього по рахункам, типу НП
+   ITOGI  =  Check_Number, NpName
+
+
+
+   

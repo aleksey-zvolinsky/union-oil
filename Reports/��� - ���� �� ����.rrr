@@ -1,0 +1,163 @@
+[GLOBAL]
+  TITLE = Срез на дату@Зріз на дату
+  MENU = Отчеты\Отчеты по талонам\Срез на дату@Зріз на дату
+  VERSION = 1.02
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+    NUM = 1
+    CAPTION1 = На
+  END
+
+  PANEL
+    CAPTION = Тип талона
+    ELEMENT TALONNUM:CheckBoxGroup
+      LIST = Региональные,Всеукраинские@Регіональні,Всеукраїнські
+      VALUES = 1,-1
+    END
+  END
+
+[DESCRIPTION]
+  На :BeginDate
+
+[SQL]
+select
+  dep_name, talon_type, ser, np_group, nominal,
+  decode(oper_id,180,1,0) as c180,
+  decode(oper_id,181,1,0) as c181,
+  decode(oper_id,182,1,0) as c182,
+  decode(oper_id,183,1,0) as c183,
+  decode(oper_id,199,1,0) as c199,
+  decode(oper_id,216,1,0) as c216,
+  decode(oper_id,218,1,0) as c218,
+  decode(oper_id,230,1,0) as c230,
+  decode(oper_id,190,1,0) as c190,
+  decode(oper_id,191,1,0) as c191,
+  decode(oper_id,192,1,0) as c192,
+  decode(oper_id,193,1,0) as c193,
+  decode(oper_id,200,1,0) as c200,
+  decode(oper_id,245,1,0) as c245,
+  decode(tip,'O',1,0) as c_out,
+  decode(tip,'O',nominal,0) as c_out_litr,
+  decode(tip,'P',1,0) as c_in,
+  decode(tip,'P',nominal,0) as c_in_litr,
+  1 as vsego,
+  nominal as vsego_litr
+from
+  (select
+    odep.id, odep.name as dep_name, Q.oper_id, Q.tip, Q.ser, npg.name as np_group, Q.nominal,
+    decode(sign(5e8-Q.num),1,'Региональные','Всеукраинские') as talon_type
+  from
+    (select v.*,
+       row_number() over (partition by ser,num order by date_ desc, tip desc) as rnum
+     from
+       v_oil_talon_op v
+     where date_<:BeginDate
+       and sign(5e8-v.num) in (:TALONNUM.GetValues)
+    ) Q, oil_org odep, oil_np_group npg
+  where decode(Q.tip,'O',Q.from_id,Q.to_id)=odep.id
+    and odep.id=odep.inst
+    and Q.npgrp_id=npg.id
+    and Q.rnum=1
+  )
+
+
+[FIELDS]
+
+  NAME = DEP_NAME
+  CAPTION = Подразделение@Підрозділ
+  WIDTH = 30
+  
+  NAME = TALON_TYPE
+  CAPTION = Тип талона
+  WIDTH = 15
+
+  NAME = SER
+  CAPTION = Серия@Серія
+  WIDTH = 10
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = NOMINAL
+  CAPTION = Номинал@Номінал
+  WIDTH = 10
+  
+  DEFAULT TOSUM=TRUE
+  DEFAULT FORMAT = 0
+  DEFAULT HIDEIFEMPTY=TRUE
+  DEFAULT OPTIONAL = FALSE
+  DEFAULT WIDTH = 12
+
+  NAME = C183
+  CAPTION = В кассе!Эмиссия(183)@В касі!Емісія(183)
+
+  NAME = C230
+  CAPTION = В кассе!Эмиссия бракованных(230)@В касі!Емісія бракованих(230)
+
+  NAME = C180
+  CAPTION = В кассе!Отоваривание(180)@В касі!Затоварені(180)
+
+  NAME = C181
+  CAPTION = В кассе!Возврат(181)@В касі!Повернення(181)
+
+  NAME = C182
+  CAPTION = В кассе!Вн. перемещению(182)@В касі!Вн.переміщення(182)
+
+  NAME = C199
+  CAPTION = В кассе!Фил. перемещение(199)@В касі!Філ.переміщення(199)
+
+  NAME = C216
+  CAPTION = В кассе!С другого филиала(216)@В касі!З іншої філії(216)
+
+  NAME = C218
+  CAPTION = В кассе!На сторонних АЗС(218)@В касі!на сторонніх АЗС(218)
+
+  NAME = C_IN
+  CAPTION = В кассе!Всего(шт.)@В касі!Всього(шт.)
+  
+  NAME = C_IN_LITR
+  CAPTION = В кассе!Всего(л.)@В касі!Всього(л.)
+  
+  NAME = C190
+  CAPTION = Отпущено!Клиентам(190)@Відпущено!Клієнтам(190)
+
+  NAME = C191
+  CAPTION = Отпущено!Вн. перемещение(191)@Відпущено!Вн.переміщення(191)
+  HEAD_COLOR = RED
+
+  NAME = C193
+  CAPTION = Отпущено!Собств. нужды(193)@Відпущено!Власні потреби(193)
+
+  NAME = C200
+  CAPTION = Отпущено!Фил. перемещение(200)@Відпущено!Філ.переміщення(200)
+  
+  NAME = C192
+  CAPTION = Отпущено!Списано(192)@Відпущено!Списано(192)
+  
+  NAME = C_OUT
+  CAPTION = Отпущено!Всего(шт.)@Відпущено!Всього(шт.)
+  
+  NAME = C_OUT_LITR
+  CAPTION = Отпущено!Всего(л.)@Відпущено!Всього(л.)
+  
+  NAME = VSEGO
+  CAPTION = Общее кол-во!шт.@Загальна к-сть!шт.
+  
+  NAME = VSEGO_LITR
+  CAPTION = Общее кол-во!л.@Загальна к-сть!л.
+
+  NAME = C245
+  CAPTION = Отпущено!По спонсорской помощи(245)@Відпущено!За спонсорською допомогою(245)
+
+[TYPES]
+  CAPTION = По подразделениям@По підрозділам
+  ITOGI = DEP_NAME, TALON_TYPE 
+  
+  CAPTION = По видам топлива@По видам палива
+  ITOGI = NP_GROUP, TALON_TYPE
+  ORDER = NP_GROUP,TALON_TYPE,SER,DEP_NAME

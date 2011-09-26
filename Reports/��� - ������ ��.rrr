@@ -1,0 +1,213 @@
+[GLOBAL]
+  TITLE = Реестр РН (талоны)@Реєстр РН (талони)
+  MENU = Отчеты\Отчеты по талонам\Реестр РН@Реєстр РН
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@З :BeginDate по :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+
+select Dep_Name,
+       NPGrp_Name,
+       head_num as rn_num,
+       Out_Date rn_date,
+       Org_OKPO client_okpo,
+       Org_Name as client_name,
+       sum(Litr) as Litr,
+       Price,
+       nds.GetNoNDS_WithNDS(Price,out_date) PriceNoNds,
+       sum(Amount) - nds.GetNDS_WithNDS(sum(Amount),out_date) SumNoNDS,
+       nds.GetNDS_WithNDS(sum(Amount),out_date) as Nds,
+       sum(Amount) as SumNds
+  from v_oil_oper_type oper,
+       ( /*Выборка проданных талонов*/
+        select Dep.Name as Dep_Name,
+                Org.Name as Org_Name,
+                Org.Id_Num as Org_OKPO,
+                Oil_NP_Group.Name as NPGrp_Name,
+                o.oper_id,
+                o.Date_ as Out_Date,
+                o.Nominal as Nominal,
+                o.Price as Price,
+                1 as Quantity,
+                o.Nominal as Litr,
+                o.Nominal * o.Price as Amount,
+                o.Head_Num
+          from (select Id, Inst, Name
+                   from v_org
+                  where Id = :org1.id
+                    and Inst = :org1.id
+                 union all
+                 select Id, Inst, Name
+                   from v_org
+                  where Par = :org1.id
+                    and Par_Inst = :org1.id) Dep,
+                V_Oil_Talon_Op o,
+                v_org Org,
+                Oil_NP_Group
+         where Tip = 'O'
+           and o.Org_Id = Org.Id
+           and o.Org_Inst = Org.Inst
+           and Org.Org_Type not in (3, 4)
+           and o.NPGrp_Id = Oil_NP_Group.Id
+           and o.Date_ between :BeginDate and :EndDate
+           and o.Dep_Id = Dep.Id
+           and o.Dep_Inst = Dep.Inst
+           and o.Auto_Id is null
+        union all
+        /*Выборка возвращенных талонов*/
+        select /*+ORDERED USE_MERGE(TalPrih, GetEqual, TalOut)*/
+         TalPrih.Dep_Name,
+         nvl(TalOut.Org_Name,
+             '<Потребитель неопределен>'),
+         TalOut.Id_Num,
+         TalPrih.NPGrp_Name,
+         TalPrih.oper_id,
+         TalPrih.Prih_Date,
+         TalPrih.Nominal,
+         TalOut.Price,
+         -1,
+         -TalPrih.Nominal,
+         -TalPrih.Nominal * TalOut.Price,
+         Prih_Num
+          from ( /*Выборка возвращенных талонов в приходах*/
+                select Dep.Name as Dep_Name,
+                        o.Date_ as Prih_Date,
+                        o.Head_Num as Prih_Num,
+                        o.oper_id,
+                        o.Ser,
+                        o.Num,
+                        Oil_NP_Group.Name as NPGrp_Name,
+                        o.Nominal
+                  from (select Id, Inst, Name
+                           from v_org
+                          where Id = :org1.id
+                            and Inst = :org1.id
+                         union all
+                         select Id, Inst, Name
+                           from v_org
+                          where Par = :org1.id
+                            and Par_Inst = :org1.id) Dep,
+                        V_Oil_Talon_Op o,
+                        v_org Org,
+                        Oil_NP_Group
+                 where Tip = 'P'
+                   and o.Date_ between :BeginDate and :EndDate
+                   and Org.Org_Type not in (3, 4, 8)
+                   and o.Dep_Id = Dep.Id
+                   and o.Dep_Inst = Dep.Inst
+                   and o.Org_Id = Org.Id
+                   and o.Org_Inst = Org.Inst
+                   and o.NPGrp_Id = Oil_NP_Group.Id) TalPrih,
+               /*Выборка соответствий отпуска и прихода талона*/
+               v_Oil_Talon_GetEqual GetEqual,
+               ( /*Выборка продажи талонов*/
+                select o.Org_Id,
+                        o.Org_Inst,
+                        Oil_Org.Id_Num,
+                        Oil_Org.Name as Org_Name,
+                        o.Date_ as Out_Date,
+                        o.Ser,
+                        o.Num,
+                        o.Price,
+                        o.Auto_Id
+                  from V_Oil_Talon_Op o, v_org Oil_Org
+                 where Tip = 'O'
+                   and o.Org_Id = Oil_Org.Id
+                   and o.Org_Inst = Oil_Org.Inst) TalOut
+         where TalPrih.Prih_Date = GetEqual.Prih_Date(+)
+           and TalPrih.Ser = GetEqual.Ser(+)
+           and TalPrih.Num = GetEqual.Num(+)
+           and GetEqual.Out_Date = TalOut.Out_Date(+)
+           and GetEqual.Ser = TalOut.Ser(+)
+           and GetEqual.Num = TalOut.Num(+)
+           and Auto_Id is null) Tal
+ where oper.id = Tal.oper_id
+ group by Dep_Name,
+          Org_Name,
+          Org_OKPO,
+          NPGrp_Name,
+          oper.id,
+          oper.name,
+          head_num,
+          Out_Date,
+          Price
+ order by Dep_Name,
+          Org_Name,
+          Org_OKPO,
+          NPGrp_Name,
+          Out_Date,
+          Price
+
+[FIELDS]
+
+  NAME = DEP_NAME
+  CAPTION = Торговая точка@Торгова точка
+  WIDTH = 25
+
+  NAME = NPGRP_NAME
+  CAPTION = Вид топлива@Вид палива
+  WIDTH = 10
+
+  NAME = RN_NUM
+  CAPTION =РН!№
+  WIDTH = 10
+
+  NAME = RN_DATE
+  CAPTION =РН!Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = CLIENT_OKPO
+  CAPTION = Потребитель!ОКПО@Споживач!ЄДРПОУ
+  WIDTH = 10
+
+  NAME = CLIENT_NAME
+  CAPTION = Потребитель!Наименование@Споживач!Назва
+  WIDTH = 50
+
+  NAME = LITR
+  CAPTION = Кол-во, л@Кіл-ть, л.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = PRICE
+  CAPTION = Цена за литр c НДС@Ціна за літр з ПДВ
+  WIDTH = 10
+
+  NAME = PRICENONDS
+  CAPTION = Цена за литр без НДС@Ціна за літр без ПДВ
+  WIDTH = 10
+
+  NAME = SUMNONDS
+  CAPTION = Сумма без НДС, грн.@Сума без ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = NDS
+  CAPTION = НДС, грн@ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = SUMNDS
+  CAPTION = Сумма с НДС, грн.@Сума з ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 

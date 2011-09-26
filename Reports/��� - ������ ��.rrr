@@ -1,0 +1,133 @@
+[GLOBAL]
+  TITLE = Реестр РН (смарт-карты)@Реєстр РН (смарт-карти)
+  MENU = Отчеты\Отчеты по эл. карточкам\Реестр РН@Реєстр РН
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@З :BeginDate по :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+
+select /*+ORDERED*/
+       dep.name as dep_name,
+       NP.Name as NPGrp_Name,
+       ct.Doc_Number as rn_num,
+       ct.Doc_Date as rn_date,
+       client.id_num as client_okpo,
+       client.name as client_name,
+       Sum(ct.Litr) as Litr,
+       ct.Price,
+       NDS.GetNoNDS_WithNDS(ct.Price, ct.Doc_Date, 4) as PriceNoNds,
+       NDS.GetNoNDS_WithNDS(sum(ct.Amount), ct.Doc_Date, 2) as SumNoNDS,
+       NDS.GetNDS_WithNDS(sum(ct.Amount), ct.Doc_Date, 2) as Nds,
+       Sum(ct.Amount) as SumNds
+  from v_Card_Equal ct, Oil_Dog, v_oil_np_group np, v_org client, v_org dep
+ where (Oil_Dog.Id, ct.to_id, ct.to_inst) in
+       (select min(id), to_, to_inst
+          from oil_dog
+         where state = 'Y'
+           and Dog_type = 'K'
+           and (dog_date, to_, to_inst) in
+               (select min(Dog_Date), to_, to_inst
+                  from oil_Dog
+                 where state = 'Y'
+                   and Dog_type = 'K'
+                 group by to_, to_inst)
+         group by to_, to_inst)
+   and ct.Doc_Date >= :BeginDate
+   and ct.Doc_Date <= :EndDate
+   and Oil_Dog.to_ = ct.to_id
+   and Oil_Dog.to_inst = ct.to_inst
+   and CT.номер_терминала <> 0
+   and Oil_Dog.Dog_type = 'K'
+   and Oil_Dog.state = 'Y'
+   and ct.subq_id = 1
+   and ct.CardAlign = 0
+   and ct.np_type = np.petrol_id(+)
+   and ct.to_id = client.id
+   and ct.to_inst = client.inst
+   and ct.oil_inst = dep.id
+   and ct.oil_inst = dep.inst
+ group by dep.name,
+          client.name,
+          client.id_num,
+          NP.Name,
+          Oil_Dog.Dog,
+          Oil_Dog.Dog_date,
+          ct.Doc_Number,
+          ct.Doc_Date,
+          ct.R_Doc_Number,
+          ct.R_Doc_Date,
+          ct.Price
+
+[FIELDS]
+
+  NAME = DEP_NAME
+  CAPTION = Торговая точка@Торгова точка
+  WIDTH = 25
+
+  NAME = NPGRP_NAME
+  CAPTION = Вид топлива@Вид палива
+  WIDTH = 10
+
+  NAME = RN_NUM
+  CAPTION =РН!№
+  WIDTH = 10
+
+  NAME = RN_DATE
+  CAPTION =РН!Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = CLIENT_OKPO
+  CAPTION = Потребитель!ОКПО@Споживач!ЄДРПОУ
+  WIDTH = 10
+
+  NAME = CLIENT_NAME
+  CAPTION = Потребитель!Наименование@Споживач!Назва
+  WIDTH = 50
+
+  NAME = LITR
+  CAPTION = Кол-во, л@Кіл-ть, л.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = PRICE
+  CAPTION = Цена за литр c НДС@Ціна за літр з ПДВ
+  WIDTH = 10
+
+  NAME = PRICENONDS
+  CAPTION = Цена за литр без НДС@Ціна за літр без ПДВ
+  WIDTH = 10
+
+  NAME = SUMNONDS
+  CAPTION = Сумма без НДС, грн.@Сума без ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = NDS
+  CAPTION = НДС, грн@ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = SUMNDS
+  CAPTION = Сумма с НДС, грн.@Сума з ПДВ, грн.
+  WIDTH = 10
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 

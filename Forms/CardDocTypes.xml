@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Общие" caption="Типы документов по смарт-картам">
+	<sql>
+select * from 
+(	
+select
+   1 as id,
+   'Расходная накладная - клиенты ЭК' as name
+from dual   
+union all
+select
+   2 as id,
+   'Расходная накладная - клиенты ЛС'  as name
+from dual   
+union all   
+select
+   3 as id,
+   'Пакет документов - новые пополнения на старых АЗС' as name   
+from dual   
+union all   
+select
+   4 as id,
+   'Пакет документов - старые пополнения на новых АЗС' as name
+from dual
+union all 
+select
+   5 as id,
+   'Пакет документов - клиенты Авиаса' as name
+from dual  
+)
+</sql>
+	<columns>
+		<column align="left" width="350">
+			<caption align="center">Название</caption>
+			<fieldname>name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="200" wholevalue="false">
+			<name>filter1</name>
+			<caption>Название</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

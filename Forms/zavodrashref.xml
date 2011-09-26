@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Учет\Перевалка" caption="Отпуск с завода" tablename="OIL_ZAVOD_RASH">
+<sql>
+select distinct zr.*
+  from v_oil_zavod_rash zr, oil_zavod_rash_det zrdet
+ where zrdet.state(+)='Y'
+   and zr.id=zrdet.zr_id(+)
+   and zr.inst=zrdet.zr_inst(+)
+ order by date_ desc
+</sql>
+<editclass 
+	classname = "TZavodRashForm"
+	resultfilter = "EditNumber">
+</editclass>
+	<columns>
+		<column align="right" width="100">
+			<caption align="center">Дата</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Номер</caption>
+			<fieldname>id</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Завод</caption>
+			<fieldname>zavod_name</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Подразделение</caption>
+			<fieldname>dep_name</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">ГТД</caption>
+			<fieldname>gtd_num</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Контракт</caption>
+			<fieldname>dog</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>date_</fieldname>
+			<default>month_ago</default>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>date_</fieldname>
+			<default>now</default>
+		</dateedit>
+		<edit left="120" top="10" width="100" wholevalue="false">
+			<name>EditNumber</name>
+			<caption>Номер:</caption>
+			<fieldname>zr.id</fieldname>
+		</edit>
+		<edit left="120" top="50" width="100" wholevalue="false">
+			<name>Tank</name>
+			<caption>Номер цистерны:</caption>
+			<fieldname>tank_num</fieldname>
+		</edit>
+		<edit left="240" top="10" width="100" wholevalue="false">
+			<name>GtdNum</name>
+			<caption>ГТД</caption>
+			<fieldname>Gtd_Num</fieldname>
+		</edit>
+	</filters>
+</form>

@@ -1,0 +1,129 @@
+[GLOBAL]
+  TITLE = Проверка данных по банковским картам@Перевірка даних по банківським картам
+  VERSION = 1.2.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  MENU = Отчеты\Банковские, топливные и скретч карты\Проверка данных@Перевірка даних
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate
+  Организация:: :org1.Name
+
+[SQL]
+select azs_name,
+       obl_name,
+       begin_date,
+       end_date,
+       money_from_bank,
+       money_from_sr,
+       delta as money_delta,
+       to_char(null) as np_group_name,
+       to_char(null) as oper_name,
+       to_number(null) as litr_from_bank,
+       to_number(null) as litr_from_sr,
+       to_number(null) as litr_delta
+  from v_bank_card_check bcc,
+       v_oil_azs o
+ where trunc(begin_date) between :BeginDate and :EndDate
+   and bcc.azs_id = o.id
+   and bcc.azs_inst = o.inst
+ union all
+select bcc.azs_name,
+       o.obl_name,
+       bcc.begin_date,
+       bcc.end_date,
+       to_number(null) as money_from_bank,
+       to_number(null) as money_from_sr,
+       to_number(null) as money_delta,
+       npg.name as np_group_name,
+       op.name as oper_name,
+       bcc.litr_from_bank,
+       bcc.litr_from_sr,
+       bcc.delta as litr_delta
+  from v_bank_fuel_card_check bcc,
+       v_oil_azs o,
+       v_oil_np_group npg,
+       v_oil_oper_type op
+ where trunc(begin_date) between :BeginDate and :EndDate
+   and bcc.azs_id = o.id
+   and bcc.azs_inst = o.inst
+   and bcc.np_group_id = npg.id(+)
+   and bcc.oper_id = op.id(+)
+ order by azs_name, begin_date
+
+
+[FIELDS]
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 50
+
+  NAME = OBL_NAME
+  CAPTION = Организация@Організація
+  WIDTH = 50
+
+  NAME = BEGIN_DATE
+  CAPTION = См. отчет от@Зм. звіт від
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = END_DATE
+  CAPTION = См. отчет до@Зм. звіт до
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = MONEY_FROM_BANK
+  CAPTION = Из банка, грн@З банку, грн
+  WIDTH = 15
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = MONEY_FROM_SR
+  CAPTION = В см. отчете, грн@У зм. звіті, грн
+  WIDTH = 15
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = MONEY_DELTA
+  CAPTION = Разница, грн@Різниця, грн
+  WIDTH = 15
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = NP_GROUP_NAME
+  CAPTION = Группа НП@Група НП
+  WIDTH = 15
+
+  NAME = OPER_NAME
+  CAPTION = Операция@Операція
+  WIDTH = 20
+
+  NAME = LITR_FROM_BANK
+  CAPTION = Из банка, л@З банку, л
+  WIDTH = 15
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = LITR_FROM_SR
+  CAPTION = В см. отчете, л@У зм. звіті, л
+  WIDTH = 15
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = LITR_DELTA
+  CAPTION = Разница, л@Різниця, л
+  WIDTH = 15
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = par_name, azs_name

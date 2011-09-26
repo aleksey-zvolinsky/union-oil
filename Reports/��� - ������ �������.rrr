@@ -1,0 +1,233 @@
+[GLOBAL]
+  TITLE = Реестр возвращенных талонов по юр.лицу@Реєстр повернених талонів по юр.особі
+  MENU = Отчеты\Отчеты по талонам\Возвращение по юр.лицу@Повернення по юр.особі
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1=Подразделение@Підрозділ
+    CAPTION2=Клиент@Клієнт
+    STARTCONDITION1=0
+  END
+
+  PANEL
+    CAPTION = Оприходован@Оприбуткований
+    ELEMENT ChPrih:CheckBoxGroup
+      LIST = На юр.лице,На филиале,На ОАО@На юр.особі,На філії,На ВАТ
+      VALUES = 2,1,0
+    END
+  END
+
+  PANEL
+    CAPTION = Отпущен@Відпущений
+    ELEMENT ChOut:CheckBoxGroup
+      LIST = На юр.лице,На филиале,На ОАО@На юр.особі,На філії,На ВАТ
+      VALUES = 2,1,0
+    END
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Клиент:: :org2.Name@Клієнт:: :org2.Name
+
+[SQL]
+select
+  prih_dep_name,out_dep_name,
+  out_org_name,out_org_okpo,
+  np_group,dog,sub_part,azs_name,
+  smena_num,nominal,ser,v.num,
+  out_date,date_ as prih_date,
+  out_price,
+  1 as co,
+  nvl(litr_azs,nominal) as litr_azs,
+  tonn_azs,
+  decode(litr_azs,null,out_price*nominal,out_summa) as out_summa,
+  delta
+from (select /*+ORDERED USE_HASH(v3,oo,oprih,oout,oazs)*/
+       v3.id,v3.inst,head_id,head_inst,
+       is_filial as prih_is_filial,
+       oprih.id_num as prih_to_okpo,
+       date_, head_num,
+       ser,v3.num,npgrp_id,nominal,oper_id,
+       from_id,from_inst,to_id,to_inst,
+       decode(oprih.org_type,3,oprih.par,4,oprih.id) as prih_obl_id,
+       oprih.name as prih_dep_name,
+       oazs.name as azs_name,
+       rep_date,smena_num,part_id,part_inst,dog,ss,
+       sub_part,price_azs,litr_azs,tonn_azs,npg.name as np_group,
+       decode(is_error,1,'Ошибка!!!',oout.name) as out_dep_name,
+       decode(is_error,1,to_number(null),out_from_id) as out_from_id,
+       decode(is_error,1,to_number(null),out_from_inst) as out_from_inst,
+       decode(is_error,1,'Ошибка!!!',oo.name) as out_org_name,
+       decode(is_error,1,to_char(null),oo.id_num) as out_org_okpo,
+       decode(is_error,1,to_number(null),out_to_id) as out_org_id,
+       decode(is_error,1,to_number(null),out_to_inst) as out_org_inst,
+       decode(is_error,1,to_date(null),out_date) as out_date,
+       decode(is_error,1,to_number(null),out_dog_id) as out_dog_id,
+       decode(is_error,1,to_number(null),out_dog_inst) as out_dog_inst,
+       decode(is_error,1,to_number(null),out_price) as out_price,
+       decode(is_error,1,to_number(null),out_price)*litr_azs as out_summa,
+       decode(is_error,1,to_number(null),out_is_filial) as out_is_filial,
+       decode(is_error,1,to_number(null),out_oper_id) as out_oper_id,
+       decode(is_error,1,to_number(null),
+       round(NDS.GetNoNds_WithNds(out_price,date_,4)*litr_azs-round(ss*tonn_azs,2),6)
+         ) as delta
+from
+     (select
+        decode(is_prev_client,1,prev_from_id,prev3_from_id) as out_from_id,
+        decode(is_prev_client,1,prev_from_inst,prev3_from_inst) as out_from_inst,
+        decode(is_prev_client,1,prev_to_id,prev3_to_id) as out_to_id,
+        decode(is_prev_client,1,prev_to_inst,prev3_to_inst) as out_to_inst,
+        decode(is_prev_client,1,prev_date,prev3_date) as out_date,
+        decode(is_prev_client,1,prev_dog_id,prev3_dog_id) as out_dog_id,
+        decode(is_prev_client,1,prev_dog_inst,prev3_dog_inst) as out_dog_inst,
+        decode(is_prev_client,1,prev_price,prev3_price) as out_price,
+        decode(is_prev_client,1,prev_is_filial,prev3_is_filial) as out_is_filial,
+        decode(is_prev_client,1,prev_oper_id,prev3_oper_id) as out_oper_id,
+        v2.*
+      from
+        (select
+           sign((1-is_prev_client)*(1-is_prev3_client)+is_prev_prih) as is_error,
+           v1.*
+         from
+          (select
+             decode(prev_tip,'P',1,0) as is_prev_prih,
+             decode(prev_oper_id,200,1,0) as is_prev_filmove,
+             decode(prev_oper_id,190,1,245,1,244,1,0) as is_prev_client,
+             decode(prev3_oper_id,190,1,245,1,244,1,0) as is_prev3_client,
+             v.*
+           from victory.v_oil_talon_sropl_un v
+           where oper_id in (243) and tip='P'
+          ) v1
+        ) v2
+      ) v3,
+      (select distinct id, inst, state, max(name) over(partition by id,id_num order by inst desc) as name, id_num as id_num
+         from (select id, inst, state, name, id_num
+                 from oil_old.oil_org
+                where ov.GetVal('GENERATION') in (0, 1)
+                union all
+               select id, inst, state, name, id_num
+                 from andriy.oil_org
+                where ov.GetVal('GENERATION') in (0, 1, 2)
+                union all
+               select id, inst, state, name, id_num
+                 from victory.oil_org
+                where ov.GetVal('GENERATION') in (1, 2))) oo,
+      oil_org oprih,oil_org oout,oil_org oazs,oil_np_group npg
+where v3.out_to_id=oo.id(+) and v3.out_to_inst=oo.inst(+)
+  and v3.out_from_id=oout.id(+) and v3.out_from_inst=oout.inst(+)
+  and v3.from_id=oazs.id and v3.from_inst=oazs.inst
+  and v3.to_id=oprih.id and v3.to_inst=oprih.inst
+  and v3.npgrp_id=npg.id) v
+where date_ between :BeginDate and :EndDate
+  and (:org1.id in (to_id,prih_obl_id) or :org1.id is null)
+  and (out_org_id=:org2.id and out_org_inst=:org2.inst
+       or :org2.id is null)
+  and prih_is_filial in (:ChPrih.GetValues)
+  and out_is_filial in (:ChOut.GetValues)
+
+[FIELDS]
+  HEAD_DEPTH = 2
+
+  NAME = PRIH_DEP_NAME
+  CAPTION = Оприходовавшее подразделение@Підрозділ, що оприбуткував
+  WIDTH = 20
+
+  NAME = OUT_DEP_NAME
+  CAPTION = Отпустившее подразделение@Підпозділ, що відпустив
+  WIDTH = 20
+
+  NAME = OUT_ORG_NAME
+  CAPTION = Клиент@Клієнт
+  WIDTH = 15
+
+  NAME = OUT_ORG_OKPO
+  CAPTION = ОКПО клиента@ЄДРПОУ клієнта
+  WIDTH = 10
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION = Партия@Партія
+  WIDTH = 10
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 10
+
+  NAME = SMENA_NUM
+  CAPTION = № смены@№ зміни
+  WIDTH = 10
+
+  NAME = NOMINAL
+  CAPTION = Номинал@Номінал
+  WIDTH = 10
+
+  NAME = SER
+  CAPTION = Серия@Серія
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  NAME = OUT_DATE
+  CAPTION = Дата отпуска@Дата відпуску
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = PRIH_DATE
+  CAPTION = Дата прихода@Дата приходу
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = OUT_PRICE
+  CAPTION = Цена отпуска с НДС@Ціна відпуску з ПДВ
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = CO
+  CAPTION = Кол-во@К-сть
+  WIDTH = 10
+  FORMAT = 0
+  TOSUM = TRUE
+
+  NAME = LITR_AZS
+  CAPTION = Литры@Літри
+  WIDTH = 10
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = TONN_AZS
+  CAPTION =Тонны@Тони
+  WIDTH = 10
+  FORMAT = 0.000000
+  TOSUM = TRUE
+
+  NAME = OUT_SUMMA
+  CAPTION = Сумма с НДС по цене отпуска@Сума з ПДВ за ціною відпуска
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = DELTA
+  CAPTION = Дельта
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = out_org_name

@@ -1,0 +1,582 @@
+[GLOBAL]
+  TITLE = Движение нефтепродуктов(товаров) и денег@Рух нафтопродуктів(товарів) і грошей
+  MENU = Отчеты\Отчеты по АЗС\Движение нефтепродуктов(товаров) и денег@Рух нафтопродуктів(товарів) і грошей
+  MENU_POSITION = 0
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyyynn
+    STARTCONDITION1=2
+  END
+
+  PANEL
+    ELEMENT FRashDet:RADIOBUTTONGROUP
+      LIST = Детальная реализация,Общая реализация@Детальна реалізація,Загальна реалізація
+      VALUES = 0, 1
+    END
+  END
+
+  PANEL
+    ELEMENT FNpType:CHECKBOXGROUP
+      LIST = Нефтепродукт,Товар@Нафтопродукт,Товар
+      VALUES = 0, 1
+    END
+  END
+
+[DESCRIPTION]
+  За период с :BeginDate по :EndDate@За період з :BeginDate до :EndDate
+  Организация/АЗС:: :org1.Name@Організація/АЗС:: :org1.Name
+
+[SQL]
+select /*+ORDERED*/
+ dr.obl_name,
+ dr.azs_num,
+ dr.rep_date,
+ dr.rep_date_end_real,
+ dr.smena_num,
+ /*НП*/
+ decode(drd.np_grp, null, 'Товар', 'Нефтепродукт') as np_grp_name,
+ decode(drd.np_grp,
+        null,
+        decode(npt.codavias, null, '', npt.codavias || ': ') || npt.name,
+        npt.np_grp_fullname) as np_name,
+ /*Залишок*/
+ drd.OstatokBegin_litr,
+ drd.OstatokBegin_count,
+ drd.OstatokEnd_litr,
+ drd.OstatokEnd_count,
+ /*Прихід*/
+ drd.pr_litr,
+ drd.pr_count,
+ drd.pr_ud_weig,
+ drd.pr_s_price,
+ /*Вся реалізація*/
+ drd.all_out_litr,
+ drd.all_out_count,
+ drd.all_out_money,
+ drd.out_ud_weig,
+ drd.out_s_price,
+ /*Реалізація по операціям*/
+ drd.nal_litr,
+ drd.nal_count,
+ drd.nal_money,
+ drd.sr_201_litr,
+ drd.sr_201_count,
+ drd.sr_201_money,
+ drd.sr_273_litr,
+ drd.sr_273_count,
+ drd.sr_273_money,
+ drd.sr_274_litr,
+ drd.sr_274_count,
+ drd.sr_274_money,
+ drd.sr_275_litr,
+ drd.sr_275_count,
+ drd.sr_275_money,
+ drd.sr_276_litr,
+ drd.sr_276_count,
+ drd.sr_276_money,
+ /*Інша реалізація*/
+ drd.other_litr,
+ drd.other_count,
+ drd.other_money,
+ /*Гроші*/
+ money.sm_start,
+ money.sm_get,
+ money.sm_out,
+ money.sm_end,
+ /*Додаткова інформація*/
+ dr.emp_name,
+ dr.os_user,
+ dr.machine,
+ dr.user_name,
+ dr.input_method,
+ dr.ops_version
+  from /*Шапка*/
+       (select /*+PUSH_SUBQ*/
+         dr.id   as rep_id,
+         dr.inst as rep_inst,
+         
+         azs.obl_name,
+         dr.azs_id,
+         azs.name as azs_name,
+         to_number(azs.azs_num) as azs_num,
+         dr.rep_date,
+         nvl(dr.rep_date_end,
+             nvl(lead(dr.rep_date) over(partition by dr.azs_id order by
+                      dr.rep_date) - 1 / (24 * 60 * 60),
+                 trunc(dr.rep_date) + 1)) as rep_date_end_real,
+         dr.smena_num,
+         
+         e.f_name || ' ' || e.i_name || ' ' || e.o_name || ' ' as emp_name,
+         dr.os_user,
+         dr.machine,
+         u.user_name,
+         decode(substr(nvl(dr.auto_load, 'H'), 1, 1),
+                'H',
+                'Вручную',
+                'P',
+                'Пакет',
+                'Y',
+                'dbf-файл') ||
+         decode(instr(nvl(dr.auto_load, 'H'), 'E'), 0, null, ' (ред.)') as input_method,
+         v.ops_version
+          from oil_daily_rep dr,
+               v_oil_azs     azs,
+               /*Версії OPS*/
+               (select v.rep_id, v.rep_inst, v.value as ops_version
+                  from oil_azs_versions v
+                 where v.state = 'Y'
+                   and upper(v.paramname) = 'OPS_PRODUCT_VERSION') v,
+               oil_employ e,
+               /*Користувач OIL*/
+               (select u.id,
+                       nvl(trim(e.f_name || ' ' || e.i_name || ' ' ||
+                                e.o_name),
+                           u.u_name) as user_name
+                  from adm_users u, oil_employ e
+                 where e.state(+) = 'Y'
+                   and u.emp_id = e.id(+)
+                   and u.emp_inst = e.inst(+)) u
+         where dr.state = 'Y'
+           and e.state(+) = 'Y'
+              
+           and dr.azs_id = azs.id
+           and dr.azs_inst = azs.inst
+              
+           and dr.id = v.rep_id(+)
+           and dr.inst = v.rep_inst(+)
+              
+           and dr.emp_id = e.id(+)
+           and dr.emp_inst = e.inst(+)
+              
+           and dr.user_id = u.id(+)
+              
+           and :org1.id in (azs.id, azs.par, azs.obl_id)
+           and :org1.inst in (azs.inst, azs.par_inst, azs.obl_id)
+              
+           and trunc(dr.rep_date) between trunc(:BeginDate) and
+               trunc(:EndDate) + 1) dr,
+       
+       /*Реалізація*/
+       (select /*+PUSH_SUBQ*/
+         drd.*,
+         /*Залишок*/
+         sum(pr_litr - all_out_litr) over(partition by azs_id, np_grp, np_type order by rep_date) - pr_litr + all_out_litr as OstatokBegin_litr,
+         sum(pr_count - all_out_count) over(partition by azs_id, np_grp, np_type order by rep_date) - pr_count + all_out_count as OstatokBegin_count,
+         sum(pr_litr - all_out_litr) over(partition by azs_id, np_grp, np_type order by rep_date) as OstatokEnd_litr,
+         sum(pr_count - all_out_count) over(partition by azs_id, np_grp, np_type order by rep_date) as OstatokEnd_count
+          from (select /*+ORDERED INDEX(dr IDX_OIL_DAYLY_REP_AZS) INDEX(dr I_DR_DATA) INDEX(p OIL_PART_IN1)*/
+                 drd.rep_id,
+                 drd.rep_inst,
+                 
+                 dr.azs_id,
+                 dr.rep_date,
+                 
+                 min(decode(npt.np_grp,
+                            4,
+                            (select min(id) from v_oil_np_type where np_grp = 5),
+                            npt.id)) as np_type_id,
+                 decode(npt.us_subgroup_id,
+                        null,
+                        decode(npt.np_grp, 4, 5, npt.np_grp),
+                        npt.id) as np_type,
+                 decode(npt.us_subgroup_id,
+                        null,
+                        decode(npt.np_grp, 4, 5, npt.np_grp),
+                        null) as np_grp,
+                 
+                 max(decode(nvl(drd.pr_litr, 0), 0, 0, drd.pr_ud_weig)) as pr_ud_weig,
+                 max(decode(nvl(drd.pr_litr, 0), 0, drd.pr_ud_weig, 0)) as out_ud_weig,
+                 
+                 max(decode(nvl(drd.pr_litr, 0), 0, 0, drd.s_price)) as pr_s_price,
+                 max(decode(nvl(drd.pr_litr, 0), 0, drd.s_price, 0)) as out_s_price,
+                 
+                 sum(nvl(drd.pr_litr, 0)) as pr_litr,
+                 sum(nvl(drd.pr_count, 0)) as pr_count,
+                 
+                 sum(nvl(drd.out_nal_litr, 0) + nvl(drd.out_ved_litr, 0) +
+                     nvl(drd.out_talon_litr, 0) + nvl(drd.out_sn_litr, 0) +
+                     nvl(drd.out_litr, 0)) as all_out_litr,
+                 sum(nvl(drd.out_nal_count, 0) + nvl(drd.out_ved_count, 0) +
+                     nvl(drd.out_talon_count, 0) + nvl(drd.out_sn_count, 0) +
+                     nvl(drd.out_count, 0)) as all_out_count,
+                 sum(nvl(drd.out_nal_money, 0) + nvl(drd.out_ved_money, 0) +
+                     nvl(drd.out_talon_money, 0) + nvl(drd.out_sn_money, 0) +
+                     nvl(drd.out_money, 0)) as all_out_money,
+                 
+                 sum(nvl(drd.out_nal_litr, 0)) * (1 - :FRashDet.Value) as nal_litr,
+                 sum(nvl(drd.out_nal_count, 0)) * (1 - :FRashDet.Value) as nal_count,
+                 sum(nvl(drd.out_nal_money, 0)) * (1 - :FRashDet.Value) as nal_money,
+                 sum(nvl(sr.sr_litr_201, 0)) * (1 - :FRashDet.Value) as sr_201_litr,
+                 sum(nvl(sr.sr_count_t_201, 0)) * (1 - :FRashDet.Value) as sr_201_count,
+                 sum(nvl(sr.sr_money_201, 0)) * (1 - :FRashDet.Value) as sr_201_money,
+                 sum(nvl(sr.sr_litr_273, 0)) * (1 - :FRashDet.Value) as sr_273_litr,
+                 sum(nvl(sr.sr_count_t_273, 0)) * (1 - :FRashDet.Value) as sr_273_count,
+                 sum(nvl(sr.sr_money_273, 0)) * (1 - :FRashDet.Value) as sr_273_money,
+                 sum(nvl(sr.sr_litr_274, 0)) * (1 - :FRashDet.Value) as sr_274_litr,
+                 sum(nvl(sr.sr_count_t_274, 0)) * (1 - :FRashDet.Value) as sr_274_count,
+                 sum(nvl(sr.sr_money_274, 0)) * (1 - :FRashDet.Value) as sr_274_money,
+                 sum(nvl(sr.sr_litr_275, 0)) * (1 - :FRashDet.Value) as sr_275_litr,
+                 sum(nvl(sr.sr_count_t_275, 0)) * (1 - :FRashDet.Value) as sr_275_count,
+                 sum(nvl(sr.sr_money_275, 0)) * (1 - :FRashDet.Value) as sr_275_money,
+                 sum(nvl(sr.sr_litr_276, 0)) * (1 - :FRashDet.Value) as sr_276_litr,
+                 sum(nvl(sr.sr_count_t_276, 0)) * (1 - :FRashDet.Value) as sr_276_count,
+                 sum(nvl(sr.sr_money_276, 0)) * (1 - :FRashDet.Value) as sr_276_money,
+                 sum(nvl(sr.sr_litr, 0) + nvl(drd.out_ved_litr, 0) +
+                     nvl(drd.out_talon_litr, 0) + nvl(drd.out_sn_litr, 0)) *
+                 (1 - :FRashDet.Value) as other_litr,
+                 sum(nvl(sr.sr_count_t, 0) + nvl(drd.out_ved_count, 0) +
+                     nvl(drd.out_talon_count, 0) + nvl(drd.out_sn_count, 0)) *
+                 (1 - :FRashDet.Value) as other_count,
+                 sum(nvl(sr.sr_money, 0) + nvl(drd.out_ved_money, 0) +
+                     nvl(drd.out_talon_money, 0) + nvl(drd.out_sn_money, 0)) *
+                 (1 - :FRashDet.Value) as other_money
+                  from oil_daily_rep dr,
+                       v_oil_azs azs,
+                       oil_dr_data drd,
+                       (select sr.srep_id,
+                               sr.srep_inst,
+                               sum(decode(sr.oper_id, 201, nvl(sr.litr, 0), 0)) as sr_litr_201,
+                               sum(decode(sr.oper_id,
+                                          201,
+                                          nvl(sr.count_t, 0),
+                                          0)) as sr_count_t_201,
+                               sum(decode(sr.oper_id,
+                                          201,
+                                          nvl(sr.amount, 0),
+                                          0)) as sr_money_201,
+                               sum(decode(sr.oper_id, 273, nvl(sr.litr, 0), 0)) as sr_litr_273,
+                               sum(decode(sr.oper_id,
+                                          273,
+                                          nvl(sr.count_t, 0),
+                                          0)) as sr_count_t_273,
+                               sum(decode(sr.oper_id,
+                                          273,
+                                          nvl(sr.amount, 0),
+                                          0)) as sr_money_273,
+                               sum(decode(sr.oper_id, 274, nvl(sr.litr, 0), 0)) as sr_litr_274,
+                               sum(decode(sr.oper_id,
+                                          274,
+                                          nvl(sr.count_t, 0),
+                                          0)) as sr_count_t_274,
+                               sum(decode(sr.oper_id,
+                                          274,
+                                          nvl(sr.amount, 0),
+                                          0)) as sr_money_274,
+                               sum(decode(sr.oper_id, 275, nvl(sr.litr, 0), 0)) as sr_litr_275,
+                               sum(decode(sr.oper_id,
+                                          275,
+                                          nvl(sr.count_t, 0),
+                                          0)) as sr_count_t_275,
+                               sum(decode(sr.oper_id,
+                                          275,
+                                          nvl(sr.amount, 0),
+                                          0)) as sr_money_275,
+                               sum(decode(sr.oper_id, 276, nvl(sr.litr, 0), 0)) as sr_litr_276,
+                               sum(decode(sr.oper_id,
+                                          276,
+                                          nvl(sr.count_t, 0),
+                                          0)) as sr_count_t_276,
+                               sum(decode(sr.oper_id,
+                                          276,
+                                          nvl(sr.amount, 0),
+                                          0)) as sr_money_276,
+                               sum(decode(sr.oper_id,
+                                          201,
+                                          0,
+                                          273,
+                                          0,
+                                          274,
+                                          0,
+                                          275,
+                                          0,
+                                          276,
+                                          0,
+                                          sr.litr)) as sr_litr,
+                               sum(decode(sr.oper_id,
+                                          201,
+                                          0,
+                                          273,
+                                          0,
+                                          274,
+                                          0,
+                                          275,
+                                          0,
+                                          276,
+                                          0,
+                                          sr.count_t)) as sr_count_t,
+                               sum(decode(sr.oper_id,
+                                          201,
+                                          0,
+                                          273,
+                                          0,
+                                          274,
+                                          0,
+                                          275,
+                                          0,
+                                          276,
+                                          0,
+                                          sr.amount)) as sr_money
+                          from oil_srother sr
+                         where state = 'Y'
+                         group by sr.srep_id, sr.srep_inst) sr,
+                       oil_rashod r,
+                       oil_part p,
+                       v_oil_np_type npt
+                 where dr.state = 'Y'
+                   and drd.state = 'Y'
+                   and r.state = 'Y'
+                   and p.state = 'Y'
+                      
+                   and dr.azs_id = azs.id
+                   and dr.azs_inst = azs.inst
+                      
+                   and dr.id = drd.rep_id
+                   and dr.inst = drd.rep_inst
+                      
+                   and drd.ttn_id = r.id
+                   and drd.ttn_inst = r.inst
+                   and drd.oper_type in (0, 1, 2)
+                      
+                   and drd.id = sr.srep_id(+)
+                   and drd.inst = sr.srep_inst(+)
+                      
+                   and r.part_id = p.id
+                   and r.part_inst = p.inst
+                      
+                   and p.np_type = npt.id
+                      
+                   and :org1.id in (azs.id, azs.par, azs.obl_id)
+                   and :org1.inst in (azs.inst, azs.par_inst, azs.obl_id)
+                      
+                   and trunc(dr.rep_date) <= trunc(:EndDate)
+                 group by drd.rep_id,
+                          drd.rep_inst,
+                          dr.azs_id,
+                          dr.rep_date,
+                          decode(npt.us_subgroup_id,
+                                 null,
+                                 decode(npt.np_grp, 4, 5, npt.np_grp),
+                                 npt.id),
+                          decode(npt.us_subgroup_id,
+                                 null,
+                                 decode(npt.np_grp, 4, 5, npt.np_grp),
+                                 null)) drd) drd,
+       
+       /*Гроші*/
+       (select rep_id, rep_inst, sm_start, sm_get, sm_out, sm_end
+          from oil_dr_money
+         where State = 'Y') money,
+       
+       /*НП*/
+       v_oil_np_type npt
+ where dr.rep_id = money.rep_id
+   and dr.rep_inst = money.rep_inst
+      
+   and dr.rep_id = drd.rep_id
+   and dr.rep_inst = drd.rep_inst
+      
+   and drd.np_type_id = npt.id
+   and decode(npt.us_subgroup_id, null, 0, 1) in (:FNpType.GetValues)
+
+[FIELDS]
+  NAME = obl_name
+  CAPTION = Организация@Організація
+  WIDTH = 20
+
+  NAME = azs_num
+  CAPTION = АЗС@АЗС
+  WIDTH = 7
+
+  NAME = rep_date
+  CAPTION = Начало смены@Початок зміни
+  WIDTH = 18
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = rep_date_end_real
+  CAPTION = Конец смены@Кінець зміни
+  WIDTH = 18
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = smena_num
+  CAPTION = Смена@Зміна
+  WIDTH = 7
+
+  NAME = np_grp_name
+  CAPTION = НП/Товар@НП/Товар
+  WIDTH = 14
+
+  NAME = np_name
+  CAPTION = Нефтепродукт(товар)@Нафтопродукт(товар)
+  WIDTH = 18
+
+  NAME = OstatokBegin_litr
+  CAPTION = Остаток на начало смены!Кол-во, л@Залишок на початок зміни!Кіл-ть, л
+  WIDTH = 12
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = OstatokBegin_count
+  CAPTION = Остаток на начало смены!Кол-во, т@Залишок на початок зміни!Кіл-ть, т
+  WIDTH = 12
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = pr_litr
+  CAPTION = Приход!Кол-во, л@Прихід на АЗС!Кіл-ть, л
+  WIDTH = 12
+  FORMAT = 0.000
+  TOSUM = TRUE
+  HIDEIFEMPTY = TRUE
+
+  NAME = pr_count
+  CAPTION = Приход!Кол-во, т@Прихід на АЗС!Кіл-ть, т
+  WIDTH = 12
+  FORMAT = 0.000
+  TOSUM = TRUE
+  HIDEIFEMPTY = TRUE
+
+  NAME = pr_ud_weig
+  CAPTION = Приход!Плотность, кг/м3@Прихід на АЗС!Густина, кг/м3
+  WIDTH = 10
+  FORMAT = 0.0000
+  HIDEIFEMPTY = TRUE
+
+  NAME = pr_s_price
+  CAPTION = Приход!Цена, грн@Прихід на АЗС!Ціна, грн
+  WIDTH = 10
+  FORMAT = 0.00
+  HIDEIFEMPTY = TRUE
+
+  NAME = out_ud_weig
+  CAPTION = Расход!Плотность, кг/м3@Відпуск!Густина, кг/м3
+  WIDTH = 10
+  FORMAT = 0.0000
+
+  NAME = out_s_price
+  CAPTION = Расход!Цена, грн@Відпуск!Ціна, грн
+  WIDTH = 10
+  FORMAT = 0.00
+
+  DEFAULT WIDTH = 12
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+  DEFAULT HIDEIFEMPTY = TRUE
+
+  FIELDS_GROUP
+  TAILS
+    NAME = _litr
+    CAPTION = !Кол-во, л@!Кіл-ть, л
+    FORMAT = 0.000
+
+    NAME = _count
+    CAPTION = !Кол-во, т@!Кіл-ть, т
+    FORMAT = 0.000
+
+    NAME = _money
+    CAPTION = !Сумма, грн@!Сума, грн
+    FORMAT = 0.00
+
+  HEADS
+    NAME = nal
+    CAPTION = Расход!Наличные@Відпуск!Готівка
+
+    NAME = sr_201
+    CAPTION = Расход!Банковские карточки@Відпуск!Банківські картки
+
+    NAME = sr_273
+    CAPTION = Расход!Скретч-карта - Украина@Відпуск!Скретч-карта - Україна
+
+    NAME = sr_274
+    CAPTION = Расход!Скретч-карта - Региональные@Відпуск!Скретч-карта - Регіональні
+
+    NAME = sr_275
+    CAPTION = Расход!Топливные карты - Украина@Відпуск!Топливные карты - Україна
+
+    NAME = sr_276
+    CAPTION = Расход!Топливные карты - Региональные@Відпуск!Топливные карты - Регіональні
+
+    NAME = other
+    CAPTION = Расход!Прочий@Відпуск!Інший
+
+    NAME = all_out
+    CAPTION = Расход!Всего@Відпуск!Всього
+  END_GROUP
+
+  NAME = OstatokEnd_litr
+  CAPTION = Остаток на конец смены!Кол-во, л@Залишок на кінець зміни!Кіл-ть, л
+  WIDTH = 12
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = OstatokEnd_count
+  CAPTION = Остаток на конец смены!Кол-во, т@Залишок на кінець зміни!Кіл-ть, т
+  WIDTH = 12
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = sm_start
+  CAPTION = Деньги!На начало, грн@Гроші!На начало, грн
+  WIDTH = 12
+  FORMAT = 0.00
+  TOSUM = FALSE
+
+  NAME = sm_get
+  CAPTION = Деньги!Полученные, грн@Гроші!Отримані, грн
+  WIDTH = 12
+  FORMAT = 0.00
+  TOSUM = FALSE
+
+  NAME = sm_out
+  CAPTION = Деньги!Сдано в банк(кассу), грн@Гроші!Здано в банк(касу), грн
+  WIDTH = 12
+  FORMAT = 0.00
+  TOSUM = FALSE
+
+  NAME = sm_end
+  CAPTION = Деньги!На конец, грн@Гроші!На кінець, грн
+  WIDTH = 12
+  FORMAT = 0.00
+  TOSUM = FALSE
+
+  NAME = emp_name
+  CAPTION = Оператор@Оператор
+  WIDTH = 15
+  TOSUM = FALSE
+
+  NAME = os_user
+  CAPTION = Пользователь компьютера@Користувач комп''ютера
+  WIDTH = 12
+  TOSUM = FALSE
+
+  NAME = machine
+  CAPTION = Компьютер@Комп''ютер
+  WIDTH = 12
+  TOSUM = FALSE
+
+  NAME = user_name
+  CAPTION = Пользователь OIL@Користувач OIL
+  WIDTH = 12
+  TOSUM = FALSE
+
+  NAME = input_method
+  CAPTION = Способ ввода@Спосіб уведення
+  WIDTH = 10
+  TOSUM = FALSE
+
+  NAME = ops_version
+  CAPTION = Версия OPS@Версія OPS
+  WIDTH = 10
+  TOSUM = FALSE
+
+[TYPES]
+   CAPTION = Основное групирование@Основне групування
+
+   CAPTION = Группировка по организации, АЗС, нефтепродукту(товару)@Групування по організації, АЗС, нафтопродукту (товару)
+   ITOGI = obl_name,azs_name,np_grp_name,np_name

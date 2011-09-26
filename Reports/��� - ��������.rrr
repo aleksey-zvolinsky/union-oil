@@ -1,0 +1,196 @@
+[GLOBAL]
+  TITLE = Реестр списания НП с электронных карточек@Реєстр  списання НП з електронних карток
+  VERSION = 1.5
+  RAZM_SYMBOLS = NO
+  MENU = Отчеты\Отчеты по эл. карточкам\По потребителям - 2\Списание@Списання
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+  PANEL
+    CAPTION = Принадлежность карт/АЗС@Приналежність карт/АЗС
+    ELEMENT RTYPE:CheckBoxGroup
+      LIST = Наши клиенты + Наши АЗС,Наши клиенты + Чужие АЗС,Чужие клиенты + Наши АЗС@Наші клієнти + Наші АЗС,Наші клієнти + Чужі АЗС,Чужі клієнти + Наші АЗС
+      VALUES = 1,2,3
+    END
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select /*+ORDERED*/
+ t.Emitent_Name,
+ t.Client_Name,
+ t.Client_OKPO,
+ t.NP_Name,
+ t.Part_Dog as Part,
+ t.Sub_Part,
+ t.Filial_Name,
+ t.AZS_Name,
+ trunc(t.Rep_Date) as Rep_Date,
+ t.Smena_Num,
+ trunc(t.Exp_Date) as Exp_Date,
+ t.Card_Number,
+ trunc(t.Rec_Date) as Rec_Date,
+ decode(Price, null, Term_Price, Price) as Price,
+ t.Litr,
+ t.Weight,
+ decode(Price, null, round(t.Litr * Term_Price, 2), t.Dog_Amount) as Amount
+  from v_Card_SR_Equal t,
+       (select Id, Inst
+          from Oil_Org
+         where (Id = :org1.Id and Inst = :org1.inst)
+            or (Par = :org1.id and Par_Inst = :org1.inst)) Dep
+ where trunc(t.exp_date) between :BeginDate and :EndDate
+   and (t.Client_Id = :Org2.Id or :Org2.Id is null)
+   and (t.Client_Inst = :Org2.Inst or :Org2.Inst is null)
+   and ((1 in (:RTYPE.GetValues) and
+        Card.GetObl(t.Card_Number, trunc(t.Rep_Date)) = t.obl_id) or
+        (3 in (:RTYPE.GetValues) and
+        Card.GetObl(t.Card_Number, trunc(t.Rep_Date)) <> t.obl_id))
+   and t.Filial_Id = Dep.Id
+   and t.Filial_Inst = Dep.Inst
+   and t.Auto_Id is null
+
+union all
+
+select /*+ORDERED NO_MERGE USE_HASH(Card_Expense, Client, Filial, AZS, Oil_NP_Group, Emitent, Dep)*/
+ Emitent.Name as Emitent_Name,
+ Client.Name as Client_Name,
+ Client.Id_Num as Client_OKPO,
+ Oil_NP_Group.Name as NP_Name,
+ to_char(null) as Part,
+ to_number(null) as Sub_Part,
+ Filial.Name as Filial_Name,
+ AZS.Name as AZS_Name,
+ to_date(null) as Rep_Date,
+ to_number(null) as Smena_Num,
+ t.Date_ as Exp_Date,
+ t.Card_Number,
+ t.R_Date_ as Rec_Date,
+ t.Price as Price,
+ t.Litr,
+ to_number(null) as Weight,
+ t.Amount
+  from v_Card_Equal t,
+       Oil_Org Client,
+       v_card_azs AZS,
+       Oil_Org Filial,
+       Oil_NP_Group,
+       Oil_Org Emitent,
+       (select Id, Inst
+          from Oil_Org
+         where (Id = :org1.Id and Inst = :org1.inst)
+            or (Par = :org1.id and Par_Inst = :org1.inst)) Dep
+ where 2 in (:RTYPE.GetValues)
+   and (t.To_Id = :org2.id or :org2.id is null)
+   and (t.To_Inst = :org2.inst or :org2.inst is null)
+   and trunc(t.Date_) between :BeginDate and :EndDate
+   and t.To_Id = Client.Id(+)
+   and t.To_Inst = Client.Inst(+)
+   and t.номер_терминала + 1000000 = AZS.Id(+)
+   and t.номер_терминала + 1000000 = AZS.Inst(+)
+   and AZS.Par = Filial.Id(+)
+   and AZS.Par_Inst = Filial.Inst(+)
+   and ov.CardInst = Emitent.Id(+)
+   and Emitent.Id(+) = Emitent.Inst(+)
+   and Emitent.State(+) = 'Y'
+   and Emitent.Id = Dep.Id
+   and Emitent.Inst = Dep.Inst
+   and t.NP_Type = Oil_NP_Group.Petrol_Id
+   and AZS.EMITENT_ID <> Emitent.Id
+   and t.Auto_Id is null
+
+[FIELDS]
+  HEAD_DEPTH = 3
+
+  NAME = EMITENT_NAME
+  CAPTION = Эмитент@Емітент
+  WIDTH = 30
+
+  NAME = CLIENT_NAME
+  CAPTION = Наименование потребителя@Назва споживача
+  WIDTH = 30
+
+  NAME = CLIENT_OKPO
+  CAPTION = ОКПО@ЕДРПОУ
+  WIDTH = 10
+
+  NAME = NP_NAME
+  CAPTION = НП
+  WIDTH = 10
+
+  NAME = PART
+  CAPTION = Партия@Партія
+  WIDTH = 10
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = FILIAL_NAME
+  CAPTION = ППОН
+  WIDTH = 20
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION = Дата сменного отчета@Дата змінного звіту
+  WIDTH = 10
+
+  NAME = SMENA_NUM
+  CAPTION = №смены@№ зміни
+  WIDTH = 10
+
+  NAME = EXP_DATE
+  CAPTION = Дата списания@Дата списання
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = CARD_NUMBER
+  CAPTION = Номер карточки@Номер картки
+  WIDTH = 10
+
+  NAME = REC_DATE
+  CAPTION = Дата пополнения@Дата поповнення
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = PRICE
+  CAPTION = Цена с НДС, грн@Ціна з ПДВ, грн
+  WIDTH = 10
+  FORMAT = 0.00
+
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+
+  NAME = LITR
+  CAPTION = Всего, л.@Всього, л.
+  WIDTH = 10
+  FORMAT = 0.000
+
+  NAME = WEIGHT
+  CAPTION = Всего, т.@Всього, т.
+  WIDTH = 10
+  FORMAT = 0.000000
+
+  NAME = AMOUNT
+  CAPTION = Сумма с НДС, грн@Сума з ПДВ, грн
+  WIDTH = 10
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = CLIENT_NAME,NP_NAME

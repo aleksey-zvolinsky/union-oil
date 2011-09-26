@@ -1,0 +1,207 @@
+[GLOBAL]
+   FORMTITLE = Комиссионера по реализации@Комиссионера по реализации
+   MENU = Отчеты\Отчеты для Авиаса\Комиссионера по реализации@Комісіонера з реалізації
+   MENU_POSITION = 0
+   VERSION = 1.6.2
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   TITLE_COORD = M3
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NULLVALUE1=NO
+   END
+
+   PANEL
+      ELEMENT AzsList:List
+          CAPTION = АЗС:
+          TABLENAME = v_oil_azs
+          CONDITION = obl_id = ov.GetVal('INST')
+      END
+   END
+
+[VARIABLES]
+
+[DESCRIPTION]
+
+\{D3}MОТЧЕТ №________@\{D3}MЗВІТ №________
+\{C4}M:org1.name
+\{B5}Mо реализации нефтепродуктов по договору комиссии №___________ от _____________@\{B5}Mпро реализацію нафтопродуктів по договору комісії №___________ від _____________
+\{C6}Mсогласно приказу № ________ от __________@\{C6}Mзгідно наказу № ________ від __________
+\{C7}M                 с :BeginDate по :EndDate г.@\{C7}M                 з :BeginDate по :EndDate р.
+\{C8}Mпо АЗС №№: :AzsList.DESCRIPTION
+AFTER
+\2LДиректор филиала ______________@\2LДиректор филії ______________
+\2N\2LГлавный бухгалтер ______________@\2N\2LГоловний бухгалтер ______________
+
+[SQL]
+select row_number() over(order by np_group, dog) rnum,
+       np_group,
+       np_grp,
+       dog,
+
+       sum(decode(operid, 12, litr, 0)) as nal_litr,
+       sum(decode(operid, 12, tonn, 0)) as nal_tonn,
+       sum(decode(operid, 12, summa_no_nds, 0)) as nal_summa_no_nds,
+
+       sum(decode(operid, 201, litr, 0)) as bank_litr,
+       sum(decode(operid, 201, tonn, 0)) as bank_tonn,
+       sum(decode(operid, 201, summa_no_nds, 0)) as bank_summa_no_nds,
+
+       sum(decode(operid, 11, litr, 0)) as bnal_litr,
+       sum(decode(operid, 11, tonn, 0)) as bnal_tonn,
+       sum(decode(operid, 11, summa_no_nds, 0)) as bnal_summa_no_nds,
+
+       sum(decode(operid, 153, litr, 0)) as card_litr,
+       sum(decode(operid, 153, tonn, 0)) as card_tonn,
+       sum(decode(operid, 153, summa_no_nds, 0)) as card_summa_no_nds,
+
+       sum(decode(operid, 14, litr, 0)) as tal_litr,
+       sum(decode(operid, 14, tonn, 0)) as tal_tonn,
+       sum(decode(operid, 14, summa_no_nds, 0)) as tal_summa_no_nds,
+
+       sum(litr) as litr,
+       sum(tonn) as tonn,
+       sum(summa_no_nds) as summa_no_nds
+
+  from (select OblId,
+               OblInst,
+               date_,
+               operid,
+               np_group,
+               np_groupid as np_grp,
+               dog,
+               litr,
+               tonn,
+               nds.GetNoNDS_WithNDS(summa, date_, 2) as summa_no_nds
+          from v_oil_npmove
+         where operid in (11, 12, 201)
+           and nbazs = 1
+           and IsSummary <> 'Y'
+           and IsTalonDet <> 'Y'
+           and rashprih = 0
+           and :AzsList.IsInList{AzsId}
+        union all
+        select card.GetObl(c.card_number,
+                           decode(c.is_ls,
+                                  1,
+                                  trunc(c.dog_date),
+                                  trunc(c.rec_date))) as OblId,
+               card.GetObl(c.card_number,
+                           decode(c.is_ls,
+                                  1,
+                                  trunc(c.dog_date),
+                                  trunc(c.rec_date))) as OblInst,
+               trunc(c.rep_date) as date_,
+               153 as operid,
+               npg.name as np_group,
+               npg.id as np_grp,
+               nvl(part, part_fil) as dog,
+               litr,
+               weight as tonn,
+               nds.GetNoNDS_WithNDS(round(price_card * litr, 2),
+                                    trunc(c.rep_date),
+                                    2) as summa_no_nds
+          from v_card_1c c, oil_np_group npg, v_card_azs azs
+         where decode(c.np_id, 4, 5, c.np_id) = npg.id
+           and auto_id is null
+           and isdual <> 1
+           and azs.id = c.azs_id
+           and azs.inst = c.azs_id
+           and ((azs.is_alien_azs = 1) or
+                (azs.is_alien_azs = 0 and (:AzsList.IsInList{c.AZS_Id})))
+        union all
+        select azs.obl_id as OblId,
+               azs.obl_id as OblInst,
+               trunc(t.rep_date) as date_,
+               t.oper_id as operid,
+               np.np_grp_name as np_group,
+               np.np_grp,
+               p.dog,
+               t.litr,
+               t.tonn,
+               nds.GetNoNDS_WithNDS(Round(t.Litr *
+                                          nvl(t.OutPrice, t.rep_price),
+                                          2),
+                                    trunc(t.rep_date),
+                                    2) as summa_no_nds
+          from v_oil_talon_real t,
+               v_oil_np_type    np,
+               oil_part         p,
+               v_oil_azs        azs
+         where auto_id is null
+           and t.oper_id = 14
+           and (t.out_oper_id not in (193, 245) or t.out_oper_id is null)
+           and :AzsList.IsInList{t.Azs_Id}
+           and p.np_type = np.id
+           and t.part_id = p.id
+           and t.part_inst = p.inst
+           and t.from_id = azs.id
+           and t.from_inst = azs.inst) v
+ where np_grp <> 10
+   and date_ between :BeginDate and :EndDate
+   and :org1.Id = OblId
+   and :org1.Id = OblInst
+   and substr(v.dog, 1, 2) = 'ТД'
+   and v.dog not like 'ТД%/И'
+ group by np_group, np_grp, dog
+having sum(tonn) <> 0 or sum(litr) <> 0
+
+[FIELDS]
+   NAME = rnum
+   CAPTION = №№ п/п@№№ п/п
+   WIDTH = 12
+
+   NAME = np_group
+   CAPTION = Тип НП@Тип НП
+   WIDTH = 12
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 12
+
+   DEFAULT WIDTH = 13
+   DEFAULT TOSUM = TRUE
+   DEFAULT OPTIONAL = FALSE
+   DEFAULT HIDEIFEMPTY = FALSE
+
+   FIELDS_GROUP
+      TAILS
+        NAME = litr
+        CAPTION = !Кол-во,л@!К-сть,л
+        FORMAT = 0.000
+
+        NAME = tonn
+        CAPTION = !Кол-во,т@!К-сть,т
+        FORMAT = 0.000000
+
+        NAME = summa_no_nds
+        CAPTION = !грн без НДС@!грн без ПДВ
+        FORMAT = 0.00
+     HEADS
+
+           NAME = nal_
+           CAPTION = Наличные@Готівка
+
+           NAME = bank_
+           CAPTION = Банк. карты@Банк.карти
+
+           NAME = bnal_
+           CAPTION = Безнал@Безгот.
+
+           NAME = card_
+           CAPTION = Эл.карты@Ел.карти
+
+           NAME = tal_
+           CAPTION = Талоны@Талони
+
+           NAME =
+           CAPTION = Всего@Всього
+    END_GROUP
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI =

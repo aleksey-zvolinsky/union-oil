@@ -1,0 +1,72 @@
+[GLOBAL]
+  TITLE = Счетчики ТРК@Лічильники ТРК
+  MENU = Отчеты\Отчеты по АЗС\Информация с АЗС\Счетчики ТРК@Лічильники ТРК
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyynnynn
+    STARTCONDITION1=2
+  END
+
+[DESCRIPTION]
+  За период с :BeginDate по :EndDate@За період з :BeginDate до :EndDate
+  АЗС:: :org1.Name
+
+[SQL]
+select trk.np_id,
+       np.name as np_name,
+       trk.pistol_id,
+       trk.begin_counter,
+       trk.end_counter,
+       trk.end_counter - trk.begin_counter as reliz,
+       drep.rep_date
+  from oil_azs_trkcounters trk, oil_daily_rep drep, oil_np_group np
+ where trunc(drep.rep_date) between :BeginDate and :EndDate
+   and drep.azs_id = :org1.id
+   and drep.azs_inst = :org1.id
+   and drep.state = 'Y'
+   and drep.id = trk.rep_id
+   and drep.inst = trk.rep_inst
+   and trk.state = 'Y'
+   and np.id = trk.np_id
+ order by trk.np_id, trk.pistol_id, drep.rep_date, drep.rep_date
+
+[FIELDS]
+  NAME = NP_NAME
+  CAPTION = НП
+  WIDTH = 10
+
+  NAME = PISTOL_ID
+  CAPTION = ID пистолета@ID пістолета
+  WIDTH = 15
+  
+  NAME = REP_DATE
+  CAPTION = Сменный отчет!Дата@Змінний звіт!Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = BEGIN_COUNTER
+  CAPTION = Сменный отчет!Счетчик на начало@Змінний звіт!Лічильник на початок
+  WIDTH = 18
+  FORMAT = 0.00
+
+  NAME = END_COUNTER
+  CAPTION = Сменный отчет!Счетчик на конец@Змінний звіт!Лічильник на кінець
+  WIDTH = 18
+  FORMAT = 0.00
+
+  NAME = RELIZ
+  CAPTION = Сменный отчет!Разница@Змінний звіт!Різниця
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = NP_NAME

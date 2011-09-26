@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Финансы\Справочники" caption="Статьи">
+	<sql>
+select e_budget_id as id, budget_name, activity_name, budget_comments, e_activity_id, bud_name
+from ve_budget
+order by bud_name, id
+</sql>
+	<columns>
+		<column align="left" width="50">
+			<caption align="center">№</caption>
+			<fieldname>id</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">Статья</caption>
+			<fieldname>budget_name</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Тип статьи</caption>
+			<fieldname>activity_name</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Примечание</caption>
+			<fieldname>budget_comments</fieldname>
+		</column>		
+		<column align="left" width="100">
+			<caption align="center">Происхождение</caption>
+			<fieldname>bud_name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="200" wholevalue="false">
+			<name>budget_name</name>
+			<caption>Название статьи:</caption>
+			<fieldname>budget_name</fieldname>
+		</edit>
+		<xmlform left="250" top="10" width="200" wholevalue="true">
+			<name>E_BudgetTypeRef</name>
+			<caption>Тип статьи:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>e_activity_id</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+	</filters>
+</form>

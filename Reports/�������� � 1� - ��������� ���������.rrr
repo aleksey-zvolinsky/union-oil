@@ -1,0 +1,169 @@
+[GLOBAL]
+  TITLE = Налоговые накладные@Податкові накладні
+  VERSION = 1.1
+  MENU = Отчеты\Выгрузка в 1С\Налоговые накладные@Податкові накладні
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select Q.*,
+  decode(sal_type,
+    1,'Оплаты (не по эл.картам)',
+    2,'Отпуск с НБ',
+    3,'Услуги',
+    4,'Отпуск талонов',
+    5,'Эл.карточки',
+    6,'Эл.карты чужие списания '||
+      '- налоговая',
+    7,'Эл.карты чужие списания '||
+      '- корректировка',
+    8,'Эл.карты чужие списания '||
+      '- оплата',
+    9,'Эл.карты лимитная схема '||
+      '- налоговая',
+   10,'Эл.карты лимитная схема '||
+      '- корректировка',
+   11,'Эл.карты лимитная схема '||
+      '- оплата',
+   12,'АЗС(Ведомость)',
+   13,'АЗС(Прочее)',
+      'Тип не установлен'
+  ) as sal_type_name,
+  decode(sal_type,7,1,10,1,0) as is_korr
+from
+(
+select /*+ORDERED USE_HASH(sb,oo,odep,sbd,nnt*/
+  sb.from_ as filial_id,
+  nvl(oo.id_num,odet2.fake_id_num) as id_num,
+  substr(oo.name,1,127) as org_name,
+  nds.TAX_RATE(:EndDate)*100 as rate_nds,
+  substr(sb.num||decode(adm.value,null,'','/'||adm.value),1,50) as bill_num,
+  sb.s_date as bill_date,
+  frasch as pay_type,
+  decode(nnt.tip_id,
+    1,decode(sb.nal_t,
+      9,decode(organ-organ_inst,0,8,11),
+      1),
+    2,2,
+    3,3,
+    4,4,
+    6,decode(sb.nal_t,
+      5,6,
+      7,6,
+      8,8),
+    7,12,
+    8,13,
+    decode(sb.nal_t,
+      7,decode(sb.organ-sb.organ_inst,0,6,9),
+      8,decode(sb.organ-sb.organ_inst,0,7,10)
+    )
+  ) as sal_type,
+  nvl(sbd.nds_t,nvl(sb.nds_t,0)) as sum_full,
+  nvl(sbd.nds,nvl(sb.nds_p_20,0)+nvl(nds_np_20,0)) as sum_nds
+from oil_sale_book sb,oil_org oo,oil_org odep,oil_info oi,adm_settings adm, oil_org_det2 odet2,
+  (select
+     nn_id,nn_inst,
+     sign(k_nds_b) as is_korr,
+     decode(nds_t,0,k_nds_b+k_nds_20,nds_t) as nds_t,
+     nds_np_20+nds_p_20+k_nds_20 as nds
+   from
+     (select
+        nn_id,nn_inst,
+        sum(nvl(nds_t,0)) as nds_t,
+        sum(nvl(nds_np_base,0)) as nds_np_base,
+        sum(nvl(nds_np_20,0)) as nds_np_20,
+        sum(nvl(nds_p_base,0)) as nds_p_base,
+        sum(nvl(nds_p_20,0)) as nds_p_20,
+        sum(nvl(k_nds_b,0)) as k_nds_b,
+        sum(nvl(k_nds_20,0)) as k_nds_20
+      from oil_sale_book_det
+      where state='Y'
+      group by nn_id,nn_inst
+     )
+  ) sbd,
+  (select 1 as tip_id,nn_id,nn_inst from oil_money where nn_id is not null
+   union
+   select 2 as tip_id,nn_id,nn_inst from oil_rashod where nn_id is not null
+   union
+   select 3 as tip_id,nn_id,nn_inst from oil_service where nn_id is not null
+   union
+   select 4 as tip_id,nn_id,nn_inst from oil_talon_out where nn_id is not null
+   union
+   select 6 as tip_id,nn_id,nn_inst from card_transit where nn_id is not null
+   union
+   select 7 as tip_id,id as nn_inst,inst as nn_inst from oil_sale_book b where b.state = 'Y' and nn_cause_id = 11
+   union
+   select 8 as tip_id,id as nn_inst,inst as nn_inst from oil_sale_book b where b.state = 'Y' and nn_cause_id = 12
+  ) nnt
+where sb.state='Y' and(nal_t <> 6 or nal_t is null)
+  and sbd.nn_id(+)=sb.id and sbd.nn_inst(+)=sb.inst
+  and sb.s_date between :BeginDate and :EndDate
+  and sb.organ=oo.id and sb.organ_inst=oo.inst
+  and sb.id=nnt.nn_id(+) and sb.inst=nnt.nn_inst(+)
+  and adm.name(+)='FILIAL_NUMBER' and adm.inst(+)=sb.inst
+  and oo.id=odet2.org_id(+) and oo.inst=odet2.org_inst(+)
+  and sb.from_=odep.id and sb.from_inst=odep.inst
+  and oi.main_inst in (odep.id,odep.par)
+  and odet2.state(+)='Y'
+) Q
+
+[FIELDS]
+
+  NAME = FILIAL_ID
+  CAPTION =Код филиала@Код філії
+  WIDTH = 10
+
+  NAME = ID_NUM
+  CAPTION =Идентификационный код@Ідентифікаційний код
+  WIDTH = 15
+
+  NAME = ORG_NAME
+  CAPTION =Название организации@Назва організації
+  WIDTH = 25
+
+  NAME = RATE_NDS
+  CAPTION =НДС@ПДВ
+  WIDTH = 10
+
+  NAME = BILL_NUM
+  CAPTION =Номер НН@Номер ПН
+  WIDTH = 10
+
+  NAME = BILL_DATE
+  CAPTION =Дата НН@Дата ПН
+  WIDTH = 10
+
+  NAME = PAY_TYPE
+  CAPTION =Форма расчёта@Форма розрахунку
+  WIDTH = 15
+
+  NAME = SAL_TYPE
+  CAPTION =Тип
+  WIDTH = 15
+
+  NAME = SUM_FULL
+  CAPTION =Сумма@Сума
+  WIDTH = 10
+
+  NAME = SUM_NDS
+  CAPTION =Сумма НДС@Сума ПДВ
+  WIDTH = 10
+
+  NAME = SAL_TYPE_NAME
+  CAPTION =Тип
+  WIDTH = 20
+
+  NAME = IS_KORR
+  CAPTION =Корректировка@Корегування
+  WIDTH = 13
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

@@ -1,0 +1,129 @@
+[GLOBAL]
+  TITLE = Разборка карты@Розбирання карти
+  MENU = Отчеты\Отчеты по эл. карточкам\Разборка карты@Розбирання карти
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  PAGE_ORIENT = GOR
+  SHOW_INFO = NO
+
+[PANELS]
+  DATEPANEL
+  END
+
+  PANEL
+      ELEMENT Fnumber:Edit
+        CAPTION = Номер карты@Номер карти
+      END
+  END
+
+[DESCRIPTION]
+
+[SQL]
+select *
+  from (select 'card_transit' as Title,
+               ct.term_emitent,
+               ct.oper_date,
+               ct.card_number,
+               ct.np_type,
+               ct.litr,
+               ct.term_price,
+               ct.azs_id - 1000000 azs_id
+          from card_transit ct
+        union all
+        select 'card_transaction' as Title,
+               ЭМИТЕНТ_ГДЕ,
+               date_ + to_number(substr(time_, 1, 2)) / 24 +
+               to_number(substr(time_, 3, 2)) / 1440 +
+               to_number(substr(time_, 5, 2)) / 86400 as oper_date,
+               gr_card_num,
+               np_type,
+               count_litr,
+               price_nds,
+               to_number(НОМЕР_ТЕРМИНАЛА) as term_number
+          from v_card_transaction
+         where oper_num in (9, 12)
+        union all
+        select 'card_transaction_pc' Title,
+               pc_em_gde,
+               pc_date,
+               pc_card_num,
+               pc_np_za_chto,
+               pc_summa_za_chto,
+               pc_term_price,
+               pc_term_number
+          from card_transaction_pc
+         where state = 'Y'
+        union all
+        select 'ecfil139' title,
+               round(EM_GDE_OBSL),
+               DATA +
+               to_number(substr(TO_char(data + vremya / 86400, 'HH24MISS'),
+                                1,
+                                2)) / 24 +
+               to_number(substr(TO_char(data + vremya / 86400, 'HH24MISS'),
+                                3,
+                                2)) / 1440 +
+               to_number(substr(TO_char(data + vremya / 86400, 'HH24MISS'),
+                                5,
+                                2)) / 86400 as oper_date,
+               GR_NOMER,
+               ID_KOSH_ZA_CHTO,
+               SUMMA_ZA_CHTO,
+               tzena_terminala / 100,
+               NOMER_TERMINALA
+          from magicash5.ecfil139
+         where ID_KOSH_ZA_CHTO not in (8, 9)
+           and DATA >=
+               to_date(nvl(andriy.ov.getval('cut_date'), '01.01.1990'),
+                       'DD.MM.YYYY')
+           and NOMER_TERMINALA <> 0
+        union all
+        select 'ecfil144' title,
+               EMITENT_GDE_OBSLUGILIS,
+               DATA + VREMYA / 86400,
+               GRAF_NOMER_KARTI_KLIENTA,
+               ID_ZA_CHTO_MOEGO,
+               SUMMA_ZA_CHTO,
+               TCHENA_TERMINALA,
+               NOMER_TERMINALA
+          from magicash5.ecfil144
+         where nvl(GRAF_NOMER_KARTI_KLIENTA, 0) <> 0
+           and nvl(NOMER_TERMINALA, 0) <> 0)
+ where (trunc(oper_date) between to_date(:BeginDate, 'DD.MM.YYYY') and
+       to_date(:EndDate, 'DD.MM.YYYY') and card_number = :Fnumber)
+ order by card_number, oper_date
+
+[FIELDS]
+  NAME = oper_date
+  CAPTION = Дата
+  WIDTH = 18
+
+  NAME = Title
+  CAPTION = Таблица@Таблиця
+
+  NAME = term_emitent
+  CAPTION = Эмитент@Емітент
+
+  NAME = card_number
+  CAPTION = Номер карты@Номер карти
+
+  NAME = np_type
+  CAPTION = Тип НП
+
+  NAME = litr
+  CAPTION = Количество(л.)@Кількість(л.)
+  TOSUM = TRUE
+
+  NAME = term_price
+  CAPTION = Цена@Ціна
+
+  NAME = azs_id
+  CAPTION = Номер терминала@Номер термінала
+
+[TYPES]
+  CAPTION = Нет@Немає
+  ITOGI =
+
+  CAPTION = По карте@По карті
+  ITOGI = card_number

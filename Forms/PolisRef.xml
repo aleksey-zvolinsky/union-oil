@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Учет" caption="Страховые полисы" width="700">
+	<caption>Страховые полисы</caption>
+	<sql>
+select
+ to_char(p.oper_date,'dd.mm.yyyy hh24:mi') as oper_date,
+ from_org.name as from_name,
+ p.ser,
+ p.num,
+ p.amount,
+ pt.name as oper_name,
+ p.oper_id,
+ p.from_id,
+ p.from_inst,
+ p.id,
+ p.inst,
+ p.to_id,
+ p.to_inst,
+ p.emp_id,
+ p.emp_inst,
+ p.state,
+ to_org.name as to_name,
+ emp.f_name||' '||substr(emp.i_name,1,1)||' '||substr(emp.o_name,1,1) as emp_name
+from 
+  oil_polis p,
+  oil_org from_org,
+  oil_org to_org,
+  oil_employ emp,
+  v_oil_polis_type pt
+where p.state='Y'
+and p.from_id = from_org.id (+)
+and p.from_inst = from_org.inst (+)
+and p.state = from_org.state (+)
+and p.to_id = to_org.id (+)
+and p.to_inst = to_org.inst (+)
+and p.state = to_org.state (+)
+and p.emp_id = emp.id (+)
+and p.emp_inst = emp.inst (+)
+and p.state = emp.state (+)
+and p.oper_id = pt.id (+)
+order by p.oper_date desc
+  </sql>
+	<columns>
+		<column align="right" width="100">
+			<caption align="center">Дата</caption>
+			<fieldname>oper_date</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">Поставщик:</caption>
+			<fieldname>from_name</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">Получатель:</caption>
+			<fieldname>to_name</fieldname>
+		</column>
+		<column width="60" align="center">
+			<caption align="center">Серия</caption>
+			<fieldname>ser</fieldname>
+		</column>
+		<column width="60" align="right">
+			<caption align="center">Номер</caption>
+			<fieldname>num</fieldname>
+		</column>
+		<column width="100" align="right">
+			<caption align="center">Сумма</caption>
+			<fieldname>amount</fieldname>
+		</column>
+		<column width="150" align="left">
+			<caption align="center">Операция</caption>
+			<fieldname>oper_name</fieldname>
+		</column>
+		<column width="150" align="left">
+			<caption align="center">МОЛ</caption>
+			<fieldname>emp_name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>oper_date</fieldname>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>oper_date</fieldname>
+		</dateedit>
+		<xmlform width="250" left="120" top="50" wholevalue="true">
+			<name>PolisTypeRef</name>
+			<caption>Операция:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield> oper_id </destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<xmlform width="250" left="120" top="10" wholevalue="true" orgref="true" orgtype="0" enableflags="yyy">
+			<name>OrgTypeRef</name>
+			<caption>Поставщик:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield>from_id</destfield>
+			</link>
+			<link>
+				<srcfield> inst </srcfield>
+				<destfield>from_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<xmlform width="250" left="400" top="10" wholevalue="true" orgref="true" orgtype="0" enableflags="yyy">
+			<name>OrgTypeRef1</name>
+			<caption>Получатель:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield>to_id</destfield>
+			</link>
+			<link>
+				<srcfield> inst </srcfield>
+				<destfield>to_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<edit left="400" top="50" width="100" wholevalue="false">
+			<name>SerFilter</name>
+			<caption>Серия:</caption>
+			<fieldname>ser</fieldname>
+		</edit>
+		<edit left="510" top="50" width="140" wholevalue="false">
+			<name>NumFilter</name>
+			<caption>Номер:</caption>
+			<fieldname>p.num</fieldname>
+		</edit>
+	</filters>
+</form>

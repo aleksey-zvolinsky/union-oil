@@ -1,0 +1,129 @@
+[GLOBAL]
+  TITLE = Реестр бланков@Реєстр бланків
+  MENU = Отчеты\Отчеты по эл. карточкам\Бланки\Реестр бланков@Реєстр бланків
+  VERSION = 1.5
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1=От кого@Від кого
+    CAPTION2=Кому
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+  PANEL
+    ELEMENT OperList:List
+      CAPTION = Операции:@Операцiї
+      TABLENAME = oil_oper_type
+      CONDITION = grp in (17,18)
+    END
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate по :EndDate
+  Филиал:: :org1.Name@Філія:: :org1.Name
+  Операции:: :OperList.NameList@Операції:: :OperList.NameList
+
+[SQL]
+
+select date_,
+       numb,
+       card_number,
+       from_name,
+       to_name,
+       1 as cnt,
+       oper_name,
+       dog,
+       dog_date,
+       nvl(b.rn_var_text,rn.var_text) as rn_var_text,
+       nvl(b.rn_var_date,rn.var_date) as rn_var_date,
+       price as price,
+       price as summ
+  from v_card_blank_full_base b, oil_rash_nak rn
+ where b.dog_id = rn.source_id(+) and b.dog_inst = rn.source_inst(+) and rn.rash_nak_type(+) = 1 and rn.state(+) = 'Y'
+   and from_id=nvl(:org1.id,from_id)
+   and from_inst=nvl(:org1.inst,from_inst)
+   and to_id=nvl(:org2.id,to_id)
+   and to_inst=nvl(:org2.inst,to_inst)
+   and date_ between :BeginDate and :EndDate
+   and :OperList.IsInList{oper_id}
+
+[FIELDS]
+
+  NAME = FROM_NAME
+  CAPTION = От кого@Від кого
+  WIDTH = 50
+
+  NAME = TO_NAME
+  CAPTION = Кому@Кому
+  WIDTH = 50
+
+  NAME = DATE_
+  CAPTION = Дата@Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = NUMB
+  CAPTION = Документ@Документ
+  WIDTH = 10
+
+  NAME = CARD_NUMBER
+  CAPTION = Бланк@Бланк
+  WIDTH = 15
+
+  NAME = OPER_NAME
+  CAPTION = Операция@Операція
+  WIDTH = 30
+
+  NAME = DOG
+  CAPTION = Договор@Договір
+  WIDTH = 15
+
+  NAME = DOG_DATE
+  CAPTION = Дата договора@Дата договору
+  WIDTH = 15
+  FORMAT = dd.mm.yyyy
+
+  NAME = CNT
+  CAPTION = Кол-во, шт@Кіл-ть, шт
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = PRICE
+  CAPTION = Цена@Ціна
+  WIDTH = 10
+
+  NAME = SUMM
+  CAPTION = Сумма@Сума
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = RN_VAR_TEXT
+  CAPTION = РН@РН
+  WIDTH = 15
+
+  NAME = RN_VAR_DATE
+  CAPTION = Дата РН@Дата РН
+  WIDTH = 15
+  FORMAT = dd.mm.yyyy
+
+[TYPES]
+
+  CAPTION = Основной
+  ITOGI = 
+  UNCHECKED = SUMM
+
+  CAPTION = По операциям@По операціям
+  ITOGI = OPER_NAME
+
+  CAPTION = По продажам@По продажам
+  ITOGI = 
+  ORDER = DOG,DOG_DATE, TO_NAME, CNT, PRICE, SUMM, DATE_, RN_VAR_TEXT, RN_VAR_DATE
+  UNCHECKED = CARD_NUMBER, FROM_NAME, OPER_NAME, NUMB

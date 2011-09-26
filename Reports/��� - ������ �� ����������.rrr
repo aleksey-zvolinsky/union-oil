@@ -1,0 +1,90 @@
+[GLOBAL]
+  TITLE = Заявки на пополнение смарт-карт@Заявки на поповнення смарт-карт
+  MENU = Отчеты\Отчеты по эл. карточкам\Заявки на пополнение@Заявки на поповнення
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1=От кого@Від кого
+    CAPTION2=Кому@Кому
+    OPTIONS1=yyyyynnn
+    OPTIONS2=yyyyyyyy
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate
+  Филиал:: :org1.Name
+
+[SQL]
+select c.from_name,
+       c.to_name,
+       o.id_num,
+       c.np_group_name,
+       c.card_number,
+       c.price,
+       c.litr,
+       round(c.price * c.litr, 2) summ,
+       c.date_
+  from v_card_request_full c, oil_org o
+ where c.to_id = o.id
+   and c.to_inst = o.inst
+   and c.date_ between :BeginDate and :EndDate
+   and c.from_id=nvl(:org1.id,c.from_id)
+   and c.from_inst=nvl(:org1.inst,c.from_inst)
+   and c.to_id=nvl(:org2.id,c.to_id)
+   and c.to_inst=nvl(:org2.inst,c.to_inst)
+
+[FIELDS]
+
+  NAME = FROM_NAME
+  CAPTION = Центр продаж@Центр продажу
+  WIDTH = 25
+
+  NAME = TO_NAME
+  CAPTION = Наименование потребителя@Назва споживача
+  WIDTH = 25
+
+  NAME = ID_NUM
+  CAPTION = ОКПО@ЄДРПОУ
+  WIDTH = 10
+
+  NAME = DATE_
+  CAPTION = Дата@Дата
+  WIDTH = 10
+
+  NAME = NP_GROUP_NAME
+  CAPTION = НП
+  WIDTH = 10
+
+  NAME = CARD_NUMBER
+  CAPTION = Номер карты@Номер картки
+  WIDTH = 15
+
+  NAME = PRICE
+  CAPTION = Цена с НДС@Ціна з НДС
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = LITR
+  CAPTION = Количество литров@Кількість літрів
+  WIDTH = 14
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = SUMM
+  CAPTION = Сумма с НДС@Сумы с НДС
+  WIDTH = 14
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = FROM_NAME,TO_NAME

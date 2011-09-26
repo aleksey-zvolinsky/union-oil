@@ -1,0 +1,117 @@
+[GLOBAL]
+   TITLE = Приход на АЗС@Прихiд на АЗС
+   MENU = Отчеты\Отчеты по АЗС\Приход на АЗС@Прихiд на АЗС
+   MENU_POSITION = 2
+   VERSION = 1.4
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate по :EndDate@За період вiд :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+AFTER
+   \2LНачальник нефтебазы №_________________________@\2LНачальник нафтобази №_________________________
+   \2N\2LСт. специалист по учету _________________________@\2N\2LСт. спеціаліст по обліку _________________________
+
+[SQL]
+  select PponName,AzsName,np_type,np_group,dog,date_,
+         ttn_num,ud_weig,-litr as litr,-tonn as tonn,
+         -shtuki as shtuki,ss,
+         price,-summa_ss as summa_ss,
+         codavias
+  from v_oil_npmove
+  where RashPrih=1 and NbAzs=1 and IsSummary<>'Y'
+        and date_ between :BeginDate and :EndDate
+        and (:org1.id in (OblId,PponId,AzsId) or :org1.id is null)
+
+[FIELDS]
+   NAME = pponname
+   CAPTION = Нефтебаза@Нафтабаза
+   WIDTH=25
+
+   NAME = azsname
+   CAPTION = АЗС
+   WIDTH = 10
+
+   NAME = codavias
+   CAPTION = Код ННБ
+   WIDTH = 8
+
+   NAME = np_type
+   CAPTION = НП
+   WIDTH = 20
+
+   NAME = dog
+   CAPTION = Партия@Партiя
+   WIDTH = 15
+
+   NAME = date_
+   CAPTION = Дата
+   WIDTH=15
+
+   NAME = ttn_num
+   CAPTION = № ТТН
+   WIDTH = 10
+
+   NAME = ud_weig
+   CAPTION = Уд.вес@Пит.вага
+   WIDTH = 10
+   FORMAT = 0.0000
+
+   NAME = litr
+   CAPTION = Кол-во(л.)@Кiл-ть(л.)
+   WIDTH = 15
+   FORMAT = 0.000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = tonn
+   CAPTION = Кол-во(т.)@Кiл-ть(т.)
+   WIDTH = 15
+   FORMAT = 0.000000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = shtuki
+   CAPTION = Кол-во(шт.)@Кiл-ть(шт.)
+   WIDTH = 15
+   FORMAT = 0
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = ss
+   CAPTION = Уч.цена@Обл.цiна
+   WIDTH = 15
+   FORMAT = 0.00
+
+   NAME = price
+   CAPTION = Цена реал.@Цiна реал.
+   WIDTH = 15
+   FORMAT = 0.00
+
+   NAME = summa_ss
+   CAPTION = Сумма@Сума
+   WIDTH = 15
+   FORMAT = 0.00
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+[TYPES]
+   CAPTION = С группировкой по АЗС@З угрупованням по АЗС
+   ITOGI = azsname,np_type
+   UNCHECKED = pponname,dog
+
+   CAPTION = С группировкой по филиалам@З угрупуванням по фiлiям
+   ITOGI = pponname,azsname,np_type
+   UNCHECKED = pponname,dog
+
+   CAPTION = Без группировки по АЗС@Без угрупування по АЗС
+   ITOGI = np_type

@@ -1,0 +1,253 @@
+[GLOBAL]
+   VERSION = 1.3
+   TITLE = Движение собственных н/продуктов - проверочный@Рух власних нафтопродуктів - перевірочний
+   MENU = Отчеты\Движение Нефтепродуктов\Проверочный@Перевірочний
+   MENU_POSITION = 1
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Поставщик@Постачальник
+      ELEMENT POST:RadioButtonGroup
+         COLUMNS = 3
+         LIST = А Н П,А Н,Все@А Н П,А Н,Всі
+         VALUES = 1,38,0
+         CONDITION = 1
+      END
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный@Комісія,Власний
+         VALUES = 'K','O'
+      END
+   END
+
+   PANEL
+      CAPTION = Дополнительно@Додатково
+      ELEMENT NpList:List
+          CAPTION = Группы НП@Групи НП
+          OILVARNAME = NPGG_COMMON
+          TABLENAME = oil_np_group
+      END
+   END   
+
+[DESCRIPTION]
+   Организация:: :org1.name@Організація:: :org1.name
+   :DATE_DESCRIPTION
+   Тип товара:: :KOS.Description@Тип товару:: :KOS.Description
+   Группы нефтепродуктов:: :NpList.Description@Групи нафтопродуктів:: :NpList.Description
+   Поставщик:: :POST.Name@
+   
+
+[SQL]
+select QQ.*, 
+       /*round(round(RestOnEndTonn*ss,2)*1.2,2) as RestOnEndSumma,*/
+       RestOnEndTonn-AllowanceTonn-CardTonn-BCardTonn-ProTonn as RestOnEndFactTonn/*,
+       round(round((RestOnEndTonn-AllowanceTonn-CardTonn-ProTonn)*ss,2)*1.2,2) as RestOnEndFactSumma*/
+from   
+(select Q.*, 
+       decode(isshtuki,'Y','Штучный товар','Мерный товар') as dim_sht_mer,
+       /*round(round(RestOnBeginTonn*ss,2)*1.2,2) as RestOnBeginSumma,*/
+       RestOnBeginTonn+PrihToNbTonn+APrihToNbTonn+ProPrihTonn+PrihFromAzsTonn-
+       ReturnFromAzsTonn-KomSaleTonn-
+       TransferoutTonn-ReturnTonn-RashToAzsTonn+PrihToAzsTonn as RestOnEndTonn
+from 
+(select /*+ORDERED USE_HASH(voo,oo)*/
+       partid as id,partinst as inst,dog,dog_date,ss,own_goods,
+       base_,np_type as np_name,dimname as dim_name,isshtuki,oo.name as partpostname,
+
+       rest_tonn as RestOnBeginTonn,
+       decode(operid,45,prih_tonn,18,prih_tonn,53,prih_tonn,3,prih_tonn,1,prih_tonn,0) as PrihToNbTonn,
+       decode(operid,57,prih_tonn,0) as APrihToNbTonn,
+       decode(operid,11,rash_tonn,12,rash_tonn,14,rash_tonn,0) as KomSaleTonn,
+       decode(operid,11,rash_money,12,rash_money,14,rash_money,0) as KomSalegrn,
+       decode(operid,171,rash_tonn,18,rash_tonn,0) as ReturnTonn,
+       decode(operid,16,rash_tonn,19,rash_tonn,42,rash_tonn,101,rash_tonn,0) as AllowanceTonn,
+       pr_ned_rail as Pr_Ned_RailTonn,
+       decode(operid,197,rash_tonn,0)+pr_ned_pi as Pr_Ned_PiTonn,
+       decode(operid,198,rash_tonn,0)+pr_ned_post as Pr_Ned_PostTonn,
+       decode(operid,196,rash_tonn,0)+pr_ned_eu as Pr_Ned_EuTonn,
+       pr_ned_tp as Pr_Ned_TpTonn,
+       decode(operid,11,0,12,0,14,0,171,0,18,0,16,0,19,0,42,0,101,0,150,0,55,0,7,0,10,0,44,0,153,0,196,0,197,0,198,0,201,0,rash_tonn) as ProTonn,
+       decode(operid,153,rash_tonn,0) as CardTonn,
+       decode(operid,201,rash_tonn,0) as BcardTonn,
+       decode(operid,150,rash_tonn,0) as TransferOutTonn,
+       decode(operid,45,0,18,0,57,0,1,0,3,0,53,0,54,0,-111,0,prih_tonn) as ProPrihTonn,
+       decode(operid,54,prih_tonn,0) as PrihFromAzsTonn,
+       decode(operid,55,rash_tonn,0) as ReturnFromAzsTonn,
+       decode(operid,7,rash_tonn,10,rash_tonn,44,rash_tonn,0) as RashToAZSTonn,
+       decode(selltypeid,7,prih_tonn,0) as PrihToAzsTonn
+
+
+from
+
+( select AzsId,PponId,OblId,np_groupid,partpostid,partpostinst,
+         partid,partinst,dog,dog_date,ss,own_goods,base_,np_type,dimname,isshtuki,operid,selltypeid,
+         -(tonn+shtuki) as rest_tonn,
+         0 as prih_tonn,0 as rash_tonn,0 as rash_money,
+         0 as pr_ned_eu,0 as pr_ned_pi,0 as pr_ned_post,
+         0 as pr_ned_rail,0 as pr_ned_tp
+  from v_oil_npmove voo
+  where IsSummary<>'N' and operid<>56
+        and date_ < :BeginDate
+  UNION ALL
+  select AzsId,PponId,OblId,np_groupid,partpostid,partpostinst,
+         partid,partinst,dog,dog_date,ss,own_goods,base_,np_type,dimname,isshtuki,operid,selltypeid,
+         0 as rest_tonn,
+         -decode(RashPrih,0,0,tonn+shtuki-pr_ned_eu-pr_ned_pi-pr_ned_post-pr_ned_rail-pr_ned_tp) as prih_tonn,
+         decode(RashPrih,0,tonn+shtuki,0) as rash_tonn,
+         decode(RashPrih,0,summa,0) as rash_money,
+         pr_ned_eu,pr_ned_pi,pr_ned_post,pr_ned_rail,pr_ned_tp
+  from v_oil_npmove voo
+  where IsSummary<>'Y' and IsTalonDet<>'Y' and operid<>56
+        and date_ between :BeginDate and :EndDate
+) voo, oil_org oo
+where (:POST.Value=0 or decode(voo.partpostid,4587,38,voo.partpostid)=:POST.Value 
+                        and voo.partpostinst=voo.partpostid)
+      and voo.partpostid=oo.id and voo.partpostinst=oo.inst
+      and :Org1.id in (AzsId,PponId,OblId)
+      and own_goods in (:KOS.GetValues)
+      and :NpList.IsInList{voo.np_groupid}
+
+) Q
+) QQ
+
+[FIELDS]
+   HEAD_DEPTH = 4
+
+   NAME = dog
+   CAPTION = № договора@№ договору
+   WIDTH = 20
+
+   NAME = ss
+   CAPTION = Уч. цена@Об.ціна
+
+   NAME = dog_date
+   CAPTION = Дата договора@Дата договору
+   WIDTH = 15
+
+   NAME = partpostname
+   CAPTION = Поставщик@Постачальник
+   WIDTH = 15
+
+   NAME = np_name
+   CAPTION = Товар
+   WIDTH = 15
+
+   NAME = dim_name
+   ITOGIFIELD = dim_sht_mer
+   CAPTION = Единица измерения@Одиниця вимірювання
+   WIDTH = 15
+
+   NAME = dim_sht_mer
+   CAPTION = Штучный/мерный@Штучний/мірний
+
+   DEFAULT WIDTH = 12
+   DEFAULT TOSUM = TRUE
+   DEFAULT FORMAT = 0.000000
+
+   NAME = RestOnBeginTonn
+   CAPTION = Остаток на начало периода, тонн@Залишок на початок періоду, тон
+
+   NAME = RestOnBeginSumma
+   FORMULA = round(round(RestOnBeginTonn*ss,2)*1.2,2)
+   CAPTION = Сумма, грн@Сума, грн
+   FORMAT = 0.00
+
+   NAME = PrihToNbTonn
+   CAPTION = Приход от поставщика, тонн@Прихід від постачальника, тон
+   
+   NAME = APrihToNbTonn
+   CAPTION = Приход по вн. перем., тонн@Прихід за вн.переміщенням, тон
+
+   NAME = ProPrihTonn
+   CAPTION = Прочий приход@Інший прихід
+   HEAD_COLOR = WHITE
+
+   NAME = Pr_Ned_EuTonn
+   CAPTION = Недостачи по приходу!Ест.убыль@Недостачі за приходом!Природні втрати
+   
+   NAME = Pr_Ned_PiTonn
+   CAPTION = Недостачи по приходу!Погр.изм.@Недостачі за приходом!Похибки вимірювання
+
+   NAME = Pr_Ned_PostTonn
+   CAPTION = Недостачи по приходу!За счет пост.@Недостачі за приходом!За рахунок постачальника
+
+   NAME = Pr_Ned_RailTonn
+   CAPTION = Недостачи по приходу!За счет ж/д@Недостачі за приходом!За рахунок з/д
+
+   NAME = Pr_Ned_TpTonn
+   CAPTION = Недостачи по приходу!Техн.потери@Недостачі за приходом!Технічні втрати
+
+   NAME = PrihFromAzsTonn
+   CAPTION = Приход, Возврат с АЗС@Прихід, повернення з АЗС
+   HEAD_COLOR = GREEN
+
+   NAME = ReturnFromAzsTonn
+   CAPTION = Расход, Возврат на НБ@Витрати, повернення на НБ
+   HEAD_COLOR = GREEN
+
+   NAME = KomSaleTonn
+   CAPTION = Реализация, тонн@Реалізація, тон
+
+   NAME = KomSaleGrn
+   CAPTION = Реализация, грн@Реалізація, грн
+   FORMAT = 0.00
+
+   NAME = TransferoutTonn
+   CAPTION = Расход по внутр. перем., тонн@Витрати по внутр.переміщенню, тон
+
+   NAME = ReturnTonn
+   CAPTION = Возврат по доп. соглашениям к договорам, тонн@Повернення за додат.згодами до договорів, тон
+
+   NAME = RashToAzsTonn
+   CAPTION = Отпуск на АЗС@Відпуск на АЗС
+   HEAD_COLOR = GREEN
+
+   NAME = PrihToAzsTonn
+   CAPTION = Приход на АЗС с НБ@Прихід на АЗС з НБ
+   HEAD_COLOR = GREEN
+
+   NAME = RestOnEndTonn
+   CAPTION = Остаток на конец периода (книга), тонн@Залишок на кінець періоду (книжний), тон
+
+   NAME = RestOnEndSumma
+   FORMULA = round(round(RestOnEndTonn*ss,2)*1.2,2) 
+   CAPTION = Сумма, грн@Сума, грн
+   FORMAT = 0.00
+
+   NAME = AllowanceTonn
+   CAPTION = Естественная убыль, тонн@Природня втрата
+
+   NAME = CardTonn
+   CAPTION = Отпуск по эл.картам@Відпуск за ел.картами
+
+   NAME = BCardTonn
+   CAPTION = Отпуск по банк.картам@Відпуск за банк.картами
+
+   NAME = ProTonn
+   CAPTION = Прочий расход@Інші витрати
+   HEAD_COLOR = WHITE
+
+   NAME = RestOnEndFactTonn
+   CAPTION = Остаток на конец периода (факт), тонн@Залишок на кінець періода (фактичний), тон
+
+   NAME = RestOnEndFactSumma
+   FORMULA = round(round(RestOnEndFactTonn*ss,2)*1.2,2) 
+   CAPTION = Сумма, грн@Сума, тон
+   FORMAT = 0.00
+
+[TYPES]
+   
+   CAPTION = Основной@Основний
+   ITOGI = dim_name
+   UNCHECKED = dim_sht_mer,ss

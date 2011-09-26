@@ -1,0 +1,79 @@
+[GLOBAL]
+   TITLE = Движение сопутствующего товара по нефтебазе@Рух супутнього товару по нафтобазі 
+   MENU = Отчеты\Отчеты по Нефтебазе\Движение сопутст.товара по НБ@Рух супутнього товару по НБ
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+[SQL]
+select nvl(PponName,OblName) as PodrName,-1 as tip,
+  'Остаток на начало' as tip_name,
+  us_subgroup,np_type,dog,to_date(:BeginDate) as date_,
+  to_char(null) as ClientName,
+  sum(-shtuki) as shtuki
+from v_oil_npmove
+where IsSoputst='Y' and IsShtuki='Y' and NbAzs=0
+  and date_<:BeginDate
+  and :org1.id in (PponId,OblId)
+group by nvl(PponName,OblName),PponId,OblId,us_subgroup,np_type,dog
+having sum(-shtuki)<>0
+union all
+select nvl(PponName,OblName) as PodrName,
+  decode(selltypeid,1,1,0) as tip,
+  decode(selltypeid,1,'Расход','Приход') as tip_name,
+  us_subgroup,np_type,dog,date_,
+  decode(selltypeid,1,ClientName,to_char(null)) as ClientName,
+  -shtuki as shtuki
+from v_oil_npmove
+where IsSoputst='Y' and IsShtuki='Y' and NbAzs=0
+  and date_ between :BeginDate and :EndDate
+  and :org1.id in (PponId,OblId)
+  and shtuki<>0
+
+[FIELDS]
+   NAME = podrname
+   CAPTION = Подразделение@Підрозділ
+   WIDTH=20
+
+   NAME = us_subgroup
+   CAPTION = Подгруппа@Підгрупа
+   WIDTH = 12
+
+   NAME = np_type
+   CAPTION = НП
+   WIDTH = 20
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 15
+
+   NAME = date_
+   CAPTION = Дата
+   WIDTH=15
+
+   NAME = tip_name
+   CAPTION = Отпуск/приход@Відпуск/Прихід
+   WIDTH = 10
+
+   NAME = shtuki
+   CAPTION = Штуки
+   WIDTH = 10
+   FORMAT = 0
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+[TYPES]
+   
+   CAPTION = Детализированный@Деталізований
+   ITOGI = podr_name,us_subgruop,np_type,dog

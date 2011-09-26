@@ -1,0 +1,113 @@
+[GLOBAL]
+  TITLE = Талоны в пути@Талони в дорозі
+  MENU = Отчеты\Отчеты по талонам\Талоны в пути@Талони в дорозі
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  За период с :BeginDate по :EndDate@За період з :BeginDate до :EndDate
+
+[SQL]
+select /*+ORDERED*/
+ o.name as dep_name,
+ azs.name as azs_name,
+ trunc(drep.rep_date) as rep_date,
+ drep.rep_num,
+ drep.smena_num,
+ dr.sub_part,
+ srt.ser,
+ srt.num,
+ srt.price,
+ dr.s_price as price_azs,
+ srt.litr,
+ srt.count_t
+  from oil_daily_rep drep,
+       oil_dr_data   dr,
+       oil_srtalon   srt,
+       v_org         azs,
+       v_org         o
+ where drep.state = 'Y'
+   and dr.state = 'Y'
+   and srt.state = 'Y'
+   and azs.state = 'Y'
+   and o.state = 'Y'
+      
+   and trunc(drep.rep_date) between :BeginDate and :EndDate
+      
+   and dr.rep_id = drep.id
+   and dr.rep_inst = drep.inst
+      
+   and srt.srep_id = dr.id
+   and srt.srep_Inst = dr.inst
+      
+   and azs.id = drep.azs_id
+   and azs.inst = drep.azs_inst
+      
+   and o.id = drep.inst
+   and o.inst = drep.inst
+      
+   and dr.oper_type = 1
+   and srt.intheway = 4
+
+[FIELDS]
+  NAME = dep_name
+  CAPTION = Сменный отчёт!Организация@Змінний звіт!Організація
+  WIDTH = 40
+
+  NAME = azs_name
+  CAPTION = Сменный отчёт!АЗС@Змінний звіт!АЗС
+  WIDTH = 30
+
+  NAME = rep_date
+  CAPTION = Сменный отчёт!Дата@Змінний звіт!Дата
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = rep_num
+  CAPTION = Сменный отчёт!Номер@Змінний звіт!Номер
+  WIDTH = 8
+
+  NAME = smena_num
+  CAPTION = Сменный отчёт!Смена@Змінний звіт!Зміна
+  WIDTH = 8
+
+  NAME = sub_part
+  CAPTION = Сменный отчёт!Подпартия@Змінний звіт!Підпартія
+  WIDTH = 12
+
+  NAME = SER
+  CAPTION = Серия@Серія
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  NAME = price
+  CAPTION = Цена@Ціна
+  WIDTH = 8
+  FORMAT = 0.00
+
+  NAME = price_azs
+  CAPTION = Цена на АЗС@Ціна на АЗС
+  WIDTH = 8
+  FORMAT = 0.00
+
+  NAME = LITR
+  CAPTION = Литры@Літри
+  WIDTH = 8
+  TOSUM = TRUE
+
+  NAME = count_t
+  CAPTION = Тонны@Тони
+  WIDTH = 10
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = dep_name,azs_name,SER

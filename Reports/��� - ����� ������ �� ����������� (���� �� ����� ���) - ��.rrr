@@ -1,0 +1,105 @@
+[GLOBAL]
+   TITLE = Наши на чужих АЗС - РН@Наші на чужих АЗС - РН
+   MENU = Отчеты\Отчеты по эл. карточкам\Чужие списания\Наши на чужих АЗС - РН@Наші на чужих АЗС - РН
+   MENU_POSITION = 3
+   VERSION = 1.3
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NUM = 2
+     CAPTION1 = Кому
+     CAPTION2 = От кого@Від кого
+   END
+
+[DESCRIPTION]
+   От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+   От кого:: :org2.name@Від кого:: :org2.name
+   Кому:: :org1.name
+
+[SQL]
+select oo_from.name from_name,
+       oo_to.name to_name,
+       ca.date_,
+       azs_name ,
+       part_id,dog, cert, card_number, litr, count_ ,price, summ,
+       np_type,
+       decode(ool.from_id,8292,grp.name, np.name) np_type_name
+  from card_alien_rn ca,
+       card_alien_rn_det cad,
+       oil_org oo_from,
+       oil_org oo_to,
+       oil_np_type np,
+       oil_np_group grp,
+       oil_org_link ool
+ where ca.state = 'Y'
+   and cad.rn_id = ca.id
+   and cad.rn_inst = ca.inst
+   and cad.state = 'Y'
+   and oo_from.id = oo_from.inst  and oo_from.state = 'Y' and ca.from_id = oo_from.id and ca.from_inst =oo_from.inst
+   and oo_to.id = oo_to.inst  and oo_to.state = 'Y' and ca.to_id = oo_to.id and ca.to_inst =oo_to.inst
+   and np.id(+) = np_type and grp.id(+) = np_type
+   and ool.link_type_id (+)= 9 and ool.to_id(+) = cad.azs_id and ool.to_inst(+)=cad.azs_inst
+   and (oo_from.id = :org2 or :org2 is null)
+   and (oo_to.id = :org1 or :org1 is null)
+   and ca.date_ between :BeginDate and :EndDate
+ order by oo_from.name,date_
+
+[FIELDS]
+   NAME = from_name
+   CAPTION = Где!Филиал@Де!Філія
+   WIDTH = 50
+
+   NAME = azs_name
+   CAPTION = Где!АЗС@Де!АЗС
+   WIDTH = 15
+
+   NAME = date_
+   CAPTION = Когда@Коли
+   WIDTH = 10
+
+   NAME = litr
+   CAPTION = Количество(л.)@Кількість(л.)
+   WIDTH = 15
+   TOSUM = TRUE
+
+   NAME = count_
+   CAPTION = Количество(т.)@Кількість(т.)
+   WIDTH = 15
+   TOSUM = TRUE
+
+   NAME = price
+   CAPTION = Цена@Ціна
+   WIDTH = 15
+
+   NAME = summ
+   CAPTION = Сумма@Сума
+   WIDTH = 15
+   TOSUM = TRUE
+
+   NAME = np_type_name
+   CAPTION = Тип НП
+   WIDTH = 20
+
+   NAME = part_id
+   CAPTION = Код партии@Код партії
+   WIDTH = 10
+
+   NAME = dog
+   CAPTION = Договор
+   WIDTH = 15
+
+   NAME = card_number
+   CAPTION = Номер карты@Номер картки
+   WIDTH = 15
+
+   NAME = cert
+   CAPTION = Сертификат@Сертифікат
+   WIDTH = 20
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI = from_name

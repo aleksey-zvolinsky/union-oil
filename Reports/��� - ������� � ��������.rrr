@@ -1,0 +1,189 @@
+[GLOBAL]
+  TITLE = Приходы в цистерны по перевалке (движение)@Приходи в цистерни за перевалкою (рух)
+  MENU = Отчеты\Перевалка\Движение в цистернах@Рух в цистернах
+  VERSION = 1.4
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1 = Подразделение (кому)@Підрозділ (кому)
+    OPTIONS1=yyy
+    STARTCONDITION1=3
+    CAPTION2 = Завод (от кого)@Завод (від кого)
+    OPTIONS2=yyy
+    STARTCONDITION2=4
+  END
+
+  PANEL
+    ELEMENT ActNum:Edit
+      CAPTION = № акта
+    END
+  END
+  
+   PANEL
+      CAPTION = Тип товара
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+   
+   PANEL
+      ELEMENT PARTFROM:ComboEdit
+	 CAPTION = Владелец@Власник
+	 TYPE = OIL_ORG
+      END
+      ELEMENT PARTTO:ComboEdit
+	 CAPTION = Потребитель@Споживач
+	 TYPE = OIL_ORG
+      END
+   END
+
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select
+  act_num, date_, from_name as zavod_name,
+  tank_num, zd_nakl, z_date,
+  1 as co, gtd_num, np_type_name,
+  part_from_name, part_to_name,
+  tank_type_name as z_tank_type_name, z_level_mm, z_pv,
+  z_density,z_temperature,
+  z_np_count,z_water_percent,z_water_count,z_full_count,
+  tank_type_name, level_mm, pv,
+  density, temperature, np_count, water_percent,
+  water_count, full_count, 0 as rest,
+  shortage, surplus, 0 as norm
+from v_oil_prihod_transfer_zavod v
+where date_ between :BeginDate and :EndDate
+  and to_id=nvl(:org1.id,to_id)
+  and from_id=nvl(:org2.id,from_id)
+  and from_inst=nvl(:org2.inst,from_inst)
+  and (:ActNum is null or act_num=:ActNum)
+  and own_goods in (:KOS.GetValues)
+  and (part_from_id = :PARTFROM.id or :PARTFROM.id is null)
+  and (part_from_inst = :PARTFROM.inst or :PARTFROM.inst is null)
+  and (part_to_id = :PARTTO.id or :PARTTO.id is null)
+  and (part_to_inst = :PARTTO.inst or :PARTTO.inst is null)
+
+[FIELDS]
+  DEFAULT WIDTH = 10
+
+  NAME = ACT_NUM
+  CAPTION = Номер акта
+
+  NAME = DATE_
+  CAPTION = Дата прихода
+
+  NAME = ZAVOD_NAME
+  CAPTION = Завод
+  WIDTH = 20
+  
+  NAME = GTD_NUM
+  CAPTION = № ГТД@№ ДТД
+  WIDTH = 15
+  
+  NAME = PART_FROM_NAME
+  CAPTION = Владелец товара@Власник товару
+  WIDTH = 20
+  
+  NAME = PART_TO_NAME
+  CAPTION = Конечный получатель@Кінцевий отримувач
+  WIDTH = 20
+  
+  NAME = NP_TYPE_NAME
+  CAPTION = Тип груза@Тип вантажу
+  WIDTH = 15  
+
+  NAME = TANK_NUM
+  CAPTION = № вагоно-цистерны@№ вагоно-цистерни
+
+  NAME = ZD_NAKL
+  CAPTION = № ж/д накладной@№ з/д накладной
+  
+  NAME = co
+  CAPTION = Кол-во цистерн@К-сть цистерн
+  FORMAT = 0
+  TOSUM = TRUE
+
+  NAME = Z_DATE
+  CAPTION = Дата отправки@Дата відправки
+
+  FIELDS_GROUP
+      TAILS
+	  NAME = TANK_TYPE_NAME
+	  CAPTION = Тип цистерны@Тип цистерни
+
+	  NAME = LEVEL_MM
+	  CAPTION = Уровень,мм!всего@Рівень,мм!всього
+
+	  NAME = PV
+	  CAPTION = Уровень,мм!п/в@Рівень,мм!п/в
+
+	  NAME = DENSITY
+	  CAPTION = плотность, кг/м3@Густина, кг/м3
+
+	  NAME = TEMPERATURE
+	  CAPTION = Температура, оС@Температура, оС
+
+	  NAME = NP_COUNT
+	  CAPTION = Масса нетто, т.@Маса нетто,т.
+	  FORMAT = 0.000
+	  TOSUM = TRUE
+
+	  NAME = WATER_PERCENT
+	  CAPTION = Содержание воды!%@Вміст води!%
+	  FORMAT = 0.00
+
+	  NAME = WATER_COUNT
+	  CAPTION = Содержание воды!т@Вміст води!т
+	  FORMAT = 0.000
+	  TOSUM = TRUE
+
+	  NAME = FULL_COUNT
+	  CAPTION = Масса брутто,т.@Маса бруто,т.
+	  FORMAT = 0.000
+	  TOSUM = TRUE
+    HEADS
+    	  NAME = Z_
+    	  CAPTION = Показатели по документам отправителя!@Показники за документами відправника!
+    	  
+    	  NAME=
+    	  CAPTION = Фактическое наличие!@Фактична наявність!
+    END_GROUP
+
+  NAME = REST
+  CAPTION = Фактическое наличие!Остаток,т.@Фактична наявність!Залишок,т.
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = SHORTAGE
+  CAPTION = Результат!Недостача, т.!Всего, т.@Результат!Недостача,т.!Всього,т.
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = NORM
+  CAPTION = Результат!Недостача, т.!Норма@Результат!Недостача,т.!Норма
+  WIDTH = 10
+
+  NAME = SURPLUS
+  CAPTION = Результат!Излишек, т.!Всего@Результат!Надлишок,т.!Всього
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Подробный@Точний
+  ITOGI = ACT_NUM
+
+  CAPTION = Сводный@Звідний
+  ITOGI = ZAVOD_NAME
+  UNCHECKED = DATE_,TANK_NUM,ZD_NAKL,Z_TANK_TYPE_NAME,Z_LEVEL_MM,Z_PV,Z_DENSITY,Z_TEMPERATURE,Z_WATER_PERCENT,TANK_TYPE_NAME,LEVEL_MM,PV,DENSITY,TEMPERATURE,WATER_PERCENT

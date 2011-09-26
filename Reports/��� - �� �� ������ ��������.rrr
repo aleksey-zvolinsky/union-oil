@@ -1,0 +1,76 @@
+# REGISTERED
+[GLOBAL]
+   TITLE = Движение по чужому эмитенту
+   VERSION = 1.0
+   PAGES_WIDTH = 1
+   PAGE_ORIENT = VER
+   RAZM_SYMBOLS = NO
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = По
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   По :BeginDate
+   Эмитент:: :org1.name
+
+[SQL]
+select tip_name,ord_num,date_,npg_name,litr,price,summa
+from
+(select 1 as tip_id, 0 as ord_num,0 as id,'Остатки на начало' as tip_name,obl_id as oblid,
+       start_date as date_,
+       npg.name as npg_name,ctr.count_ as litr,ctr.price,ctr.summa
+from oil_ct_rest ctr,oil_np_group npg
+where ctr.np_group_id=npg.id(+) and ctr.state='Y'
+UNION ALL
+select 2 as tip_id,ord_num,ct.id,decode(ct.table_name,'OIL_MONEY','Оплата','Отпуск') as tip_name,oblid,
+       ct.date_,npg.name as npg_name,count as litr,price,summa
+from v_card_transit ct,oil_np_group npg
+where ct.date_>=(select min(start_date) from oil_ct_rest ctr where ct.oblid=ctr.obl_id and ctr.state='Y')
+      and ct.np_group_id=npg.id(+)
+)
+where oblid=:org1.id and date_<=:BeginDate
+
+[FIELDS]
+   NAME = date_
+   CAPTION = Дата
+   WIDTH = 15
+
+   NAME = ord_num
+   CAPTION = Номер сортировка
+   WIDTH = 0
+
+   NAME = tip_name
+   CAPTION = Тип записи
+   WIDTH = 20
+
+   NAME = npg_name
+   CAPTION = Группа НП
+   WIDTH = 15
+
+   NAME = litr
+   CAPTION = Литров
+   FORMAT = 0.000
+   TOSUM = TRUE
+   WIDTH=15
+
+   NAME = price
+   CAPTION = Цена
+   WIDTH = 15
+   FORMAT = 0.00
+
+   NAME = summa
+   CAPTION = Сумма
+   WIDTH = 15
+   FORMAT = 0.00
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+[TYPES]
+   
+   CAPTION = Основной

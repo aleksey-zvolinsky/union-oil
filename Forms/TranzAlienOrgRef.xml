@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Смарт-карты" caption="Формирование документов по транзакциям на АЗС сторонних фирм" width="700" menuposition="3">
+<sql>
+-->qryRef,uDocTranzAlienOrg
+</sql>
+	<columns>
+		<column align="right" width="60">
+			<caption align="center">Дата</caption>
+			<fieldname>oper_date</fieldname>
+		</column>
+		<column align="right" width="55">
+			<caption align="center">Номер РН</caption>
+			<fieldname>rn_num</fieldname>
+		</column>	
+		<column align="right" width="60">
+			<caption align="center">Дата РН</caption>
+			<fieldname>rn_date</fieldname>
+		</column>		
+		<column align="left" width="150">
+			<caption align="center">Владелец АЗС</caption>
+			<fieldname>azs_parent_name</fieldname>
+		</column>		
+		<column align="left" width="140">
+			<caption align="center">Эмитент</caption>
+			<fieldname>emitent_name</fieldname>
+		</column>			
+		<column align="left" width="80">
+			<caption align="center">Тип НП</caption>
+			<fieldname>np_name</fieldname>
+		</column>			
+		<column align="right" width="40">
+			<caption align="center">Цена</caption>
+			<fieldname>term_price</fieldname>
+		</column>			
+		<column align="right" width="40">
+			<caption align="center">К-во</caption>
+			<fieldname>litr</fieldname>
+		</column>					
+		<column align="right" width="40">
+			<caption align="center">Сумма</caption>
+			<fieldname>amount</fieldname>
+		</column>				
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>date_</fieldname>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>date_</fieldname>
+		</dateedit>
+		<xmlform width="250" left="120" top="10" wholevalue="true" orgref="true" orgtype="0" enableflags="yyy">
+			<name>FromOrg</name>
+			<caption>Поставщик:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield>azs_parent.id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>azs_parent.inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<xmlform width="250" left="120" top="50" wholevalue="true" orgref="true" orgtype="0" enableflags="yyy">
+			<name>ToOrg</name>
+			<caption>Получатель:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield>emitent.id</destfield>
+			</link>
+			<link>
+				<srcfield> inst </srcfield>
+				<destfield>emitent.inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<edit left="400" top="10" width="100" wholevalue="false">
+			<name>filter1</name>
+			<caption>Номер документа:</caption>
+			<fieldname> rn.var_text</fieldname>
+		</edit>
+		
+		
+	</filters>
+</form>

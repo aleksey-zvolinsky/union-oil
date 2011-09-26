@@ -1,0 +1,102 @@
+[GLOBAL]
+  TITLE = Чековые НН@Чекові ПН
+  MENU = Отчеты\Налоговые накладные\Чековые НН@Чекові ПН
+  VERSION = 1.3
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  PAGE_ORIENT = GOR
+  SHOW_INFO = NO
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+  END
+
+[DESCRIPTION]
+
+  \{A5}MОрганизация :org1.name@\{A5}MОрганізація :org1.name
+  \{A6}MДатами чека с :BeginDate по :EndDate@\{A6}MДатами чека з :BeginDate до :EndDate
+
+[SQL]
+select s.s_date,
+       s.num,
+       oo.name organ_name,
+       s.f_doc,
+       s.nds_t,
+       s.kol,
+       s.price_nds,
+       np.name np_name,
+       s.det_date,
+       s.det_text,
+       c.name_ as nn_cause_name
+  from v_oil_sale_book_det s, oil_org oo, oil_np_type np, oil_nn_cause c
+ where nn_cause_id in (9, 26)
+   and oo.id = s.organ
+   and oo.inst = s.organ_inst
+   and np.id = s.tov_id
+   and s.det_date between :BeginDate and :EndDate
+   and c.id = s.nn_cause_id
+
+[FIELDS]
+  NAME = s_date
+  CAPTION = Дата выписки@Дата виписки
+  WIDTH = 15
+  FORMAT = dd.mm.yyyy
+
+  NAME = num
+  CAPTION = Номер
+  WIDTH = 15
+
+  NAME = organ_name
+  CAPTION = Покупатель@Покупець
+  WIDTH = 30
+
+  NAME = f_doc
+  CAPTION = Первичный документ@Первинний документ
+  WIDTH = 20
+
+  NAME = nds_t
+  CAPTION = Сумма с ПДВ@Сума з ПДВ
+  TOSUM = TRUE
+  WIDTH = 20
+
+  NAME = kol
+  CAPTION =Количество@Кількість
+  TOSUM = TRUE
+  WIDTH = 20
+
+  NAME = price_nds
+  CAPTION =Цена@Ціна
+  WIDTH = 15
+
+  NAME = np_name
+  CAPTION =Тип товара
+  WIDTH = 20
+
+  NAME = det_date
+  CAPTION =Дата отпуска@Дата відпуска
+  WIDTH = 26
+  FORMAT = dd.mm.yyyy
+
+  NAME = det_text
+  CAPTION = Номер чека
+  WIDTH = 20
+
+  NAME = nn_cause_name
+  CAPTION = Источник
+  WIDTH = 20
+
+[TYPES]
+  CAPTION = Нет@Немає
+  ITOGI =
+
+  CAPTION = По дате чека@По даті чека
+  ITOGI = det_date
+
+  CAPTION = По дате выписки@По даті виписки
+  ITOGI = s_date
+
+  CAPTION = По источнику@По джерелу
+  ITOGI = nn_cause_name

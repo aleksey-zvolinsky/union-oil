@@ -1,0 +1,81 @@
+# REGISTERED
+[GLOBAL]
+   TITLE = Отоваривание Броварских талонов на Филиале №1
+   VERSION = 1.1
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate
+
+[SQL]
+select *
+from v_oil_talon_ae_nn
+where date_ between :BeginDate and :EndDate
+
+[FIELDS]
+   NAME = azs_name
+   CAPTION = АЗС
+   WIDTH=20
+
+   NAME = date_
+   CAPTION = Дата
+   WIDTH = 12
+
+   NAME = np_group
+   CAPTION = НП
+   WIDTH = 10
+
+   NAME = rash_num
+   CAPTION = № расходной
+   WIDTH = 12
+
+   NAME = nn_num
+   CAPTION = № налоговой
+   WIDTH = 12
+
+   NAME = ser
+   CAPTION = Серия
+   WIDTH = 7
+
+   NAME = num
+   CAPTION = Номер
+   WIDTH=7
+
+   NAME = nominal
+   CAPTION = Номинал
+   WIDTH = 8
+
+   NAME = shtuki
+   CAPTION = Штук
+   WIDTH = 7
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = litr
+   CAPTION = Литры
+   WIDTH = 12
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = price
+   CAPTION = Цена АЗС
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = summa
+   CAPTION = Сумма(грн)
+   WIDTH = 12
+   FORMAT = 0.00
+   TOSUM = TRUE
+
+[TYPES]
+   
+   CAPTION = Дата, Группа НП, АЗС
+   ITOGI = date_,np_group,azs_name
+   ORDER = date_,np_group,azs_name
+

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Финансы\Справочники" caption="Разрешения" tablename="E_PERMIT">
+	<sql>
+select id, inst, date_, name, summ, comments from e_permit where state = 'Y' order by id
+</sql>
+<editclass 
+	classname = "TE_PermitForm"
+	resultfilter = "EditNumber">
+</editclass>
+	<columns>
+		<column align="left" width="60">
+			<caption align="center">Дата</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">Текст разрешения</caption>
+			<fieldname>name</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption align="center">Сумма</caption>
+			<fieldname>summ</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Примечание</caption>
+			<fieldname>comments</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="90" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>date_</fieldname>
+		</dateedit>
+		<dateedit left="110" top="10" width="90" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>date_</fieldname>
+		</dateedit>	
+		<edit left="10" top="50" width="300" wholevalue="false">
+			<name>name</name>
+			<caption>Текст разрешения:</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

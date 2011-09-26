@@ -1,0 +1,305 @@
+<hj-Treepad version 0.9>
+<node>
+CadSys módositások
+0
+<end node> 5P9i0s8y19Z
+<node>
+TCadPrg
+1
+<end node> 5P9i0s8y19Z
+<node>
+New subject
+2
+<end node> 5P9i0s8y19Z
+<node>
+TCadCmp
+1
+<end node> 5P9i0s8y19Z
+<node>
+Homogen
+2
+A térkép megjelenítés homogén - egyszínû lesz.
+A színt a DefaultLayersColor: TColor változó adja.
+
+property Homogen: Boolean;
+
+<end node> 5P9i0s8y19Z
+<node>
+TCadViewPort
+1
+<end node> 5P9i0s8y19Z
+<node>
+ZoomInExt
+2
+
+procedure TCADViewport.ZoomInExt(percent:extended);
+
+A Zoom mértékét is meg lehet adni:
+
+percent : 1 = Nincs nagyítás
+               4 = kétszeres nagyítás
+               9 = az ablak mérete 1/3-dal nõ
+
+              <1 = 
+
+<end node> 5P9i0s8y19Z
+<node>
+Tipps
+1
+<end node> 5P9i0s8y19Z
+<node>
+Aktuális pickobj rajzolása
+2
+A ViewPort OnMouseMove2d eseményében megadjuk, hogy a befoglaló téglalap kirajzolásával jelezze az aktuális abjektumot, ami fölött elhalad. Sõt, az objektum támpontjainak számát írja ki a a StatusBar-ra.
+
+Var oldObj : TObject2D;
+
+A FormCreate procedurában nil értéket kap: oldObj := nil;
+Ez azért kell, mert a régebbi objektumot meg kell jegyezni, így a befoglaló téglalapját meg tudjuk szüntetni.
+
+procedure TForm1.LocalViewMouseMove2D(Sender: TObject; Shift: TShiftState;
+  WX, WY: Single; X, Y: Integer);
+var
+  TmpPt: TPoint2D;
+  TmpObj: TObject2D;
+  TmpN,i: Integer;
+begin
+  TmpPt := LocalPrg.CurrentViewportSnappedPoint;
+  TmpObj := LocalView.PickObject(TmpPt, 5, False, TmpN);
+     If oldObj<>nil then OldObj.DrawBoundingBox := False;
+     oldObj := TmpObj;
+  If TmpObj <> nil then begin
+     TmpObj.DrawBoundingBox := True;
+    StatusBar1.Panels[1].Text := 'ID = '+Inttostr((TmpObj as TPrimitive2D).id)+'+Támpontok = '+Inttostr((TmpObj as TPrimitive2D).Points.Count);
+    For i:=0 to (TmpObj as TPrimitive2D).Points.Count-1 do begin
+        If (Abs((TmpObj as TPrimitive2D).Points[i].x-WX)<2) and
+           (Abs((TmpObj as TPrimitive2D).Points[i].y-WY)<2) THEN begin
+               LocalView.Cursor:=crDrag;
+               StatusBar1.Panels[1].Text :=
+                 StatusBar1.Panels[1].Text + ' [ '+inttostr(i)+' ]';
+            end else begin
+               LocalView.Cursor:=crDefault;
+            end;
+   end;
+  end else
+  begin
+     LocalView.Cursor:=crDefault;
+     StatusBar1.Panels[1].Text := '';
+  end;
+     LocalView.Repaint;
+  with LocalPrg.CurrentViewportSnappedPoint do begin
+   StatusBar1.Panels[0].Text := Format('X: %6.3f Y: %6.3f', [X, Y]);
+ Ruler1.SetMark(y);
+// Ruler2.SetMark(x);
+  end;
+  LocalView.SetFocus;
+end;
+
+<end node> 5P9i0s8y19Z
+<node>
+Feliratok kigyüjtése és rákeresés
+2
+{A TCADCmp2D object összes 10-es rétegbeli feliratát ki kell gyüjteni egy
+ ComboBox-ba. Nem csak a feliratokat, hanem kapcsolt objektumként a 
+ felirat azonosító ID-jét tartalmazó object-et is hozzácsatoljuk.
+ Igy: amikor választunk a combobox listájából, a kapcsolt objektum ID 
+      mezõjén keresztül azonnal rákereshetünk az aktuális feliratra.}
+
+Saját programban meghívás:
+
+{ Helyrajzi számok kigyüjtése }
+procedure TForm1.ToolButton7Click(Sender: TObject);
+begin
+  ComboBox1.Items:=GetListOfLayer(LocalCAD,10);
+end;
+
+{ Rákeresés a Combobox-ból választással}
+procedure TForm1.ComboBox1Click(Sender: TObject);
+begin
+ If Combobox1.itemindex>-1 then begin
+  i:=(Combobox1.Items.Objects[Combobox1.itemindex] as TIndexObj).ID;
+  ObjToViewCent(LocalCAD,LocalPrg,I);
+ end;
+end;
+
+----------------------------------------------------------
+Type
+  TIndexObj = Class(TObject)
+  private
+    fID: LongInt;
+   public
+    constructor Create(ID: LongInt);
+    property ID: LongInt read fID write fID;
+  end;
+
+
+implementation
+
+constructor TIndexObj.Create(ID: LongInt);
+begin
+  inherited Create;
+  fID := ID;
+end;
+
+{ 10-es rétegbeli feliratok kigyüjtése }
+procedure TForm1.ToolButton7Click(Sender: TObject);
+var grObj: TGraphicObject;
+    i,k,j: integer;
+begin
+  With LocalCAD.ObjectsIterator do begin
+       k := 0; j := 0;
+       ComboBox1.Clear;
+       grObj:=First;
+       repeat
+          If grObj is TJustifiedVectText2D then
+             If grObj.Layer=10 then begin
+                Inc(k);
+                ComboBox1.Items.AddObject((grObj as TJustifiedVectText2D).Text,TIndexObj.Create(grObj.ID));
+             end;
+          If grObj is TLine2D then
+             Inc(j);
+          grObj:=Next;
+       until grObj=nil;
+       StatusBar1.Panels[1].text:=inttostr(Count)+'  Vonal= '+inttostr(j)+'  Felirat='+inttostr(k);
+       Free;
+  end;
+end;
+
+{Rákeresés a feliratra amikor a Combobox sorára click.elsz}
+procedure TForm1.ComboBox1Click(Sender: TObject);
+var i: longint;
+    t2d: TObject2d;
+    t,tsz : TRect2d;
+    w,h: TRealType;
+begin
+  i:=(Combobox1.Items.Objects[Combobox1.itemindex] as TIndexObj).ID;
+  StatusBar1.Panels[2].Text := inttostr(i);
+  t2d := LocalCAD.GetObject(i);
+  t := LocalView.VisualRect;
+  tsz := (t2d as TJustifiedVectText2D).Box;
+  w := t.Right - t.Left;
+  h := t.Bottom - t.Top;
+  LocalView.Visualrect:=Rect2d(tsz.left-w/2,tsz.bottom-h/2,
+                               tsz.left+w/2,tsz.bottom+h/2);
+end;
+
+<end node> 5P9i0s8y19Z
+<node>
+CS4Tasks
+1
+<end node> 5P9i0s8y19Z
+<node>
+GetListFromLayer
+2
+Kigyüjti a paraméterben adott réteg feliratait és ID-it a kapcsolt objektumokban.
+
+Pl.
+  ComboBox1.Items:=GetListOfLayer(LocalCAD,10);
+
+
+function GetListOfLayer(CADcmp: TCADCmp; LayerID: integer):TStringList;
+var grObj: TGraphicObject;
+    i,k,j: integer;
+begin
+Try
+  Result := TStringList.Create;
+  Result.BeginUpdate;
+  With CADcmp.ObjectsIterator do begin
+  Try
+    If Count>0 then begin
+       k := 0; j := 0;
+       grObj:=First;
+       repeat
+          If grObj.Layer=LayerID then
+          If grObj is TJustifiedVectText2D then
+             begin
+                Inc(k);
+                Result.AddObject((grObj as TJustifiedVectText2D).Text,TIndexObj.Create(grObj.ID));
+             end;
+          If grObj is TLine2D then
+             Inc(j);
+          grObj:=Next;
+       until grObj=nil;
+    end;
+  except
+    Raise;
+  end;
+  end;
+finally
+  Result.EndUpdate;
+  CADcmp.ObjectsIterator.Free;
+end;
+end;
+
+<end node> 5P9i0s8y19Z
+<node>
+Findtext
+2
+(*
+Megkeresi a paraméterben megadott feliratot,
+ha nem talál akkor nil értékkel tér vissza.
+Pl.
+  ComboBox1.Items.Assign(GetListOfLayer(LocalCAD,10));
+*)
+
+function FindText(var CADcmp: TCADCmp2D; SearchText: string; LayerID: integer):TGraphicObject;
+var grObj: TGraphicObject;
+    goIter : TGraphicObjIterator;
+begin
+Try
+  Result := nil;
+  goIter := CADcmp.ObjectsIterator;
+  With goIter do begin
+  Try
+    If Count>0 then begin
+       grObj:=First;
+       repeat
+          If (grObj.Layer=LayerID) or (LayerID<0) then
+          If grObj is TJustifiedVectText2D then
+            If (grObj as TJustifiedVectText2D).Text = SearchText then begin
+                Result := grObj;
+                break;
+            end;
+          grObj:=Next;
+       until grObj=nil;
+    end;
+  except
+    goIter.Destroy;
+    Raise;
+  end;
+  end;
+finally
+  goIter.Destroy;
+end;
+end;
+
+<end node> 5P9i0s8y19Z
+<node>
+ObjToViewCent
+2
+(*
+  Az ID-vel jelölt graf. Objetumot a ViewPort középpontjába mozgatja
+
+  pl.  ObjToViewCent(LocalCAD,LocalPrg,ID);
+*)
+
+
+procedure ObjToViewCent(CADcmp: TCADCmp2D; CADPrg: TCADPrg; ID: integer);
+var t2d: TObject2d;
+    t,tsz : TRect2d;
+    w,h: TRealType;
+begin
+Try
+  t2d := CADcmp.GetObject(ID);
+  t := CADPrg.ViewPort.VisualRect;
+  tsz := (t2d as TObject2D).Box;
+  w := t.Right - t.Left;
+  h := t.Bottom - t.Top;
+  CADPrg.ViewPort.Visualrect:=Rect2d(tsz.left-w/2,tsz.bottom-h/2,
+                               tsz.left+w/2,tsz.bottom+h/2);
+except
+  raise;
+end;
+end;
+
+<end node> 5P9i0s8y19Z

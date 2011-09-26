@@ -1,0 +1,95 @@
+[GLOBAL]
+  TITLE = Реестр разрешений@Реєстр дозволів
+  MENU = Финансы\Отчеты\Реестр разрешений@Реєстр дозволів
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+      OPTIONS1=yyyyynnn
+      STARTCONDITION1=0
+   END
+
+[DESCRIPTION]
+   За период от@За період від :BeginDate до :EndDate
+   Организация:@Організація:: :org1.name
+
+[SQL]
+select p.date_,
+       p.name,
+       b.id as budget_id,
+       b.name as budget_name,
+       p.summ as summ_plan,
+       sum(ebf.summ) as summ_fakt,
+       p.summ - sum(ebf.summ) as summ_delta
+  from (select e_bill_id, sum(summ) as summ, max(permitid) as permitid
+          from e_bill_filials
+         where state = 'Y'
+           and e_bill_id in (select e_bill_id
+                               from e_bill_filials
+                              where org_id = :org1.inst
+                                and org_inst = :org1.inst
+                                and permitid is not null)
+         group by e_bill_id
+        union all
+        select e_bill_id, sum(summ), permitid
+          from e_bill_filials
+         where state = 'Y'
+           and not (org_id = :org1.inst and org_inst = :org1.inst)
+         group by e_bill_id, permitid) ebf,
+       e_permit p,
+       e_bill eb,
+       e_budget b
+ where p.id = ebf.permitid
+   and p.state = 'Y'
+   and eb.state = 'Y'
+   and eb.id = ebf.e_bill_id
+   and b.state = 'Y'
+   and b.id = eb.e_budget_id
+   and trunc(p.date_) between :BeginDate and :EndDate
+ group by p.date_, p.name, b.id, b.name, p.summ
+ order by p.date_
+
+[FIELDS]
+  NAME = NAME
+  CAPTION = Текст разрешения@Текст дозволу
+  WIDTH = 40
+
+  NAME = DATE_
+  CAPTION = Дата разрешения@Дата дозволу
+  WIDTH = 15
+  FORMAT = dd.mm.yyyy
+
+  NAME = BUDGET_ID
+  CAPTION = № статьи@№ статті
+  WIDTH = 10
+
+  NAME = BUDGET_NAME
+  CAPTION = Название статьи@Назва статті
+  WIDTH = 40
+
+  NAME = SUMM_PLAN
+  CAPTION = План (грн)
+  FORMAT = 0.00
+  WIDTH = 15
+  TOSUM = TRUE
+
+  NAME = SUMM_FAKT
+  CAPTION = Факт (грн)
+  FORMAT = 0.00
+  WIDTH = 15
+  TOSUM = TRUE
+
+  NAME = SUMM_DELTA
+  CAPTION = Дельта (грн)
+  FORMAT = 0.00
+  WIDTH = 15
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI =

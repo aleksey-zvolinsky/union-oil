@@ -1,0 +1,81 @@
+[GLOBAL]
+  TITLE = Прейскурант цен@Прейскурант цін
+  MENU = Отчеты\Сопутствующий товар\Прейскурант сопутствующего@Прейскурант супутнього
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  TITLE_COORD = D7
+
+[PANELS]
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1 = Подразделение@Підрозділ
+    STARTCONDITION1=0
+    NULLVALUE1=NO
+    CAPTION2 = АЗС
+    STARTCONDITION2=2
+    NULLVALUE2=NO
+  END
+
+[VARIABLES]
+   VAR MAX_DATE_ON:varSql
+select max(np_p.date_on) as max_date_on
+  from oil_np_price np_p
+ where np_p.org_id = ov.GetVal('INST')
+   and np_p.org_inst = ov.GetVal('INST')
+   END
+
+[DESCRIPTION]
+ \{F2}M\B:org1.Name\b
+ \{F3}M\B:org2.Name\b
+ \{F5}M\BЦена действует с :MAX_DATE_ON\b@\{F5}M\BЦіна дійсна з :MAX_DATE_ON\b
+
+[SQL]
+select row_number()over(order by np.name) as rn,
+       to_number(null) as cod_article,
+       np.codavias,
+       np.fiscal_name,
+       np.name,
+       d.name as dim_name,
+       to_number(substr(max(to_char(np_p.date_on, 'YYYYMMDD') || np_p.price), 9)) as priceavs
+  from v_oil_np_type np, oil_np_price np_p, (select name from v_oil_dimension where id = 19)d
+ where (np.id <= 1112 or np.id >= 1200)
+   and np_p.np_id = np.id
+   and np_p.org_id = ov.GetVal('INST')
+   and np_p.org_inst = ov.GetVal('INST')
+   and np_p.price <> 0
+ group by np.codavias,
+       np.fiscal_name,
+       np.name,
+       d.name
+
+[FIELDS]
+  NAME = rn
+  CAPTION = № п/п@№ п/п
+  WIDTH = 8
+
+  NAME = CODAVIAS
+  CAPTION = Код ННБ
+  WIDTH = 8
+
+  NAME = fiscal_name
+  CAPTION = Сокр. наименование@Скор. назва
+  WIDTH = 25
+
+  NAME = name
+  CAPTION = Полное наименование@Повна назва
+  WIDTH = 30
+
+  NAME = dim_name
+  CAPTION = Ед. изм.@Од. вим.
+  WIDTH = 10
+
+  NAME = priceavs
+  CAPTION = Цена розн, грн@Цена розд, грн
+  WIDTH = 15
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

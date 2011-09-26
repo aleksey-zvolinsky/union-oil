@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Общие" caption="Типы событий LinkComServer">
+	<sql>
+select * from 
+(	
+select
+   1 as call_type,
+   'Успешная модемная инкассация терминала' as name
+from dual   
+union all
+select
+   2 as call_type,
+   'Прием модемных транзакций в Петрол'  as name
+from dual   
+union all   
+select
+   3 as call_type,
+   'Прием транзакций с карты' as name
+from dual   
+union all   
+select
+   4 as call_type,
+   'Сброс ЧС на карту' as name
+from dual   
+union all   
+select
+   5 as call_type,
+   'Прием пакетов из ПЦ' as name
+from dual   
+union all   
+select
+   6 as call_type,
+   'Отправка пакетов в ПЦ' as name
+from dual   
+union all   
+select
+   7 as call_type,
+   'Создание ЧС для модемной инкассации' as name
+from dual   
+)
+</sql>
+	<columns>
+		<column align="left" width="350">
+			<caption align="center">Название</caption>
+			<fieldname>name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="200" wholevalue="false">
+			<name>filter1</name>
+			<caption>Название</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

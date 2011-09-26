@@ -1,0 +1,13 @@
+19.11.2010 10:29:27 Создание ...
+19.11.2010 10:29:28 TOraQuery(qChartZamer, 0), TThreadMethod(True)
+19.11.2010 10:29:28 Выполнение ...
+19.11.2010 10:29:28 Params: begin_date - 20.10.2010
+19.11.2010 10:29:28 Params: end_date - 19.11.2010
+19.11.2010 10:29:28 SQL: select /*+ORDERED*/
+  rez_name as numb, datetime, litr, weight
+  from  vm_zamer_finish t
+ where t
+19.11.2010 10:29:31 TOraQuery(qChartZamer, 35320)
+19.11.2010 10:29:31 TOraQuery(qChartZamer, 0)
+19.11.2010 10:29:31 FCreateQNew := True
+19.11.2010 10:29:32 Уничтожение ...

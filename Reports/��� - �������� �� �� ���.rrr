@@ -1,0 +1,165 @@
+[GLOBAL]
+  TITLE = Отчет «Передача ОП на АЗС»@Звіт «Передача ОП на АЗС»
+  VERSION = 2.3
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  MENU = Отчеты\Отчеты по эл. карточкам\Передача ОП на АЗС@Передача ОП на АЗС
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    CAPTION1 =  АЗС
+    STARTCONDITION1=2
+  END
+
+[VARIABLES]
+   VAR FADDR:varSql
+       select azs.addr
+         from card_modem_call cmc,
+              oil_org azs
+        where oil_inst = azs.par and state = 'Y'
+          and azs.id = cmc.azs_id 
+          and azs.id = :org1.id
+        group by cmc.azs_id,oil_inst,azs.addr
+   END
+   VAR FCALL_DATE:varSql
+       select to_char(max(call_date),'DD.MM.YYYY HH24:MI:SS')call_date
+         from card_modem_call cmc,
+              oil_org azs
+        where oil_inst = azs.par and state = 'Y'
+          and azs.id = cmc.azs_id 
+          and azs.id = :org1.id
+        group by cmc.azs_id,oil_inst,azs.addr
+   END
+
+   VAR FCALL_DATE_ALL:varSql
+       select to_char(max(call_date),'DD.MM.YYYY HH24:MI:SS')call_date
+         from card_modem_call cmc,
+              oil_org azs
+        where oil_inst = azs.par and state = 'Y'
+          and azs.id = :org1.id
+        group by oil_inst
+   END
+
+[DESCRIPTION_RUS]
+
+  \{B6}MПериод с \{C6}M\B:BeginDate\b \{D6}Mпо \{E6}M\B:EndDate\b
+  \{B7}MАЗС :: \{C7}M\B:org1.Name\b
+  \{B8}Mадрес :: \{C8}M\B:FADDR\b
+  \{B9}Mпоследняя дата инкасации данной АЗС :: \{C9}M\B:FCALL_DATE\b
+  \{B10}Mпоследняя дата инкасации всех АЗС :: \{C10}M\B:FCALL_DATE_ALL\b
+
+[DESCRIPTION_UKR]
+
+  \{B6}MПеріод з \{C6}M\B:BeginDate\b \{D6}Mпо \{E6}M\B:EndDate\b
+  \{B7}MАЗС :: \{C7}M\B:org1.Name\b
+  \{B8}Mадреса :: \{C8}M\B:FADDR\b
+  \{B9}Mостання дата інкасації цієї АЗС :: \{C9}M\B:FCALL_DATE\b
+  \{B10}Mостання дата інкасації усіх АЗС :: \{C10}M\B:FCALL_DATE_ALL\b
+
+[SQL]
+
+select rownum, tr.* from(
+(select op.name_firm,
+       card_number,
+       date_create,
+       to_char(datetime_create,'DD.MM.YYYY HH24:MI:SS') datetime_create,
+       to_char(date_end,'DD.MM.YYYY') date_end,
+       to_char(datetime_trn,'DD.MM.YYYY HH24:MI:SS') datetime_trn,
+       name_services,
+       op.sum_than,
+       description_condition,
+       1 count_,
+       oo.name,
+       oo.addr
+  from magicash5.v_card_op op, Oil_Org oo 
+  where op.NUMBER_TERMINAL=oo.azs_id)
+
+  union
+  
+(select op.name_firm,
+       card_number,
+       date_create,
+       to_char(datetime_create,'DD.MM.YYYY HH24:MI:SS') datetime_create,
+       to_char(date_end,'DD.MM.YYYY') date_end,
+       to_char(datetime_trn,'DD.MM.YYYY HH24:MI:SS') datetime_trn,
+       name_services,
+       op.sum_than,
+       description_condition,
+       1 count_,
+       'ОП возвращено',
+       'ОП возвращено'
+  from magicash5.v_card_op op
+  where op.NUMBER_TERMINAL=0 and op.DESCRIPTION_CONDITION='Возвращено' )
+  
+  union
+  
+  (select op.name_firm,
+       card_number,
+       date_create,
+       to_char(datetime_create,'DD.MM.YYYY HH24:MI:SS') datetime_create,
+       to_char(date_end,'DD.MM.YYYY') date_end,
+       to_char(datetime_trn,'DD.MM.YYYY HH24:MI:SS') datetime_trn,
+       name_services,
+       op.sum_than,
+       description_condition,
+       1 count_,
+       'ОП отправлено',
+       'ОП отправлено'
+  from magicash5.v_card_op op
+  where op.NUMBER_TERMINAL=0 and op.DESCRIPTION_CONDITION='Отправлено' )) tr
+ where tr.date_create between :BeginDate and :EndDate
+
+[FIELDS]
+
+  NAME = rownum
+  CAPTION =№п/п
+  WIDTH = 5
+
+  NAME = name_firm
+  CAPTION =Клиент@Кліент
+  WIDTH = 40
+
+  NAME = card_number
+  CAPTION =Номер карточки@Номер картки
+  WIDTH = 16
+
+  NAME = name_services
+  CAPTION =Тип НП@Тип НП
+  WIDTH = 10
+
+  NAME = sum_than
+  CAPTION=Количество@Кількість
+  WIDTH = 13
+
+  NAME = datetime_create
+  CAPTION =Дата формирования ОП@Дата формування ОП
+  WIDTH = 24
+
+  NAME = date_end
+  CAPTION =Конечная дата ОП@Кінцева дата ОП
+  WIDTH = 10
+
+  NAME = datetime_trn 
+  CAPTION=Дата реализации ОП@Дата реалізації ОП
+  WIDTH = 21
+
+  NAME = description_condition
+  CAPTION =Статус ОП!Статус@Статус ОП!Статус
+  WIDTH = 12
+  ITOGIFIELD = count_
+
+  NAME = name
+  CAPTION =Статус ОП!Название@Статус ОП!Назва
+  WIDTH = 30
+
+  NAME = addr
+  CAPTION =Статус ОП!Адреc@Статус ОП!Адреcа
+  WIDTH = 17
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 

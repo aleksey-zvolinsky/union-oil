@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Учет" caption="Счета" menuposition="19" tablename="OIL_BILL">
+	<editbuttons>
+		<addbutton />
+		<editbutton />
+		<showdetailcheckbox />
+	</editbuttons>
+	<sql>
+select *
+  from v_oil_bill bill,
+       (select sum(round(count_ * price, 2)) summ, bill_id, bill_inst
+          from oil_bill_det det
+         where det.state = 'Y'
+         group by bill_id, bill_inst) det
+ where bill.id = det.bill_id(+) and bill.inst = det.bill_inst(+)
+ order by date_ desc, bill.id desc
+	</sql>
+	<sqldetail>
+select decode(t.bill_type, 'S', t.oper_name, t.np_name) as np_name,
+       t.count_, t.price, t.price_x_nds, t.summ_nds, t.summ_x_nds, t.dim_name
+  from v_oil_bill_det t
+ where bill_id = :id and bill_inst = :inst
+	</sqldetail>
+	<editclass classname="TBillForm" resultfilter="EditNumber" printable="true">
+		<print>
+			<caption>Печать счет-фактуры</caption>
+			<menuname>miPrintBill2</menuname>
+			<printnumber>0</printnumber>
+			<conditionvisible>
+				<fieldname></fieldname>
+				<value></value>
+			</conditionvisible>
+		</print>
+	</editclass>
+	<columns>
+		<column align="left" width="80">
+			<caption align="center">Номер</caption>
+			<fieldname>doc_number</fieldname>
+		</column>
+		<column align="right" width="60">
+			<caption align="center">Дата</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="90">
+			<caption align="center">Вид договора</caption>
+			<fieldname>bill_name</fieldname>
+		</column>
+		<column align="right" width="100">
+			<caption align="center">Действителен, дн.</caption>
+			<fieldname>valid_time</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">От кого</caption>
+			<fieldname>from_name</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">Кому</caption>
+			<fieldname>to_name</fieldname>
+		</column>
+		<column align="right" width="100">
+			<caption align="center">Сумма с НДС</caption>
+			<fieldname>summ</fieldname>
+		</column>
+		<column align="left" width="45">
+			<caption align="center">Оплач.</caption>
+			<fieldname>grid_cashed</fieldname>
+		</column>
+		<column align="left" width="45">
+			<caption align="center">Отгруж.</caption>
+			<fieldname>grid_shipped</fieldname>
+		</column>
+		<column align="left" width="45">
+			<caption align="center">Аннул.</caption>
+			<fieldname>grid_canceled</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption align="center">Договор</caption>
+			<fieldname>dog_num</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption align="center">Дата договора</caption>
+			<fieldname>dog_date</fieldname>
+		</column>
+	</columns>
+	<columnsdetail>
+		<column align="left" width="100">
+			<caption align="center">Товар</caption>
+			<fieldname>np_name</fieldname>
+		</column>
+		<column align="right" width="80">
+			<caption align="center">Количество</caption>
+			<fieldname>count_</fieldname>
+		</column>
+		<column align="right" width="80">
+			<caption align="center">Цена с НДС</caption>
+			<fieldname>price</fieldname>
+		</column>
+		<column align="right" width="80">
+			<caption align="center">Цена без НДС</caption>
+			<fieldname>price_x_nds</fieldname>
+		</column>
+		<column align="right" width="90">
+			<caption align="center">Сумма без НДС</caption>
+			<fieldname>summ_x_nds</fieldname>
+		</column>
+		<column align="right" width="90">
+			<caption align="center">Стоимость</caption>
+			<fieldname>summ_nds</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption align="center">Ед. изм.</caption>
+			<fieldname>dim_name</fieldname>
+		</column>
+	</columnsdetail>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>date_</fieldname>
+			<default>month_ago</default>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>date_</fieldname>
+			<default>now</default>
+		</dateedit>
+		<edit left="120" top="10" width="100" wholevalue="false">
+			<name>EditNumber</name>
+			<caption>Номер:</caption>
+			<fieldname>doc_number</fieldname>
+		</edit>
+		<list left="120" top="50" width="100">
+			<name>EditDogType</name>
+			<caption>Вид договора:</caption>
+			<fieldname>bill_name</fieldname>
+			<items>
+				<item>Карточки@Картки</item>
+				<item>Талоны@Талони</item>
+				<item>Услуги@Послуги</item>
+				<item>Ведомость@Відомість</item>
+				<item>Обычный@Звичайний</item>
+			</items>
+		</list>
+		<xmlform width="250" left="230" top="10" wholevalue="true" orgref="true" orgtype="3" enableflags="yyy">
+			<name>FromOrg</name>
+			<caption>Поставщик:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>from_id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>from_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<xmlform width="250" left="230" top="50" wholevalue="true" orgref="true" orgtype="3" enableflags="yyy">
+			<name>ToOrg</name>
+			<caption>Получатель:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>to_id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>to_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<list left="510" top="10" width="80">
+			<name>EditCanceled</name>
+			<caption>Аннулирован:</caption>
+			<fieldname>grid_canceled</fieldname>
+			<items>
+				<item>Да@Так</item>
+				<item>Нет@Ні</item>
+			</items>
+		</list>
+	</filters>
+</form>

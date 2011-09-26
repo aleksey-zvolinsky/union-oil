@@ -1,0 +1,86 @@
+[GLOBAL]	
+  TITLE = Реестр расходных по бланкам (Филиал и ОАО)@Реєстр видаткових за бланками(Філія і ВАТ)
+  TITLE_COORD = H3
+  MENU = Отчеты\Отчеты по талонам\Филиальный пакет\Реестр по бланкам@Реєстр за бланками
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+  select date_, 
+       to_char(date_-start_date+1)||'тл' as rash_nak_num,
+       np_group, ser, price, co, litr, 
+       co*price as SumXNds,
+       NDS.GetNds_NoNds(co*price,date_) as Nds,
+       NDS.GetWithNds_NoNds(co*price,date_) as SumNds
+  from
+       (select date_, np_group, np_group_full, litr as nominal, ser,
+               to_number(var.price) as price,
+               count(*) as co,
+               sum(litr) as litr,
+               prih_inst dep_inst,
+               to_date(ddate.value) as start_date
+          from v_oil_talon_ae ae, v_dual_date ddate,
+               (select nvl(ov.getval('TALON_ONE_PRICE'),0.25) as price from dual) var
+         where date_ between :BeginDate and :EndDate
+           and is_blank_docs = 1
+         group by date_, prih_inst, np_group, np_group_full, litr, ser, ddate.value)
+
+[FIELDS]
+
+  NAME = DATE_
+  CAPTION = Дата
+  WIDTH = 10
+  
+  NAME = RASH_NAK_NUM
+  CAPTION = № расходной@№ видаткової
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП@Група НП
+  WIDTH = 12
+  
+  NAME = SER
+  CAPTION = Серия@Серія
+  
+  NAME = PRICE
+  CAPTION = Цена с НДС@Ціна з ПДВ
+  WIDTH = 10
+  FORMAT = 0.00
+  
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+
+  NAME = CO
+  CAPTION = Штук
+  FORMAT = 0
+
+  NAME = LITR
+  CAPTION = Литров@Літрів
+  WIDTH = 10
+  FORMAT = 0
+  
+  DEFAULT FORMAT = 0.00
+
+  NAME = SUMXNDS
+  CAPTION = Сумма без НДС@Сума без ПДВ
+  WIDTH = 10
+
+  NAME = NDS
+  CAPTION = НДС@ПДВ
+  WIDTH = 10
+
+  NAME = SUMNDS
+  CAPTION = Сумма с НДС@Сума з ПДВ
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = DATE_,NP_GROUP

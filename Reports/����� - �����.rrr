@@ -1,0 +1,128 @@
+[GLOBAL]
+   TITLE = Ñ÷åòà ïî ËÑ@Ğàõóíêè ïî ËÑ
+   MENU = Îò÷åòû\Îò÷åòû ïî ıë. êàğòî÷êàì\ËÑ\Ñ÷åòà@Ğàõóíêè
+   VERSION = 1.0
+   PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+    NUM = 1
+    CAPTION1 = Íà
+  END
+
+[DESCRIPTION]
+   Íà :BeginDate@Íà :BeginDate
+
+[SQL]
+select oo.name,
+       q.card_number,
+       q.litr next_litr,
+       q.sumnds next_sumnds,
+       trunc(greatest(q.min_date,q.previous_chek_date), 'DAY') + 1 + 7 as next_date,
+       q.min_date next_min_date,
+       q.max_date next_max_date,
+       q.previous_chek_number,
+       q.previous_chek_date,
+       q.previous_min_date,
+       q.previous_max_date,
+       previous_litr,
+       previous_sumnds
+  from (select to_id,
+               to_inst,
+               card_number,
+               chek_number,
+               litr,
+               sumnds,
+               min_date,
+               max_date,
+               lag(chek_number) over(partition by card_number order by chek_date) as previous_chek_number,
+               lag(chek_date) over(partition by card_number order by chek_date) as previous_chek_date,
+               lag(min_date) over(partition by card_number order by chek_date) as previous_min_date,
+               lag(max_date) over(partition by card_number order by chek_date) as previous_max_date,
+               lag(litr) over(partition by card_number order by chek_date) as previous_litr,
+               lag(sumnds) over(partition by card_number order by chek_date) as previous_sumnds
+          from (select distinct to_id,
+                                to_inst,
+                                card_number,
+                                chek_number,
+                                chek_date,
+                                sum(litr) over(partition by card_number, chek_date) as litr,
+                                sum(sumnds) over(partition by card_number, chek_date) as sumnds,
+                                min(date_) over(partition by card_number, chek_date) as min_date,
+                                max(date_) over(partition by card_number, chek_date) as max_date
+                  from v_card_equal_ls
+                 where prepay = 0
+                   and rest is null
+                   and date_ > to_date('01.01.2007', 'dd.mm.yyyy')
+                   and date_ < :BeginDate
+                   )
+         group by to_id,
+                  to_inst,
+                  card_number,
+                  chek_number,
+                  chek_date,
+                  litr,
+                  sumnds,
+                  max_date,
+                  min_date) q,
+       v_org oo
+ where chek_number is null
+   and oo.id = to_id
+   and oo.inst = to_inst
+ order by to_id, to_inst, card_number
+
+[FIELDS]
+
+    NAME = name
+    CAPTION = Êëèåíò@Êë³ºíò
+    WIDTH = 40
+
+    NAME = card_number
+    CAPTION = Íîìåğ êàğòû@Íîìåğ êàğòêè
+    WIDTH = 10
+
+    NAME = previous_chek_number
+    CAPTION = Ïîñëåäíèé ñ÷åò!Ñ÷åò!Íîìåğ@Îñòàíí³é ğàõóíîê!Ğàõóíîê!Íîìåğ
+    WIDTH = 15
+
+    NAME = previous_chek_date
+    CAPTION = Ïîñëåäíèé ñ÷åò!Ñ÷åò!Äàòà@Îñòàíí³é ğàõóíîê!Ğàõóíîê!Äàòà
+
+    NAME = previous_litr
+    CAPTION = Ïîñëåäíèé ñ÷åò!Ñ÷åò!Ëèòğû@Îñòàíí³é ğàõóíîê!Ğàõóíîê!Ë³òğè
+    TOSUM = true
+
+    NAME = previous_sumnds
+    CAPTION = Ïîñëåäíèé ñ÷åò!Ñ÷åò!Ñóììà@Îñòàíí³é ğàõóíîê!Ğàõóíîê!Ñóìà
+    TOSUM = true
+
+    NAME = previous_min_date
+    CAPTION = Ïîñëåäíèé ñ÷åò!Òğàíçàêöèè!ñ@Îñòàíí³é ğàõóíîê!Òğàíöàêö³¿!ç
+
+    NAME = previous_max_date
+    CAPTION = Ïîñëåäíèé ñ÷åò!Òğàíçàêöèè!ïî@Îñòàíí³é ğàõóíîê!Òğàíöàêö³¿!ïî    
+
+    NAME = next_date
+    CAPTION = Áóäóùèé ñ÷åò!Ñ÷åò!Äàòà@Ìàéáóòí³é ğàõóíîê!Ğàõóíîê!Ïğåäïîëîãàåìàÿ äàòà
+
+    NAME = next_litr
+    CAPTION = Áóäóùèé ñ÷åò!Ñ÷åò!Ëèòğû@Ìàéáóòí³é ğàõóíîê!Ğàõóíîê!Ë³òğè
+    TOSUM = true
+
+    NAME = next_sumnds
+    CAPTION = Áóäóùèé ñ÷åò!Ñ÷åò!Ñóììà@Ìàéáóòí³é ğàõóíîê!Ğàõóíîê!Ñóìà
+    TOSUM = true
+
+    NAME = next_min_date
+    CAPTION = Áóäóùèé ñ÷åò!Òğàíçàêöèè!ñ@Ìàéáóòí³é ğàõóíîê!Òğàíöàêö³¿!ç
+
+    NAME = next_max_date
+    CAPTION = Áóäóùèé ñ÷åò!Òğàíçàêöèè!ïî@Ìàéáóòí³é ğàõóíîê!Òğàíöàêö³¿!ïî
+
+[TYPES]
+    CAPTION = Îñíîâíîé@Îñíîâíèé
+    ITOGI = name
+
+    CAPTION = Ïî ñ÷åòàì@Ïî ğàõóíêàì
+    ITOGI = name, previous_chek_number

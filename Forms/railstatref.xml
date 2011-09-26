@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Справочники" caption="Ж.д. станции" tablename="OIL_RAIL_STAT">
+<sql>
+select * from v_oil_rail_stat order by name desc
+</sql>
+<editclass 
+	classname = "TRailStatForm"
+	resultfilter = "EditName">
+</editclass>
+	<columns>
+		<column align="left" width="250">
+			<caption align="center">Название</caption>
+			<fieldname>name</fieldname>
+		</column>
+		<column align="left" width="70">
+			<caption align="center">Номер</caption>
+			<fieldname>id</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="100" wholevalue="false">
+			<name>EditName</name>
+			<caption>Название</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

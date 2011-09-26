@@ -1,0 +1,122 @@
+[GLOBAL]
+  TITLE = Движение одного талона@Рух одного талону
+  MENU = Отчеты\Отчеты по талонам\Движение одного талона@Рух одного талону
+  VERSION = 1.6.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  PANEL
+    ELEMENT Ser:Edit
+      CAPTION = Серия@Серія
+    END
+    ELEMENT Num:Edit
+      CAPTION = Номер
+    END
+  END
+  
+  PANEL
+    ELEMENT WHR:CheckBoxGroup
+      LIST = На юр. лице,На филиале,На ОАО@На юр.особі,На філії,На ВАТ
+      VALUES = 2,1,0
+    END
+  END
+
+[DESCRIPTION]
+  Талон:: :ser/:num
+  Где:: :WHR.GetCaptions@Де:: :WHR.GetCaptions
+
+[SQL]
+select date_,
+       decode(tip, 'P', 'Приход', 'Отпуск') as tip,
+       decode(v.is_filial, 0, 'ОАО', 1, 'Филиал', 'Юр.лицо') as is_filial,
+       head_num,
+       v.oper_id,
+       ot.name as oper_name,
+       v.from_id,
+       ofrom.name as from_name,
+       v.to_id,
+       oto.name as to_name,
+       v.id,
+       v.inst,
+       v.head_id,
+       v.head_inst
+  from victory.v_oil_talon_op_un v,
+       (select id, inst, name
+          from victory.oil_org
+         union
+        select id, inst, name 
+          from andriy.oil_org
+         where id <> inst) ofrom,
+       (select id, inst, name
+          from victory.oil_org
+         union
+        select id, inst, name 
+          from andriy.oil_org
+         where id <> inst) oto,
+       oil_oper_type ot
+ where v.ser = :ser
+   and v.num = :num
+   and is_filial in (:WHR.GetValues)
+   and v.from_id = ofrom.id(+)
+   and v.from_inst = ofrom.inst(+)
+   and v.to_id = oto.id(+)
+   and v.to_inst = oto.inst(+)
+   and v.oper_id = ot.id(+)
+ order by date_, tip
+
+[FIELDS]
+  DEFAULT WIDTH = 10
+  
+  NAME = DATE_
+  CAPTION = Дата
+  FORMAT = dd.mm.yyyy
+
+  NAME = TIP
+  CAPTION = Тип
+
+  NAME = IS_FILIAL
+  CAPTION = Где@Де
+
+  NAME = HEAD_NUM
+  CAPTION = Номер
+
+  NAME = OPER_ID
+  CAPTION = № операции@№ операції
+
+  NAME = OPER_NAME
+  CAPTION = Операция@Операція
+  WIDTH = 20
+
+  NAME = FROM_ID
+  CAPTION = Код от кого@Код від кого
+
+  NAME = FROM_NAME
+  CAPTION = От кого@Від кого
+  WIDTH = 25
+
+  NAME = TO_ID
+  CAPTION = Код кому@Код кому
+
+  NAME = TO_NAME
+  CAPTION = Кому
+  WIDTH = 25
+
+  NAME = ID
+  CAPTION = Талон!id@Талон!id
+  
+  NAME = INST
+  CAPTION = Талон!inst@Талон!inst
+
+  NAME = HEAD_ID
+  CAPTION = Шапка!id@Шапка!id
+  
+  NAME = HEAD_INST
+  CAPTION = Шапка!inst@Шапка!inst
+
+[TYPES]
+  CAPTION = Основной@Основний
+  UNCHECKED = id,inst,head_id,head_inst
+
+  CAPTION = Включая id и inst@Включаючи id і inst
+ 

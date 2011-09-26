@@ -1,0 +1,158 @@
+[GLOBAL]
+  TITLE = Реестр отоваренных талонов по юр.лицу@Реєстр отоварених талонів по юр.особі
+  MENU = Отчеты\Отчеты по талонам\Отоваривание по юр.лицу@Отововарення по юр.особі
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1=Подразделение@Підрозділ
+    CAPTION2=Клиент@Клієнт
+    STARTCONDITION1=0
+  END
+
+  PANEL
+    CAPTION = Оприходован@Оприбуткований
+    ELEMENT ChPrih:CheckBoxGroup
+      LIST = На юр.лице,На филиале,На ОАО@На юр.особі,На філії,На ВАТ
+      VALUES = 2,1,0
+    END
+  END
+
+  PANEL
+    CAPTION = Отпущен@Відпущений
+    ELEMENT ChOut:CheckBoxGroup
+      LIST = На юр.лице,На филиале,На ОАО@На юр.особі,На філії,На ВАТ
+      VALUES = 2,1,0
+    END
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Клиент:: :org2.Name@Клієнт:: :org2.Name
+
+[SQL]
+select
+  prih_dep_name,out_dep_name,
+  out_org_name,out_org_okpo,
+  np_group,dog,sub_part,azs_name,
+  smena_num,nominal,ser,v.num,
+  out_date,date_ as prih_date,
+  out_price,
+  1 as co,
+  nvl(litr_azs,nominal) as litr_azs,
+  tonn_azs,
+  decode(litr_azs,null,out_price*nominal,out_summa) as out_summa,
+  delta
+from victory.v_oil_talon_fullfil v
+where date_ between :BeginDate and :EndDate
+  and (:org1.id in (to_id,prih_obl_id) or :org1.id is null)
+  and (out_org_id=:org2.id and out_org_inst=:org2.inst
+       or :org2.id is null)
+  and prih_is_filial in (:ChPrih.GetValues)
+  and out_is_filial in (:ChOut.GetValues)
+
+[FIELDS]
+  HEAD_DEPTH = 2
+
+  NAME = PRIH_DEP_NAME
+  CAPTION = Оприходовавшее подразделение@Підрозділ, що оприбуткував
+  WIDTH = 20
+
+  NAME = OUT_DEP_NAME
+  CAPTION = Отпустившее подразделение@Підпозділ, що відпустив
+  WIDTH = 20
+
+  NAME = OUT_ORG_NAME
+  CAPTION = Клиент@Клієнт
+  WIDTH = 15
+
+  NAME = OUT_ORG_OKPO
+  CAPTION = ОКПО клиента@ЄДРПОУ клієнта
+  WIDTH = 10
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION = Партия@Партія
+  WIDTH = 10
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 10
+
+  NAME = SMENA_NUM
+  CAPTION = № смены@№ зміни
+  WIDTH = 10
+
+  NAME = NOMINAL
+  CAPTION = Номинал@Номінал
+  WIDTH = 10
+
+  NAME = SER
+  CAPTION = Серия@Серія
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  NAME = OUT_DATE
+  CAPTION = Дата отпуска@Дата відпуску
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = PRIH_DATE
+  CAPTION = Дата прихода@Дата приходу
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = OUT_PRICE
+  CAPTION = Цена отпуска с НДС@Ціна відпуску з ПДВ
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = CO
+  CAPTION = Кол-во@К-сть
+  WIDTH = 10
+  FORMAT = 0
+  TOSUM = TRUE
+
+  NAME = LITR_AZS
+  CAPTION = Литры@Літри
+  WIDTH = 10
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = TONN_AZS
+  CAPTION =Тонны@Тони
+  WIDTH = 10
+  FORMAT = 0.000000
+  TOSUM = TRUE
+
+  NAME = OUT_SUMMA
+  CAPTION = Сумма с НДС по цене отпуска@Сума з ПДВ за ціною відпуска
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = DELTA
+  CAPTION = Дельта
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = out_org_name

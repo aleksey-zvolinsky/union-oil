@@ -1,0 +1,75 @@
+[GLOBAL]
+  TITLE = Отгрузка нефтепродуктов с хранения@Відвантаження нафтопродуктів з зберігання
+  MENU = Отчеты\Перевалка\Отгрузка с хранения@Відвантаження з зберігання
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  C :BeginDate по :EndDate@З :BeginDate до :EndDate
+  
+[SQL]
+select 
+  v.r_date,
+  v.r_auto_name,
+  v.np_type_name,
+  v.r_por_tonn as por_brutto,
+  round(r_por_tonn*np_count/full_count,3) as por_netto,
+  r_por_tonn - round(r_por_tonn*np_count/full_count,3) as por_water,
+  r_full_tonn as rash_brutto,
+  r_tonn as rash_netto,
+  r_water as rash_water
+from v_oil_rashpvl_prih v, oil_part p
+where v.part_id = p.id and v.part_inst=p.inst
+   and p.own_goods = 'S'
+   and v.r_date between :BeginDate and :EndDate
+
+[FIELDS]
+	HEAD_DEPTH = 3
+	
+	NAME = r_date
+	CAPTION = Дата отгрузки@Дата відвантаження
+	WIDTH = 15
+	
+	NAME = r_auto_name
+	CAPTION = Наименование судна@Назва судна
+	WIDTH = 25
+	
+	NAME = np_type_name
+	CAPTION = Тип НП
+	WIDTH = 12
+	
+	DEFAULT WIDTH = 10
+	DEFAULT FORMAT = 0.000
+	DEFAULT TOSUM = TRUE
+	
+	FIELDS_GROUP
+		TAILS
+			NAME = _brutto
+			CAPTION = !брутто
+			
+			NAME = _water
+			CAPTION = !вода
+			
+			NAME = _netto
+			CAPTION = !нетто
+			
+		HEADS
+			NAME = por
+			CAPTION = По конасаменту
+			
+			NAME = rash
+			CAPTION = Списано по учетным данным@Списано по обліковим даним
+	END_GROUP
+	
+[TYPES]
+  CAPTION = По датам
+  ITOGI = r_date
+  
+  CAPTION = По типам НП
+  ORDER = np_type_name, r_date, r_auto_name
+  ITOGI = np_type_name

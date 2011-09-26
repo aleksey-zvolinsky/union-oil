@@ -1,0 +1,158 @@
+[GLOBAL]
+  TITLE = Реализация по товару (выгрузка в 1С - dbf)@Реалізация по товару (вигрузка в 1С - dbf)
+  MENU = Отчеты\Сопутствующий товар\Реализация (выгрузка в 1С - dbf)@Реалізация (вигрузка в 1С - dbf) 
+  VERSION = 1.2
+  RAZM_SYMBOLS = YES
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@від :BeginDate до :EndDate
+
+[SQL]
+select X.azsname, X.np_name, X.np_code,
+       X.rep_date, X.vid_otpuska,
+       X.price,
+       X.rash_period,
+       X.rash_money_period,
+       X.azsfullname
+from
+(select
+  Q.*
+from
+   (select
+      rep_date, azsname, vid_otpuska, np_name,
+      np_code,
+      max(price) as price,
+      sum(rash) as rash_period,
+      sum(rash_money) as rash_money_period,
+      azsfullname as azsfullname
+     from
+       (select
+          trunc(drep.rep_date) as rep_date,
+          azs.id as azsname,
+          azs.name as azsfullname,
+          npt.name as np_name,
+          el.out_code as np_code,
+          dr.s_price as price,
+          nvl(dr.pr_count,0) as prih,
+          nvl(dr.out_nal_count,0)+nvl(dr.out_ved_count,0) as rash,
+          nvl(dr.out_nal_money,0)+nvl(dr.out_ved_money,0) as rash_money,
+          nvl(dr.out_sn_count,0)+nvl(dr.out_count,0) as rash_other,
+          'Наличные' as vid_otpuska
+        from
+          oil_daily_rep drep, oil_dr_data dr, oil_rashod r, oil_part p,
+          v_oil_org_norek azs, oil_np_type npt, v_oil_dim dim,
+          exe_link el
+        where drep.state='Y' and dr.state='Y' and r.state='Y' and p.state='Y'
+          and dr.rep_id=drep.id and dr.rep_inst=drep.inst
+          and dr.ttn_id=r.id and dr.ttn_inst=r.inst
+          and r.part_id=p.id and r.part_inst=p.inst
+          and drep.azs_id=azs.id and drep.azs_inst=azs.inst
+          and p.np_type=npt.id
+          and p.dim_id=dim.id
+          and trunc(drep.rep_date)<=:EndDate
+          and trunc(drep.rep_date)>=:BeginDate
+          and dim.IsShtuki='Y'
+          and (dr.out_litr<>0 or dr.out_sn_litr<>0 or  dr.out_nal_litr<>0)
+          and el.oil_table_name = 'OIL_NP_TYPE'
+          and npt.id = el.oil_id
+          and el.out_program = 2
+          )
+group by
+rep_date, azsname, vid_otpuska, np_name, azsfullname, np_code
+    having (sum(rash_other)=0 or sum(rash)<>0)
+    ) Q
+  union
+select
+ w.*
+from
+   (select
+      rep_date, azsname, to_char(decode(vid_otpuska,55,'Возврат',201,'Банковская карта',7,'-6',10,'-6',44,'-6',285,'Платежная карта','Прочее')), np_name,
+      np_code,
+      max(price) as price,
+      sum(rash_other) as rash_period,
+      sum(round(rash_other*price,2)) as rash_money_period,
+      azsfullname as azsfullname
+     from
+       (select
+          trunc(drep.rep_date) as rep_date,
+          azs.id as azsname,
+          azs.name as azsfullname,
+          npt.name as np_name,
+          el.out_code as np_code,
+          dr.s_price as price,
+          nvl(dr.pr_count,0) as prih,
+          nvl(dr.out_nal_count,0)+nvl(dr.out_ved_count,0) as rash,
+          nvl(dr.out_money,0) as rash_money,
+          nvl(dr.out_sn_count,0)+nvl(dr.out_count,0) as rash_other,
+          sr.oper_id as vid_otpuska
+        from
+          oil_daily_rep drep, oil_dr_data dr, oil_rashod r, oil_part p,
+          v_oil_org_norek azs, v_oil_np_type npt, v_oil_dim dim, oil_srother sr,
+          exe_link el
+        where drep.state='Y' and dr.state='Y' and r.state='Y' and p.state='Y'
+          and dr.rep_id=drep.id and dr.rep_inst=drep.inst
+          and dr.ttn_id=r.id and dr.ttn_inst=r.inst
+          and r.part_id=p.id and r.part_inst=p.inst
+          and drep.azs_id=azs.id and drep.azs_inst=azs.inst
+          and p.np_type=npt.id
+          and p.dim_id=dim.id
+          and trunc(drep.rep_date)<=:EndDate
+          and trunc(drep.rep_date)>=:BeginDate
+          and dim.IsShtuki='Y'
+          and sr.srep_inst=dr.inst
+          and sr.srep_id=dr.id
+          and sr.state='Y'
+          and (dr.out_litr<>0 or dr.out_sn_litr<>0 or  dr.out_nal_litr<>0 or dr.pr_litr=0)
+          and el.oil_table_name = 'OIL_NP_TYPE'
+          and npt.id = el.oil_id
+          and el.out_program = 2
+           )
+group by
+rep_date, azsname, vid_otpuska, np_name, azsfullname, np_code
+    having (sum(rash_other)<>0)
+    ) w
+    ) X
+
+[FIELDS]
+
+  NAME = rep_date
+  CAPTION = ДАТА
+  Format = dd/mm/yyyy
+  WIDTH = 18
+
+  NAME = azsfullname
+  CAPTION = АЗС
+  WIDTH = 15
+
+  NAME = VID_OTPUSKA
+  CAPTION = Вид оплаты
+  WIDTH = 15
+
+  NAME = NP_NAME
+  CAPTION = Продукт
+  WIDTH = 60
+
+  NAME = NP_CODE
+  CAPTION = КОД
+  WIDTH = 9
+
+  NAME = PRICE
+  CAPTION = Цена!@Ціна!.
+
+  NAME = RASH_PERIOD
+  CAPTION = Кол-во!шт.@Кіл-ть!шт.
+  TOSUM = TRUE
+
+  NAME = RASH_MONEY_PERIOD
+  CAPTION = Сумма!грн.@Сума!грн.
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = rep_date,azsfullname,VID_OTPUSKA

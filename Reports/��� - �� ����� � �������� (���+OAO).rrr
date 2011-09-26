@@ -1,0 +1,172 @@
+[GLOBAL]
+   TITLE = Талоны на руках у клиентов (Филиал + ОАО)@Талони на руках у клієнтів (Філія + ВАТ)
+   MENU = Отчеты\Отчеты по талонам\На руках у клиентов (Филиал + ОАО)@На руках у клієнтів (Філія + ВАТ)
+   VERSION = 1.10
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+   
+   PANEL
+      CAPTION = Где отпущен@Де відпущений
+      ELEMENT WH:CheckBoxGroup
+         LIST = На юр.лице,На филиале,На ОАО@На юр.особі,На філії,На ВАТ
+         VALUES = 2,1,0
+      END
+   END
+   
+   PANEL
+      CAPTION = Тип талонов@Тип талонів
+      ELEMENT TALT:CheckBoxGroup
+         LIST = Региональные,Всеукраинские@Регіональні,Всеукраїнські
+         VALUES = -1,1
+      END
+   END
+
+   PANEL
+      ELEMENT NpList:List
+        CAPTION = Группы НП@Групи НП
+        OILVARNAME = NPGG_COMMON
+        TABLENAME = oil_np_group
+      END
+   END
+
+
+
+[DESCRIPTION]
+   На :BeginDate
+   Где отпущен:: :WH.GetCaptions@Де відпущений:: :WH.GetCaptions
+   Тип талона:: :TALT.GetCaptions
+   
+[SQL]
+select odep.id as from_id,
+       odep.name as from_name,
+       oo.id,
+       oo.name as org_name,
+       oo.id_num as org_okpo,
+       dog.dog,
+       tal.date_,
+       npg.name as np_group,
+       tal.nominal,
+       tal.ser,
+       tal.num,
+       tal.nominal as litr,
+       tal.price,
+       1 as shtuki,
+       round(tal.nominal * tal.price, 2) as summa
+  from (select v.*,
+               row_number() over(partition by ser, num order by date_ desc, tip desc) as rnum
+          from v_oil_talon_op_un v, v_dual_date ddate
+         where date_ < :BeginDate
+           and not ((is_filial in (1, 2) and oper_id = 183 and date_ <= ddate.value) or
+                 (oper_id = 200 and date_ = ddate.value))) tal,
+       (select id, inst, 
+               max(name) as name, 
+               max(id_num) as id_num
+          from (select id, inst, name, id_num
+                  from andriy.oil_org
+                 union
+                select id, inst, name, id_num
+                  from oil_old.oil_org
+                 union
+                select id, inst, name, id_num
+                  from victory.oil_org
+                ) group by id, inst) oo,
+       (select id, inst, dog
+          from andriy.oil_dog
+         union all
+        select id, inst, dog 
+          from oil_old.oil_dog
+         union all
+        select id, inst, dog 
+          from victory.oil_dog) dog,
+       oil_org odep,
+       oil_np_group npg
+ where tal.rnum = 1
+   and tal.tip = 'O'
+   and tal.oper_id in (190, 245, 244)
+   and tal.from_id = odep.id
+   and tal.from_inst = odep.inst
+   and tal.to_id = oo.id
+   and tal.to_inst = oo.inst
+   and tal.dog_id = dog.id(+)
+   and tal.dog_inst = dog.inst(+)
+   and tal.npgrp_id = npg.id
+   and tal.is_filial in (:WH.GetValues)
+   and sign(Tal.Num - 500000000) in (:TALT.GetValues)
+   and :NpList.IsInList{tal.npgrp_id}
+
+[FIELDS]
+   NAME = from_name
+   CAPTION = Где отпущен@Де відпущений
+   WIDTH = 25
+
+   NAME = org_name
+   CAPTION = Потребитель@Споживач
+   WIDTH=25
+
+   NAME = org_okpo
+   CAPTION = Код ОКПО@Код ЄДРПОУ
+   WIDTH = 12
+
+   NAME = dog
+   CAPTION = Договор@Договір
+   WIDTH = 10
+
+   NAME = np_group
+   CAPTION = НП
+   WIDTH = 10
+
+   NAME = date_
+   CAPTION = Дата
+   WIDTH = 10
+   FORMAT = dd.mm.yyyy
+
+   NAME = nominal
+   CAPTION = Номинал@Номінал
+   WIDTH=15
+
+   NAME = ser
+   CAPTION = Серия@Серія
+   WIDTH = 6
+
+   NAME = num
+   CAPTION = Номер
+   WIDTH = 8
+
+   NAME = price
+   CAPTION = Цена@Ціна
+   WIDTH = 10
+   FORMAT = 0.00
+
+   NAME = shtuki
+   CAPTION = Кол-во@К-сть
+   WIDTH = 8
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = litr
+   CAPTION = Литры@Літри
+   WIDTH = 10
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = summa
+   CAPTION = Сумма (грн)@Сума (грн)
+   WIDTH = 12
+   FORMAT = 0.00
+   TOSUM = TRUE
+
+[TYPES]
+   
+   CAPTION = Потребитель - Группа НП (с номерами)@Споживач - Група НП (з номерами)
+   ITOGI = org_name,np_group
+   UNCHECKED = 
+
+   CAPTION = Потребитель - Группа НП (без номеров)@Споживач - Група НП (без номерів)
+   ITOGI = org_name,np_group
+   UNCHECKED = from_name,num

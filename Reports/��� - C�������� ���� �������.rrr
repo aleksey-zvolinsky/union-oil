@@ -1,0 +1,84 @@
+[GLOBAL]
+  TITLE = Отчет cостояние карт клиента@Звіт cтан карт кліента
+  VERSION = 1.0
+  PAGE_ORIENT = VER
+  MENU = Отчеты\Отчеты по эл. карточкам\Состояние карт клиента@Стан карт кліента
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    STARTCONDITION1=3
+  END
+
+[VARIABLES]
+
+   VAR FCARD_COUNT:varSql
+select sum(n) over(partition by klient) card_count
+  from v_card_client_condition t
+ where ((oil_id=:org1.id and oil_inst=:org1.inst)or(:org1.id is null and :org1.inst is null))
+   END
+
+   VAR FCARD_COUNT_WORK:varSql
+select max(CONDITION_count)
+  from(select decode(id_condition,
+                1,
+                sum(n) over(partition by CONDITION, klient),
+                0) CONDITION_count
+         from v_card_client_condition t
+        where (oil_id=:org1.id and oil_inst=:org1.inst)or(:org1.id is null and :org1.inst is null)
+)
+   END
+
+[DESCRIPTION_RUS]
+
+\{A6}MКлиент: \{B6}M\B:org1.Name\b
+
+AFTER
+
+\1L Количество карт: \B:FCARD_COUNT\b
+\1L Из них рабочих: \B:FCARD_COUNT_WORK\b
+
+[DESCRIPTION_UKR]
+
+\{A6}MКлієнт \{B6}M\B:org1.Name\b
+
+AFTER
+
+\1L Кількість карт: \B:FCARD_COUNT\b
+\1L З них робочих: \B:FCARD_COUNT_WORK\b
+
+[SQL]
+
+select decode(id_condition,
+               1,
+               sum(n) over(partition by klient, CONDITION),
+               0) CONDITION_count,
+       sum(n) over(partition by klient) card_count, t.klient,t.card_num,to_char(t.date_in,'DD.MM.YYYY')date_in,t.condition
+  from v_card_client_condition t
+ where ((oil_id=:org1.id and oil_inst=:org1.inst)or(:org1.id is null and :org1.inst is null))
+
+[FIELDS]
+
+
+  NAME = klient
+  CAPTION =Клиент@Кліент
+  WIDTH = 40
+
+  NAME = card_num
+  CAPTION =Номер карточки@Номер картки
+  WIDTH = 16
+
+  NAME = condition
+  CAPTION =Состояние@Стан
+  WIDTH = 10
+
+  NAME = date_in
+  CAPTION=Дата выдачи@Дата видачі
+  WIDTH = 13
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 
+  UNCHECKED = klient

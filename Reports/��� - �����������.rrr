@@ -1,0 +1,158 @@
+[GLOBAL]
+  TITLE = Отчет о перемещении карточек многоразового использования@Звіт про переміщення карток багаторазового використання
+  TITLE_COORD = I3
+  MENU = Отчеты\Отчеты по талонам\О перемещении карточек@Про переміщення карток
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+  PANEL
+    CAPTION = Тип талона
+    ELEMENT TALONNUM:CheckBoxGroup
+      LIST = Региональные,Всеукраинские@Регіональні,Всеукраїнські
+      VALUES = 1,-1
+    END
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select
+  dep_name, np_group, nominal,
+  is_before*is_rest*is_prih as rest_begin,
+  is_before*is_rest*is_prih*nominal as rest_begin_litr,
+  is_current*is_prih*is_azs as prih_azs,
+  is_current*is_prih*is_azs*nominal as prih_azs_litr,
+  is_current*is_prih*is_nb*(1-is_dual) as prih_nb,
+  is_current*is_prih*is_nb*(1-is_dual)*nominal as prih_nb_litr,
+  is_current*is_prih*is_obl*(1-is_dual) as prih_obl,
+  is_current*is_prih*is_obl*(1-is_dual)*nominal as prih_obl_litr,
+  is_current*is_prih*is_dual as prih_dual,
+  is_current*is_prih*is_dual*nominal as prih_dual_litr,
+  is_current*is_prih*is_client as prih_client,
+  is_current*is_prih*is_client*nominal as prih_client_litr,
+
+  is_current*is_out*is_client as out_client,
+  is_current*is_out*is_client*nominal as out_client_litr,
+  is_current*is_out*is_nb*(1-is_dual) as out_nb,
+  is_current*is_out*is_nb*(1-is_dual)*nominal as out_nb_litr,
+  is_current*is_out*is_obl*(1-is_dual) as out_obl,
+  is_current*is_out*is_obl*(1-is_dual)*nominal as out_obl_litr,
+  is_current*is_out*is_dual as out_dual,
+  is_current*is_out*is_dual*nominal as out_dual_litr,
+
+  is_rest_full*is_prih as rest_end,
+  is_rest_full*is_prih*nominal as rest_end_litr,
+  ser,
+  num
+
+from
+  (select
+     odep.name as dep_name,
+     npg.name as np_group,
+     nominal,
+     is_before, 1-is_before as is_current,
+     is_rest, is_rest_full, is_prih, is_out,
+     decode(oo.org_type,3,1,0) as is_nb,
+     decode(oo.org_type,4,1,0) as is_obl,
+     decode(oo.org_type,8,1,0) as is_azs,
+     decode(oo.org_type,3,0,4,0,8,0,1) as is_client,
+     decode(oo.id,oo.inst,
+       decode(oo.id,dinst.value,1,0),
+       0) as is_dual,
+     v.ser,
+     v.num
+   from v_oil_talon_mv1 v, oil_org odep, oil_org oo, oil_np_group npg, v_dual_inst dinst
+   where v.dep_id=odep.id and v.dep_inst=odep.inst
+     and v.org_id=oo.id and v.org_inst=oo.inst
+     and (v.dep_id=:org1.id and v.dep_inst=:org1.inst or :org1.id is null)
+     and v.npgrp_id=npg.id
+     and sign(5e8-v.num) in (:TALONNUM.GetValues)
+  )
+
+[FIELDS]
+  HEAD_DEPTH = 3
+
+  NAME = DEP_NAME
+  CAPTION = Подразделение@Підрозділ
+  WIDTH = 25
+
+  NAME = NP_GROUP
+  CAPTION = Тип НП
+  WIDTH = 10
+
+  NAME = NOMINAL
+  CAPTION = Номинал@Номінал
+  WIDTH = 10
+
+  NAME = SER
+  CAPTION = Серия@Серія
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  DEFAULT FORMAT = 0
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+  DEFAULT WIDTH = 12
+  DEFAULT HIDEIFEMPTY = TRUE
+
+  FIELDS_GROUP
+    TAILS
+      NAME =
+      CAPTION = !кол-во@!к-сть
+
+      NAME = _litr
+      CAPTION = !литры@!літри
+
+    HEADS
+      NAME = REST_BEGIN
+      CAPTION = Остаток в кассе на начало@Залишок в касі на початок
+
+      NAME = PRIH_AZS
+      CAPTION = Приход карточек!С АЗС@Прихід карток!З АЗС
+
+      NAME = PRIH_OBL
+      CAPTION = Приход карточек!С ОАО@Прихід карток!З ОАО
+
+      NAME = PRIH_NB
+      CAPTION = Приход карточек!С нефтебаз@Прихід карток!З нафтобаз
+
+      NAME = PRIH_DUAL
+      CAPTION = Приход карточек!С дуальн.орг@Прихід карток!З дуальн.орг.
+      
+      NAME = prih_client
+      CAPTION = Приход карточек!От клиентов@Прихід карток!Від клієнтів
+
+      NAME = OUT_CLIENT
+      CAPTION = Расход карточек!Продажа клиентам@Витрата карток!Продаж клієнтам
+
+      NAME = OUT_OBL
+      CAPTION = Расход карточек!В ОАО@Витрата карток!В ОАО
+
+      NAME = OUT_NB
+      CAPTION = Расход карточек!На нефтебазу@Витрата карток!На нафтобазу
+
+      NAME = OUT_DUAL
+      CAPTION = Расход карточек!На дуальн.орг@Витрата карток!На дуальн.орг.
+
+      NAME = REST_END
+      CAPTION = Остаток в кассе на конец@Залишок в касі на кінець
+  END_GROUP
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = DEP_NAME,NP_GROUP

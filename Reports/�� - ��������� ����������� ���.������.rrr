@@ -1,0 +1,117 @@
+[GLOBAL]
+   TITLE = Отчет о внутреннем перемещении товара@Звіт про внутрішнє переміщення товара
+   MENU = Отчеты\Отчеты по Нефтебазе\Внутреннее перемещение товара@Внутрішнє переміщення товара
+   VERSION = 1.1
+   PAGES_WIDTH = 1
+   RAZM_SYMBOLS = NO
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Передающая нефтебаза:: :org1.name@Передаюча нафтобаза:: :org1.name
+   Тип товара:: :KOS.GetCaptions@Тип товару:: :KOS.GetCaptions
+
+AFTER
+
+   \5LНачальник нефтебазы\2L<Имя специалиста>@\5LНачальник нафтобази\2L<Ім'я спеціаліста>
+   \2N\5LСт. специалист по учету\2L<Имя специалиста>@\2N\5LСт. спеціаліст по обліку\2L<Ім'я спеціаліста>
+
+[SQL]
+SELECT row_number()over (order by part.NP_TYPE_NAME, part.DOG, ras.DATE_) rownumber,
+       ras.Price,
+       part.NP_TYPE_NAME,
+       part.DOG,
+       ras.COUNT_,
+       ras.DATE_,
+       to_.NAME to_name,
+       ras.TTN_NUM,
+       from_.NAME from_name,
+       ras.summa
+  FROM OIL_RASHOD ras, 
+       V_OIL_PART part, 
+       v_org to_, 
+       v_org from_
+ WHERE ras.DATE_ >= :BeginDate
+   AND ras.DATE_ <= :EndDate
+   AND ras.STATE = 'Y'
+   AND to_.STATE = 'Y'
+   AND ras.PART_ID = part.ID
+   AND ras.PART_INST = part.INST
+   AND ras.TO_ID = to_.ID
+   AND ras.TO_INST = to_.INST
+   AND ras.OPER_ID = 150
+   AND ras.FROM_ID = from_.ID
+   AND ras.FROM_INST = from_.INST
+   AND ((ras.from_id = :org1.id and ras.from_inst = :org1.inst) OR
+       (ras.to_id = :org1.id and ras.to_inst = :org1.inst) OR
+       (from_.par = :org1.id and from_.par_inst = :org1.inst))
+   AND part.OWN_GOODS  in (:KOS.GetValues)
+ ORDER BY part.NP_TYPE_NAME, part.DOG, ras.DATE_
+
+[FIELDS]
+   NAME = rownumber
+   CAPTION = № п\п
+   WIDTH=4
+
+   NAME = DOG
+   CAPTION = Партия@Партія
+   WIDTH = 12
+
+   NAME = NP_TYPE_NAME
+   CAPTION = Вид топлива@Вид палива
+   WIDTH = 15
+
+   NAME = Price
+   CAPTION = Цена за тонну@Ціна за тону
+   WIDTH = 15
+
+   NAME = COUNT_
+   CAPTION = Кол. тонн@К-сть тон
+   WIDTH = 15
+   TOSUM = TRUE
+
+   NAME = Summa
+   CAPTION = Сумма@Сума
+   WIDTH = 15
+   TOSUM = TRUE
+
+   NAME = DATE_
+   CAPTION = Дата
+   WIDTH = 15
+
+   NAME = to_name
+   CAPTION = Принимающая НБ@Приймаюча НБ
+   WIDTH = 30
+
+   NAME = TTN_NUM
+   CAPTION = ТТН
+   WIDTH = 10
+
+   NAME = from_name
+   CAPTION = Передающая НБ@Передаюча НБ
+   WIDTH = 30
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI = 
+   UNCHECKED = 
+   ORDER=NP_TYPE_NAME, DOG, DATE_
+
+   CAPTION = Без цены@Без ціни
+   ITOGI = 
+   UNCHECKED = Price,Summa
+   ORDER=NP_TYPE_NAME, DOG, DATE_

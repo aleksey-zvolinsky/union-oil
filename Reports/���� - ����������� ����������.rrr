@@ -1,0 +1,127 @@
+[GLOBAL]
+  TITLE = Загруженные транзакции по банковским картам@Загружені транзакції по банківським карткам
+  VERSION = 1.6.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  MENU = Отчеты\Банковские, топливные и скретч карты\Данные из банка@Дані з банку
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select azs.obl_name as fil_name,
+       azs.name as azs_name,
+       begin_date as rep_begin_date,
+       end_date as rep_end_date,
+       rep_num,
+       smena_num as rep_smena_num,
+       oper_date as tr_date,
+       amount,
+       amount_ret,
+       commission,
+       bank_mfo,
+       card_number,
+       terminal_id,
+       t.currency,
+       nvl(t.currency_name,t.np_group_name) as currency_name,
+       t.oper_name
+  from v_bank_card_transaction t,
+       v_oil_azs azs
+ where t.azs_id = azs.id(+)
+   and t.azs_inst = azs.inst(+)
+   and trunc(t.begin_date) between :BeginDate and :EndDate
+   and t.inst = :Org1.Id
+   and t.inst = :Org1.Inst
+
+ order by FIL_NAME, azs_name, begin_date
+
+
+[FIELDS]
+
+  NAME = FIL_NAME
+  CAPTION = Филиал@Філія
+  WIDTH = 30
+
+  NAME = AZS_NAME
+  CAPTION =АЗС
+  WIDTH = 40
+
+  NAME = REP_BEGIN_DATE
+  CAPTION =Начало смены@Початок зміни
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = REP_END_DATE
+  CAPTION =Конец смены@Кінець зміни
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = REP_NUM
+  CAPTION =№ см.отчета@№ зм.звіту
+  WIDTH = 12
+
+  NAME = REP_SMENA_NUM
+  CAPTION =№ смены@№ зміни
+  WIDTH = 8
+
+  NAME = TR_DATE
+  CAPTION =Дата транзакции@Дата транзакції
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = BANK_MFO
+  CAPTION =МФО банка
+  WIDTH = 15
+
+  NAME = CARD_NUMBER
+  CAPTION =Номер карты@Номер картки
+  WIDTH = 25
+
+  NAME = TERMINAL_ID
+  CAPTION =Номер терминала@Номер термінала
+  WIDTH = 15
+
+  NAME = AMOUNT
+  CAPTION =Сумма@Сума
+  WIDTH = 10
+  TOSUM=TRUE
+  FORMAT=0.00
+
+  NAME = AMOUNT_RET
+  CAPTION =Сумма возврата@Сума повернення
+  WIDTH = 10
+  TOSUM=TRUE
+  FORMAT=0.00
+
+  NAME = COMMISSION
+  CAPTION =Комиссия@Комісія
+  WIDTH = 10
+  TOSUM=TRUE
+  FORMAT=0.00
+
+  NAME = CURRENCY
+  CAPTION = Валюта!Код@Валюта!Код банку
+  WIDTH = 10
+
+  NAME = CURRENCY_NAME
+  CAPTION = Валюта!Название@Валюта!Назва
+  WIDTH = 10
+
+  NAME = OPER_NAME
+  CAPTION = Операция@Операція
+  WIDTH = 15
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = FIL_NAME, AZS_NAME, CURRENCY_NAME, OPER_NAME, BEGIN_DATE, END_DATE

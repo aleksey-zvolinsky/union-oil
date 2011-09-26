@@ -1,0 +1,146 @@
+[GLOBAL]
+   TITLE = Движение по партиям@Рух по партіям
+   MENU = Отчеты\Перевалка\Движение по партиям@Рух по партіям
+   VERSION = 1.2
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+[DESCRIPTION]
+   С :BeginDate по :EndDate@З :BeginDate по :EndDate
+
+[SQL]
+select part_name,
+       zavod_name,
+       tank_num,
+       act_num,
+       gtd_num,
+       np_type_name,
+       rez_num,
+       
+       (1 - is_current) * brutto as begin_brutto,
+       (1 - is_current) * netto as begin_netto,
+       (1 - is_current) * water as begin_water,
+       is_current * is_prih * brutto as prih_brutto,
+       is_current * is_prih * netto as prih_netto,
+       is_current * is_prih * water as prih_water,
+       -is_current * (1 - is_prih) * (1 - is_spis) * brutto as rash_brutto,
+       -is_current * (1 - is_prih) * (1 - is_spis) * netto as rash_netto,
+       -is_current * (1 - is_prih) * (1 - is_spis) * water as rash_water,
+       
+       0 as spis_brutto,
+       0 as spis_netto,
+       -is_current * (1 - is_prih) * is_spis * water as spis_water,
+       
+       brutto as end_brutto,
+       netto as end_netto,
+       water as end_water,
+       zd_nakl
+  from (select part_name,
+               zavod_name,
+               tank_num,
+               act_num,
+               gtd_num,
+               np_type_name,
+               rez_num,
+               decode(sign(date_ - to_date(:BeginDate)), -1, 0, 1) as is_current,
+               decode(sign(brutto), -1, 0, 1) as is_prih,
+               decode(oper_id, 16, 1, 0) as is_spis,
+               brutto,
+               netto,
+               water,
+               zd_nakl
+          from v_oil_pvlmove t
+         where date_ <= :EndDate)
+
+[HAVING]
+   sum(begin_brutto)<>0 or sum(begin_netto)<>0 or sum(begin_water)<>0 or
+   sum(prih_brutto)<>0 or sum(prih_netto)<>0 or sum(prih_water)<>0 or
+   sum(rash_brutto)<>0 or sum(rash_netto)<>0 or sum(rash_water)<>0 or
+   sum(end_brutto)<>0 or sum(end_netto)<>0 or sum(end_water)<>0 or
+   sum(spis_water)<>0
+
+[FIELDS]
+     HEAD_DEPTH = 3
+  
+	NAME = rez_num
+	CAPTION = № резервуара
+	WIDTH = 10
+	
+	NAME = zavod_name
+	CAPTION = Завод
+	WIDTH = 25
+	
+	NAME = part_name
+	CAPTION = Партия@Партія
+	WIDTH = 12
+	
+	NAME = act_num
+	CAPTION = № акта слива@№ акту зливу
+	WIDTH = 10
+	
+	NAME = gtd_num
+	CAPTION = № ГТД@№ ДТД
+	WIDTH = 15
+        
+	NAME = zd_nakl
+	CAPTION = № ЖД накл.
+	WIDTH = 15
+	
+	NAME = np_type_name
+	CAPTION = Тип НП
+	WIDTH = 12
+	
+	NAME = tank_num
+	CAPTION = № цистерны@№ цистерни
+	WIDTH = 12
+	
+	DEFAULT WIDTH = 10
+	DEFAULT FORMAT = 0.000
+	DEFAULT TOSUM = TRUE
+	
+	FIELDS_GROUP
+		TAILS
+			NAME = _brutto
+			CAPTION = !брутто
+			
+			NAME = _netto
+			CAPTION = !нетто
+			
+			NAME = _water
+			CAPTION = !вода
+			
+		HEADS
+			NAME = begin
+			CAPTION = Остатки на начало@Залишки на початок
+			
+			NAME = prih
+			CAPTION = Приход@Прихід
+			
+			NAME = rash
+			CAPTION = Расход@Витрати
+			
+			NAME = spis
+			CAPTION = Списание@Списання
+			HIDEIFEMPTY = TRUE
+			
+			NAME = end
+			CAPTION = Остатки на конец@Залишки на кінець
+	END_GROUP
+
+[TYPES]
+   
+   CAPTION = По заводам@За заводами
+   ITOGI = zavod_name
+   UNCHECKED = rez_num,tank_num
+
+   CAPTION = По типу НП@За типом НП
+   ORDER = np_type_name, zavod_name, part_name, act_num, gtd_num
+   ITOGI = np_type_name, zavod_name
+   UNCHECKED = rez_num,tank_num
+
+   CAPTION = По резервуарам@За резервуарами
+   ITOGI = rez_num, zavod_name,tank_num

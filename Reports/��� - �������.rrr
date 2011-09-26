@@ -1,0 +1,524 @@
+[GLOBAL]
+   TITLE = Сводная ведомость движения н/п по АЗС@Зведена відомість руху н/п по АЗС
+   MENU = Отчеты\Движение нефтепродуктов\Сводная ведомость по АЗС - 2@Зведена відомість АЗС - 2
+   MENU_POSITION = 0 
+   VERSION = 1.5
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NULLVALUE1=NO
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+   PANEL
+     HEIGHT=90
+     WIDTH=150
+     CAPTION = Операция@Операція
+     ELEMENT OPER:RadioButtonGroup
+       LIST = по учетной цене, по цене продажи@за обліковою ціною, по ціні продажу
+       VALUES = 1, 0
+     END
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Тип товара:: :KOS.GetCaptions@Тип товару:: :KOS.GetCaptions
+   Стоимость: :OPER.Name@Вартість: :OPER.Name
+
+AFTER
+   \2LНачальник нефтебазы №_________________________@\2LНачальник нафтобази №_________________________
+   \2N\2LСт. специалист по учету _________________________@\2N\2LСт. спеціаліст по обліку _________________________
+
+[SQL]
+
+select Q2.*, RestOnEndSt - RestOnBeginSt - PrihodSt + RashSt as Pereoc,
+       GroupName as GroupName_filtr3
+  from (select Q1.*,
+               RestOnBeginSht + PrihodSht - RashSht as RestOnEndSht,
+               RestOnBeginTonn + PrihodTonn - RashTonn as RestOnEndTonn,
+               RestOnBeginLitr + PrihodLitr - RashLitr as RestOnEndLitr,
+               (1-:OPER.Value)*Round((RestOnBeginLitr + PrihodLitr - RashLitr +
+                     RestOnBeginSht + PrihodSht - RashSht) * nvl(E_Price, 0),
+                     2) as RestOnEndSt,
+               :OPER.Value*Round((RestOnBeginTonn + PrihodTonn - RashTonn +
+                     RestOnBeginSht + PrihodSht - RashSht) * Ss,
+                     2) as RestOnEndSs
+          from (select Q.*,
+                       (1-:OPER.Value)*Round((RestOnBeginLitr + RestOnBeginSht) * B_Price, 2) as RestOnBeginSt
+                  from (select /*+ORDERED USE_MERGE(Q, BegPrice, EndPrice)*/
+                               Q.*,
+                               (1-:OPER.Value)*decode(Q.RestOnBeginTonn + Q.RestOnBeginSht,
+                                 0, 0, 
+                                 NVL(BegPrice.s_price, NVL(EndPrice.s_price, 0))) as B_Price,
+                               NVL(EndPrice.s_price, 0) as E_Price
+                          from (select *
+                                  from (select np_groupid as grp_id,
+                                               np_group as groupname,
+                                               azsname as name,
+                                               dimname as dim_name,
+                                               ttn_id,
+                                               ttn_inst,
+                                               part_id as id,
+                                               part_inst as inst,
+                                               dog,
+                                               dog_date,
+                                               :OPER.Value*ss as ss,
+                                               base_,
+                                               np_type as nptypename,
+                                               dimid as dim_id,
+                                               sub_part,
+                                               sum(RestOnBegin) as RestOnBeginTonn,
+                                               sum(RestOnBeginLitr) as RestOnBeginLitr,
+                                               sum(RestOnBeginShtuki) as RestOnBeginSht,
+                                               sum(RestOnBeginSs) as RestOnBeginSs,
+                                               sum(prihod) as PrihodTonn,
+                                               sum(prihodLitr) as PrihodLitr,
+                                               sum(prihodshtuki) as PrihodSht,
+                                               sum(prihodst) as PrihodSt,
+                                               sum(prihodss) as PrihodSs,
+                                               sum(IsNal*rashod_tonn) as NalTonn,
+                                               sum(IsNal*rashod_litr) as NalLitr,
+                                               sum(IsNal*rashod_shtuki) as NalSht,
+                                               sum(IsNal*rashod_st) as NalSt,
+                                               sum(IsNal*rashod_ss) as NalSs,
+                                               sum(IsTalon*rashod_tonn) as TalonTonn,
+                                               sum(IsTalon*rashod_litr) as TalonLitr,
+                                               sum(IsTalon*rashod_shtuki) as TalonSht,
+                                               sum(IsTalon*rashod_st) as TalonSt,
+                                               sum(IsTalon*rashod_ss) as TalonSs,
+                                               sum(IsCard*rashod_tonn) as CardTonn,
+                                               sum(IsCard*rashod_litr) as CardLitr,
+                                               sum(IsCard*rashod_shtuki) as CardSht,
+                                               sum(IsCard*rashod_st) as CardSt,
+                                               sum(IsCard*rashod_ss) as CardSs,
+                                               sum(IsBankCard*rashod_tonn) as BankCardTonn,
+                                               sum(IsBankCard*rashod_litr) as BankCardLitr,
+                                               sum(IsBankCard*rashod_shtuki) as BankCardSht,
+                                               sum(IsBankCard*rashod_st) as BankCardSt,
+                                               sum(IsBankCard*rashod_ss) as BankCardSs,
+                                               sum(IsBNal*rashod_tonn) as BNalTonn,
+                                               sum(IsBNal*rashod_litr) as BNalLitr,
+                                               sum(IsBNal*rashod_shtuki) as BNalSht,
+                                               sum(IsBNal*rashod_st) as BNalSt,
+                                               sum(IsBNal*rashod_ss) as BNalSs,
+                                               sum(IsOwnNeeds*rashod_tonn) as Own_needsTonn,
+                                               sum(IsOwnNeeds*rashod_litr) as Own_needsLitr,
+                                               sum(IsOwnNeeds*rashod_shtuki) as Own_needsSht,
+                                               sum(IsOwnNeeds*rashod_st) as Own_needsSt,
+                                               sum(IsOwnNeeds*rashod_ss) as Own_needsSs,
+                                               sum(IsNaturalLeak*rashod_tonn) as Natural_leakTonn,
+                                               sum(IsNaturalLeak*rashod_litr) as Natural_leakLitr,
+                                               sum(IsNaturalLeak*rashod_shtuki) as Natural_leakSht,
+                                               sum(IsNaturalLeak*rashod_st) as Natural_leakSt,
+                                               sum(IsNaturalLeak*rashod_ss) as Natural_leakSs,
+                                               sum(IsOther*rashod_tonn) as OtherTonn,
+                                               sum(IsOther*rashod_litr) as OtherLitr,
+                                               sum(IsOther*rashod_shtuki) as OtherSht,
+                                               sum(IsOther*rashod_st) as OtherSt,
+                                               sum(IsOther*rashod_ss) as OtherSs,
+                                               sum(IsSponsorsHelp*rashod_tonn) as SponsorsHelpTonn,
+                                               sum(IsSponsorsHelp*rashod_litr) as SponsorsHelpLitr,
+                                               sum(IsSponsorsHelp*rashod_shtuki) as SponsorsHelpSht,
+                                               sum(IsSponsorsHelp*(1-:OPER.Value)*round(nds.GetWithNDS_NoNDS(rashod_tonn*ss, nvl(dog_date, :BeginDate)),2)) as SponsorsHelpSt,
+                                               sum(IsSponsorsHelp*:OPER.Value*round(nds.GetWithNDS_NoNDS(rashod_tonn*ss, nvl(dog_date, :BeginDate)),2)) as SponsorsHelpSs,
+                                               sum(IsShortage*rashod_tonn) as ShortageTonn,
+                                               sum(IsShortage*rashod_litr) as ShortageLitr,
+                                               sum(IsShortage*rashod_shtuki) as ShortageSht,
+                                               sum(IsShortage*rashod_st) as ShortageSt,
+                                               sum(IsShortage*rashod_ss) as ShortageSs,
+                                               sum(IsAuto*rashod_tonn) as AvtoTonn,
+                                               sum(IsAuto*rashod_litr) as AvtoLitr,
+                                               sum(IsAuto*rashod_shtuki) as AvtoSht,
+                                               sum(IsAuto*rashod_st) as AvtoSt,
+                                               sum(IsAuto*rashod_ss) as AvtoSs,
+                                               sum(IsSetOffCommun*rashod_tonn) as SetOffCommunTonn,
+                                               sum(IsSetOffCommun*rashod_litr) as SetOffCommunLitr,
+                                               sum(IsSetOffCommun*rashod_shtuki) as SetOffCommunSht,
+                                               sum(IsSetOffCommun*rashod_st) as SetOffCommunSt,
+                                               sum(IsSetOffCommun*rashod_ss) as SetOffCommunSs,
+                                               sum(IsSetOffSecur*rashod_tonn) as SetOffSecurTonn,
+                                               sum(IsSetOffSecur*rashod_litr) as SetOffSecurLitr,
+                                               sum(IsSetOffSecur*rashod_shtuki) as SetOffSecurSht,
+                                               sum(IsSetOffSecur*rashod_st) as SetOffSecurSt,
+                                               sum(IsSetOffSecur*rashod_ss) as SetOffSecurSs,
+                                               sum(rashod_tonn) as RashTonn,
+                                               sum(rashod_litr) as RashLitr,
+                                               sum(rashod_shtuki) as RashSht,
+                                               sum(rashod_st) as RashSt,
+                                               sum(rashod_ss) as RashSs
+                                          from (select decode(operid,12,1,0)as IsNal,
+                                                       decode(operid,14,1,0)as IsTalon,
+                                                       decode(operid,153,1,0)as IsCard,
+                                                       decode(operid,201,1,0)as IsBankCard,
+                                                       decode(operid,52,1,0) as IsSponsorsHelp,
+                                                       decode(operid,11,1,0)as IsBNal,
+                                                       decode(operid,15,1,47,1,0) as IsOwnNeeds,
+                                                       decode(operid,16,1,0)as IsNaturalLeak,
+                                                       decode(operid,11,0,12,0,15,0,14,0,47,0,16,0,19,0,40,0,49,0,51,0,52,0,153,0,201,0,1) as IsOther,
+                                                       decode(operid,19,1,0) as IsShortage,
+                                                       decode(operid,40,1,0) as IsAuto,
+                                                       decode(operid,49,1,0) as IsSetOffCommun,
+                                                       decode(operid,51,1,0) as IsSetOffSecur,
+                                                       AzsId,
+                                                       OblId,
+                                                       PponId,
+                                                       date_,
+                                                       AzsName,
+                                                       operid,
+                                                       dimid,
+                                                       np_typeid,
+                                                       np_type,
+                                                       np_groupid,
+                                                       np_group,
+                                                       base_,
+                                                       ss,
+                                                       dog,
+                                                       dog_date,
+                                                       dimname,
+                                                       own_goods,
+                                                       partid as part_id,
+                                                       partinst as part_inst,
+                                                       sub_part,
+                                                       ttn_id,
+                                                       ttn_inst,
+                                                       -nvl(tonn, 0) as RestOnBegin,
+                                                       -nvl(litr, 0) as RestOnBeginLitr,
+                                                       -nvl(shtuki, 0) as RestOnBeginShtuki,
+                                                       -nvl(:OPER.Value*summa_ss, 0) as RestOnBeginSs,
+                                                       0 as prihod,
+                                                       0 as prihodlitr,
+                                                       0 as prihodshtuki,
+                                                       0 as prihodst,
+                                                       0 as prihodss,
+                                                       0 as rashod_tonn,
+                                                       0 as rashod_litr,
+                                                       0 as rashod_shtuki,
+                                                       0 as rashod_st,
+                                                       0 as rashod_ss
+                                                  from v_oil_npmove
+                                                 where IsSummary <> 'N'
+                                                   and NbAzs = 1
+                                                   and date_ < :BeginDate
+                                                UNION ALL
+                                                select decode(operid,12,1,0)as IsNal,
+                                                       decode(operid,14,1,0)as IsTalon,
+                                                       decode(operid,153,1,0)as IsCard,
+                                                       decode(operid,201,1,0)as IsBankCard,
+                                                       decode(operid,52,1,0) as IsSponsorsHelp,
+                                                       decode(operid,11,1,0)as IsBNal,
+                                                       decode(operid,15,1,47,1,0) as IsOwnNeeds,
+                                                       decode(operid,16,1,0)as IsNaturalLeak,
+                                                       decode(operid,11,0,12,0,15,0,14,0,47,0,16,0,19,0,40,0,49,0,51,0,52,0,153,0,201,0,1) as IsOther,
+                                                       decode(operid,19,1,0) as IsShortage,
+                                                       decode(operid,40,1,0) as IsAuto,
+                                                       decode(operid,49,1,0) as IsSetOffCommun,
+                                                       decode(operid,51,1,0) as IsSetOffSecur,
+                                                       AzsId,
+                                                       OblId,
+                                                       PponId,
+                                                       date_,
+                                                       AzsName,
+                                                       operid,
+                                                       dimid,
+                                                       np_typeid,
+                                                       np_type,
+                                                       np_groupid,
+                                                       np_group,
+                                                       base_,
+                                                       ss,
+                                                       dog,
+                                                       dog_date,
+                                                       dimname,
+                                                       own_goods,
+                                                       partid as part_id,
+                                                       partinst as part_inst,
+                                                       sub_part,
+                                                       ttn_id,
+                                                       ttn_inst,
+                                                       0 as RestOnBegin,
+                                                       0 as RestOnBeginLitr,
+                                                       0 as RestOnBeginShtuki,
+                                                       0 as RestOnBeginSs,
+                                                       -nvl(RashPrih*tonn,0) as prihod,
+                                                       -nvl(RashPrih*litr,0) as prihodlitr,
+                                                       -nvl(RashPrih*shtuki,0) as prihodshtuki,
+                                                       -(1-:OPER.Value)*nvl(RashPrih*summa,0) as prihodst,
+                                                       -:OPER.Value*nvl(RashPrih*summa_ss,0) as prihodss,
+                                                       nvl((1-RashPrih)*tonn,0) as rashod_tonn,
+                                                       nvl((1-RashPrih)*litr,0) as rashod_litr,
+                                                       nvl((1-RashPrih)*shtuki,0) as rashod_shtuki,
+                                                       (1-:OPER.Value)*nvl((1-RashPrih)*summa,0) as rashod_st,
+                                                       :OPER.Value*nvl((1-RashPrih)*summa_ss,0) as rashod_ss
+                                                  from v_oil_npmove
+                                                 where IsSummary <> 'Y'
+                                                   and NbAzs = 1
+                                                   and IsTalonDet <> 'Y'
+                                                   and date_ between :BeginDate and
+                                                       :EndDate)
+                                                       
+                                         where :Org1.Id in (AzsId, PponId, OblId)
+                                           and own_goods in
+                                               (:KOS.GetValues)
+                                         group by np_groupid,
+                                                  np_group,
+                                                  azsname,
+                                                  dimname,
+                                                  ttn_id,
+                                                  ttn_inst,
+                                                  part_id,
+                                                  part_inst,
+                                                  dog,
+                                                  dog_date,
+                                                  ss,
+                                                  base_,
+                                                  np_type,
+                                                  dimid,
+                                                  sub_part)
+                                                  
+                                 where RestOnBeginTonn <> 0
+                                    or PrihodTonn <> 0
+                                    or NalTonn <> 0
+                                    or TalonTonn <> 0
+                                    or CardTonn <> 0
+                                    or BankCardTonn <> 0
+                                    or BNalTonn <> 0
+                                    or Own_needsTonn <> 0
+                                    or Natural_leakTonn <> 0
+                                    or OtherTonn <> 0
+                                    or SponsorsHelpTonn <> 0
+                                    or ShortageTonn <> 0
+                                    or AvtoTonn <> 0
+                                    or SetOffCommunTonn <> 0
+                                    or SetOffSecurTonn <> 0
+                                    or RestOnBeginSht <> 0
+                                    or PrihodSht <> 0
+                                    or NalSht <> 0
+                                    or TalonSht <> 0
+                                    or CardSht <> 0
+                                    or BankCardSht <> 0
+                                    or BNalSht <> 0
+                                    or Own_needsSht <> 0
+                                    or Natural_leakSht <> 0
+                                    or OtherSht <> 0
+                                    or SponsorsHelpSht <> 0
+                                    or ShortageSht <> 0
+                                    or AvtoSht <> 0
+                                    or SetOffCommunSht <> 0
+                                    or SetOffSecurSht <> 0) Q,
+                                    
+                               (select /*+ORDERED USE_HASH(dr,drep) USE_MERGE(Q)*/
+                                       dr.ttn_id, 
+                                       dr.ttn_inst, 
+                                       dr.s_price
+                                  from oil_daily_rep drep,
+                                       oil_dr_data dr,
+                                       
+                                       (select /*+ORDERED USE_HASH(dr,drep)*/
+                                               ttn_id,
+                                               ttn_inst,
+                                               min(to_number(to_char(rep_date, 'yyyymmdd') || '.' 
+                                                 || lpad(smena_num, 5, '0'))) as code
+                                          from oil_daily_rep drep,
+                                               oil_dr_data dr
+                                         where dr.state = 'Y'
+                                           and drep.state = 'Y'
+                                           and dr.rep_id = drep.id
+                                           and dr.rep_inst = drep.inst
+                                              /*and dr.oper_type=1*/
+                                           and trunc(drep.rep_date) >= :BeginDate
+                                         group by ttn_id, ttn_inst) Q
+                                         
+                                 where dr.state = 'Y'
+                                   and drep.state = 'Y'
+                                   and dr.rep_id = drep.id
+                                   and dr.rep_inst = drep.inst
+                                   and dr.ttn_id = Q.ttn_id
+                                   and dr.ttn_inst = Q.ttn_inst
+                                   and trunc(drep.rep_date) = to_date(substr(Q.code, 1, 8), 'yyyymmdd')
+                                   and dr.oper_type = 1
+                                   and drep.smena_num =
+                                       substr(Q.code, instr(Q.code, '.') + 1)) BegPrice,
+                                       
+                               (select /*+ORDERED USE_HASH(dr,drep) USE_MERGE(Q)*/
+                                       dr.ttn_id, 
+                                       dr.ttn_inst, 
+                                       dr.s_price
+                                  from oil_daily_rep drep,
+                                       oil_dr_data dr,
+                                       
+                                       (select /*+ORDERED USE_HASH(dr,drep)*/
+                                               ttn_id,
+                                               ttn_inst,
+                                               max(to_number(to_char(rep_date, 'yyyymmdd') 
+                                                 ||decode(dr.oper_type,1,2,2,1,0) || '.' 
+                                                 ||lpad(smena_num, 5, '0'))) as code
+                                          from oil_daily_rep drep,
+                                               oil_dr_data dr
+                                         where dr.state = 'Y'
+                                           and drep.state = 'Y'
+                                           and dr.rep_id = drep.id
+                                           and dr.rep_inst = drep.inst
+                                           and trunc(drep.rep_date) <= :EndDate
+                                         group by ttn_id, ttn_inst) Q
+                                         
+                                 where dr.state = 'Y'
+                                   and drep.state = 'Y'
+                                   and dr.rep_id = drep.id
+                                   and dr.rep_inst = drep.inst
+                                   and dr.ttn_id = Q.ttn_id
+                                   and dr.ttn_inst = Q.ttn_inst
+                                   and trunc(drep.rep_date) = to_date(substr(Q.code, 1, 8), 'yyyymmdd')
+                                   and decode(dr.oper_type, 1, 2, 2, 1, 0) = to_number(substr(Q.code, 9, 1))
+                                   and drep.smena_num = substr(Q.code, instr(Q.code, '.') + 1)) EndPrice
+                                   
+                         where BegPrice.ttn_id(+) = Q.ttn_id
+                           and BegPrice.ttn_inst(+) = Q.ttn_inst
+                           and EndPrice.ttn_id(+) = Q.ttn_id
+                           and EndPrice.ttn_inst(+) = Q.ttn_inst) Q) Q1) Q2
+
+[FIELDS]
+NAME =GroupName
+CAPTION = Группа НП@Група НП
+WIDTH=10
+
+NAME =Name
+CAPTION = АЗС@АЗС
+WIDTH=35
+
+NAME =GroupName_filtr3
+CAPTION = Группа НП@Група НП
+WIDTH=10
+
+NAME =Dog
+CAPTION = Партия@Партія
+WIDTH=15
+
+NAME =Sub_Part
+CAPTION = Подпартия@Підпартія
+WIDTH=12
+
+NAME =NpTypeName
+CAPTION = Нефтепродукт@Нафтопродукт
+WIDTH=20
+
+NAME =Dog_Date
+CAPTION = Дата дог.@Дата дог.
+WIDTH=10
+
+NAME =Dim_Name
+CAPTION = Ед. изм. партии@Од. вим. партії
+WIDTH=10
+
+NAME = ss
+CAPTION = цена за т.@ціна за т.
+HIDEIFEMPTY = TRUE
+
+NAME = B_price
+CAPTION = цена за л.@ціна за л.
+HIDEIFEMPTY = TRUE
+
+  DEFAULT WIDTH = 15
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+  DEFAULT HIDEIFEMPTY = TRUE
+
+  FIELDS_GROUP
+  TAILS
+    NAME = Sht
+    CAPTION = !Кол-во, шт@!Кіл-ть, шт
+    FORMAT = 0
+
+    NAME = Litr
+    CAPTION = !Кол-во, л@!Кіл-ть, л
+    FORMAT = 0.000
+
+    NAME = Tonn
+    CAPTION = !Кол-во@!Кіл-ть
+    FORMAT = 0.000000
+
+    NAME = St
+    CAPTION = !грн@!грн
+    FORMAT = 0.00
+
+    NAME = Ss
+    CAPTION = !грн@!грн
+    FORMAT = 0.00
+
+  HEADS
+    NAME = RestOnBegin
+    CAPTION = Остаток на начало периода@Залишок на початок періоду
+
+    NAME = Prihod
+    CAPTION = Приход на АЗС@Прихід на АЗС
+
+    NAME = BNal
+    CAPTION = Расход!Безналичные@Відпуск!Безготівкові
+
+    NAME = Talon
+    CAPTION = Расход!Талоны@Відпуск!Талони
+
+    NAME = Card
+    CAPTION = Расход!Электронные карточки (клиентам)@Відпуск!Електронні картки (кліентам)
+
+    NAME = BankCard
+    CAPTION = Расход!Банковские карточки (клиентам)@Відпуск!Банківські картки (кліентам)
+
+    NAME = Nal
+    CAPTION = Расход!Наличные@Відпуск!Готівка
+
+    NAME = Own_needs
+    CAPTION = Расход!Собств. нужды@Відпуск!Власні потреби
+
+    NAME = Natural_leak
+    CAPTION = Расход!Естест. убыль@Відпуск!Природні втрати
+
+    NAME = Other
+    CAPTION = Расход!Прочий@Відпуск!Інший
+
+    NAME = SponsorsHelp
+    CAPTION = Расход!Спонсорськая помощь@Відпуск!Спонсорська допомога
+
+    NAME = Shortage
+    CAPTION = Расход!Недостача@Відпуск!Недостача
+
+    NAME = Avto
+    CAPTION = Расход!Автотрансп.@Відпуск!Автотрансп.
+
+    NAME = SetOffSecur
+    CAPTION = Расход!Вз. охрана@Відпуск!Вз. охорона
+
+    NAME = Rash
+    CAPTION = ИТОГО@РАЗОМ
+
+    NAME = RestOnEnd
+    CAPTION = Остаток на конец периода@Залишок на кінець періода
+
+  END_GROUP
+
+
+[TYPES]
+
+   CAPTION = Группировка по группам НП, партиям, АЗС@Группування по групам НП, партіям, АЗС
+   ITOGI = GroupName,Dog,name
+   UNCHECKED = GroupName_filtr3
+
+   CAPTION = Группировка по группам НП, АЗС@Группування по групам НП, АЗС
+   ITOGI = GroupName,name
+   UNCHECKED = GroupName_filtr3
+
+   CAPTION = АЗС, Группировка по группам НП@АЗС, Группування по групам НП
+   ITOGI = name,GroupName_filtr3
+   UNCHECKED = GroupName

@@ -1,0 +1,185 @@
+[GLOBAL]
+    TITLE = Реализация с эл.картами@Реалізація за ел.картами
+    MENU = Отчеты\Отчеты по АЗС\Реализация с эл.картами@Реалізація за ел.картами
+    MENU_POSITION = 2
+    RAZM_SYMBOLS = NO
+    VERSION = 2.7
+    ZERO_LINES = YES
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NULLVALUE1=NO
+   END
+
+   PANEL
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організация:: :org1.name
+   Вид товара:: :KOS.GetCaptions@Вид товару:: :KOS.GetCaptions
+
+[SQL]
+select podrname,azsname,
+decode(
+  length(decode(instr(podrname2,'№'),0,null,
+         substr(podrname2,instr(podrname2,'№')+1,decode( nvl(instr(podrname2,' ',instr(podrname2,'№')+1),0) ,0,1000, nvl(instr(podrname2, ' ', instr(podrname2, '№')+1), 0) )-instr(podrname2,'№')-1)
+         )
+        ), 1, '0'||decode(instr(podrname2,'№'),0,null,
+                   substr(podrname2,instr(podrname2,'№')+1,decode( nvl(instr(podrname2,' ',instr(podrname2,'№')+1),0) ,0,1000, nvl(instr(podrname2, ' ', instr(podrname2, '№')+1), 0) )-instr(podrname2,'№')-1)
+                   ),
+  decode(instr(podrname2,'№'),0,null,
+  substr(podrname2,instr(podrname2,'№')+1,decode( nvl(instr(podrname2,' ',instr(podrname2,'№')+1),0) ,0,1000, nvl(instr(podrname2, ' ', instr(podrname2, '№')+1), 0) )-instr(podrname2,'№')-1)
+  ))||' '||podrname as podrnum,
+to_number(
+    decode(instr(azsname2,'№'),0,null,
+      substr(azsname2,instr(azsname2,'№')+1,decode( nvl(instr(azsname2,' ',instr(azsname2,'№')+1),0) ,0,1000, nvl(instr(azsname2, ' ', instr(azsname2, '№')+1), 0) )-instr(azsname2,'№')-1)
+    )
+  ) as azsnum,
+  azsaddr,
+decode(np_groupid,3,   decode(int_code,1,tonn,0),0)  as tonn_3_1,
+decode(np_groupid,3,   decode(int_code,2,tonn,0),0)  as tonn_3_2,
+decode(np_groupid,3,   decode(int_code,3,tonn,0),0)  as tonn_3_3,
+decode(np_groupid,4,   decode(int_code,1,tonn,0),0)  as tonn_4_1,
+decode(np_groupid,4,   decode(int_code,2,tonn,0),0)  as tonn_4_2,
+decode(np_groupid,4,   decode(int_code,3,tonn,0),0)  as tonn_4_3,
+decode(np_groupid,5,   decode(int_code,1,tonn,0),0)  as tonn_5_1,
+decode(np_groupid,5,   decode(int_code,2,tonn,0),0)  as tonn_5_2,
+decode(np_groupid,5,   decode(int_code,3,tonn,0),0)  as tonn_5_3,
+decode(np_groupid,6,   decode(int_code,1,tonn,0),0)  as tonn_6_1,
+decode(np_groupid,6,   decode(int_code,2,tonn,0),0)  as tonn_6_2,
+decode(np_groupid,6,   decode(int_code,3,tonn,0),0)  as tonn_6_3,
+decode(np_groupid,59,  decode(int_code,1,tonn,0),0)  as tonn_59_1,
+decode(np_groupid,59,  decode(int_code,2,tonn,0),0)  as tonn_59_2,
+decode(np_groupid,59,  decode(int_code,3,tonn,0),0)  as tonn_59_3,
+decode(np_groupid,7,   decode(int_code,1,tonn,0),0)  as tonn_7_1,
+decode(np_groupid,7,   decode(int_code,2,tonn,0),0)  as tonn_7_2,
+decode(np_groupid,7,   decode(int_code,3,tonn,0),0)  as tonn_7_3,
+decode(np_groupid,10,  decode(int_code,1,tonn,0),0)  as tonn_10_1,
+decode(np_groupid,10,  decode(int_code,2,tonn,0),0)  as tonn_10_2,
+decode(np_groupid,10,  decode(int_code,3,tonn,0),0)  as tonn_10_3,
+decode(np_groupid,8,   decode(int_code,1,tonn,0),0)  as tonn_8_1,
+decode(np_groupid,8,   decode(int_code,2,tonn,0),0)  as tonn_8_2,
+decode(np_groupid,8,   decode(int_code,3,tonn,0),0)  as tonn_8_3,
+decode(np_groupid,76,   decode(int_code,1,tonn,0),0)  as tonn_76_1,
+decode(np_groupid,76,   decode(int_code,2,tonn,0),0)  as tonn_76_2,
+decode(np_groupid,76,   decode(int_code,3,tonn,0),0)  as tonn_76_3,
+decode(np_groupid,62,   decode(int_code,1,tonn,0),0)  as tonn_62_1,
+decode(np_groupid,62,   decode(int_code,2,tonn,0),0)  as tonn_62_2,
+decode(np_groupid,62,   decode(int_code,3,tonn,0),0)  as tonn_62_3,
+decode(int_code,1,tonn,0) as tonn_0_1,
+decode(int_code,2,tonn,0) as tonn_0_2,
+decode(int_code,3,tonn,0) as tonn_0_3,
+decode(int_code,4,tonn,0) as tonn_0_4,
+decode(int_code,4,0,tonn) as tonn
+
+from
+   (select nvl(pponname,oblname) as podrname,
+           translate(nvl(pponname,oblname),'/',' ') as podrname2,
+           np_group,np_groupid,
+           substr(azsname||' '||oo.addr,1,100) as azsname,
+           translate(azsname,'/',' ') as azsname2,
+           oo.addr as azsaddr,
+           litr,tonn,summa,
+           /*decode(operid, 14,2, 153,3, 40,3, 1) as int_code, */
+           decode(operid, 14,2, 153,3, 40,4, 1) as int_code
+    from v_oil_npmove vnp,oil_org oo
+    where nbazs=1 and rashprih=0
+          and date_ between :BeginDate and :EndDate
+          and (:org1.id in (AzsId,PponId,OblId) or :org1.id is null)
+          and own_goods in (:KOS.GetValues)
+          and selltypeid<>4 and np_groupid in (3,4,5,6,59,7,10,8,76)
+          and (operid in (12,11,14,153) or operid=40 and IsCard='Y')
+          and vnp.azsid=oo.id and vnp.azsinst=oo.inst
+          and IsInsideReal='N'
+   )
+
+[FIELDS]
+    NAME = podrname
+    ITOGIFIELD = podrnum
+    CAPTION = Подразделение@Підрозділ
+    WIDTH = 25
+
+    NAME = azsnum
+    CAPTION = №АЗС
+
+    NAME = azsname
+    ITOGIFIELD = azsnum
+    CAPTION = АЗС
+
+    NAME = azsaddr
+    CAPTION = Адрес АЗС@Адреса АЗС
+    WIDTH = 25
+
+   DEFAULT WIDTH=10
+   DEFAULT TOSUM = TRUE
+   DEFAULT FORMAT = 0.000000
+
+   FIELDS_GROUP
+      TAILS
+        NAME = 1
+        CAPTION = !Готівка+Безготів.@!Готівка+Безготів.
+
+        NAME = 2
+        CAPTION = !Талоны@!Талони
+
+        NAME = 3
+        CAPTION = !Карты@!Карти
+
+      HEADS
+        NAME = tonn_3_
+        CAPTION = ДТ@ДП
+
+        NAME = tonn_4_
+        CAPTION = А-76@А-76
+
+        NAME = tonn_5_
+        CAPTION = А-80@А-80
+
+        NAME = tonn_6_
+        CAPTION = А-92@А-92
+
+        NAME = tonn_59_
+        CAPTION = А-93@А-93
+
+        NAME = tonn_7_
+        CAPTION = А-95@А-95
+
+        NAME = tonn_10_
+        CAPTION = А-98@А-98
+
+        NAME = tonn_8_
+        CAPTION = Масло@Масло
+
+        NAME = tonn_76_
+        CAPTION = А-95 Премиум@А-95 Преміум
+
+   END_GROUP
+
+    NAME = tonn_0_1
+    CAPTION = Итого!!Нал+Безнал@Всього!!Готівка+Безготів.
+
+    NAME = tonn_0_2
+    CAPTION = Итого!!Талоны@Всього!!Талони
+
+    NAME = tonn_0_3
+    CAPTION = Итого!Карты!Отпуск@Всього!Карти!Відпуск
+
+    NAME = tonn_0_4
+    CAPTION = Итого!Карты!Тех.ср.@Всього!Карти!Тех.засоби
+
+    NAME = tonn
+    CAPTION = Всего без тех.средств@Всього без тех.засобів
+    WIDTH = 11
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI = podrname
+   UNCHECKED = azsnum

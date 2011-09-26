@@ -1,0 +1,9 @@
+19.11.2010 10:29:22 Создание ...
+19.11.2010 10:29:27 TOraQuery(qTanksLastZamerTime, 0), TThreadMethod(True)
+19.11.2010 10:29:27 Выполнение ...
+19.11.2010 10:29:28 SQL: select z1.datetime, p.active, p.rec_numb, r.name as rez_name
+  from (select max(z0.datetime) as dat
+19.11.2010 10:29:29 TOraQuery(qTanksLastZamerTime, 40)
+19.11.2010 10:29:29 TOraQuery(qTanksLastZamerTime, 0)
+19.11.2010 10:29:29 FCreateQNew := True
+19.11.2010 10:29:31 Уничтожение ...

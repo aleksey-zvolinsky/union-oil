@@ -1,0 +1,49 @@
+[GLOBAL]
+  TITLE = Остатки по чужим списаниям
+  VERSION = 1.1
+  MENU = Отчеты\Отчеты по эл. карточкам\Остатки по чужим списаниям
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+    NUM = 1
+  END
+
+[DESCRIPTION]
+  На :BeginDate
+
+[SQL]
+select oo.name,sum(summa) as summa
+from
+(select oblid,summa
+ from v_card_transit
+ where date_<:BeginDate
+   and date_>='01.11.2004'
+
+ union all
+
+ select obl_id,summa
+ from oil_ct_rest
+ where state='Y'
+) Q, oil_org oo
+where Q.oblid=oo.id and oo.id=oo.inst
+group by oo.name
+
+
+[FIELDS]
+
+  NAME = NAME
+  CAPTION = Обл
+  WIDTH = 50
+
+  NAME = SUMMA
+  CAPTION = Сумма, грн
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 

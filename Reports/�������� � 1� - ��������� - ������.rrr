@@ -1,0 +1,122 @@
+[GLOBAL]
+  TITLE = Нефтебаза - приход@Нафтобаза - прихід
+  VERSION = 1.1
+  MENU = Отчеты\Выгрузка в 1С\Нефтебаза - приход@Нафтобаза - прихід
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select /*+ORDERED USE_HASH(pr,prd,p,dog,ofrom,odet2,oto,npt,dim)*/
+  to_id as filial_id,
+  from_okpo as id_num,
+  date_ as prih_date,
+  dog,
+  dog_date,
+  own_goods as Ware_Type,
+  sum(tonn) as weight,
+  dim_id,
+  dim_name,
+  ss as price,
+  sum(round(tonn*ss,2)) as amount,
+  npt_id,
+  npt_name,
+  npg_id,
+  npg_name, 
+  date_ as rep_date,
+  dogovor,
+  dogovor_date
+from v_oil_prih_perem v
+where date_ between :BeginDate and :EndDate
+  and ((from_obl_id<>to_obl_id
+    or from_obl_id is null
+    or from_id<>from_inst) and rash_oper_id is null
+    or rash_own_goods='S' and own_goods='O')
+group by
+  to_id, from_okpo, date_, dog, dog_date, own_goods, dim_id, dim_name,
+  ss, npt_id, npt_name, npg_id, npg_name, date_, dogovor, dogovor_date
+order by rep_date
+
+[FIELDS]
+
+  NAME = FILIAL_ID
+  CAPTION =Код филиала@Код філії
+  WIDTH = 10
+
+  NAME = ID_NUM
+  CAPTION =ОКПО поставщика@ЕДРПОУ постачальника
+  WIDTH = 15
+
+  NAME = PRIH_DATE
+  CAPTION =Дата прихода@Дата приходу
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION =Договор@Договір
+  WIDTH = 15
+
+  NAME = DOG_DATE
+  CAPTION =Дата договора@Дата договору
+  WIDTH = 10
+
+  NAME = WARE_TYPE
+  CAPTION =Тип товара@Тип товару
+  WIDTH = 10
+
+  NAME = WEIGHT
+  CAPTION =Количество@Кількість
+  WIDTH = 10
+
+  NAME = DIM_ID
+  CAPTION =Код ед. измерения@Код од.вимірювання
+  WIDTH = 10
+
+  NAME = DIM_NAME
+  CAPTION =Название ед. измерения@Назва од.вимірювання
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION =Цена без НДС@Ціна без ПДВ
+  WIDTH = 10
+
+  NAME = AMOUNT
+  CAPTION =Сумма без НДС@Сума без ПДВ
+  WIDTH = 15
+
+  NAME = NPT_ID
+  CAPTION =Тип НП (Код)
+  WIDTH = 10
+
+  NAME = NPT_NAME
+  CAPTION =Название типа НП@Назва типу НП
+  WIDTH = 20
+
+  NAME = NPG_ID
+  CAPTION =Группа НП (Код)@Група НП (Код)
+  WIDTH = 10
+
+  NAME = NPG_NAME
+  CAPTION =Название группы НП@Назва групи НП
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION =Дата
+  WIDTH = 10
+
+  NAME = DOGOVOR
+  CAPTION =Договор@Договір
+  WIDTH = 10
+
+  NAME = DOGOVOR_DATE
+  CAPTION =Дата договора@Дата договору
+  WIDTH = 13
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

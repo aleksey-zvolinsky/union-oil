@@ -1,0 +1,224 @@
+[GLOBAL]
+   TITLE = Заявка@Заявка
+   MENU = Отчеты\Сопутствующий товар\Заявка@Заявка
+   MENU_POSITION = 10
+   VERSION = 1.1
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   ZERO_LINES=YES
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   CAPTION1=АЗС
+   STARTCONDITION1=2
+   OPTIONS1=yyy
+   NULLVALUE1=NO
+   END
+
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+[SQL]
+select Z.*, instr(',' || Y.value || ',', ',' || Z.codavias || ',') as it
+  from (select X.azs_id,
+               X.azs_inst,
+               X.NAME,
+               X.id,
+               X.trademark_name,
+               X.npname,
+               X.codavias,
+               sum(nvl(X.restonbegin, 0)) as RestOnBegin,
+               sum(nvl(X.prih_count, 0)) as Prih_Count,
+               sum(nvl(X.prih_sum, 0)) as Prih_Sum,
+               sum(nvl(X.rash_litr, 0)) as Rash_Count,
+               npp.priceavs as Price,
+               sum(nvl(X.rash_money, 0)) as Rash_Money,
+               sum(nvl(X.restonbegin, 0) + nvl(X.prih_count, 0) -
+                   nvl(X.rash_litr, 0)) as RestOnEnd
+          from (select to_number(substr(max(to_char(np_p.date_on, 'YYYYMMDD') ||
+                                            np_p.price),
+                                        9)) as priceavs,np.codavias codnnb
+                  from v_oil_np_type np,
+                       oil_np_price np_p,
+                       (select name from v_oil_dimension where id = 19) d
+                 where (np.id <= 1112 or np.id >= 1200)
+                   and np_p.np_id = np.id
+                   and np_p.org_id = ov.GetVal('INST')
+                   and np_p.org_inst = ov.GetVal('INST')
+                   and np_p.price <> 0
+                   and np_p.date_on <= :enddate                  
+                 group by np.codavias, np.fiscal_name, np.name, d.name) npp,
+                (select azs.id   as azs_id,
+                       azs.inst as azs_inst,
+                       azs.name,
+                       npt.id,
+                       npt.name           as npname,
+                       npt.trademark_name,
+                       npt.codavias,
+                       0                  as PRIH_COUNT,
+                       0                  as PRIH_SUM,
+                       0                  as RestOnBegin,
+                       0                  as rash_litr,
+                       0                  as price,
+                       0                  as rash_money
+                  from v_oil_np_type npt, v_oil_azs azs, oil_var Y
+                 where Y.name = 'ZAYAVKA_AVIAS'
+                   and instr(',' || Y.value || ',',
+                             ',' || npt.codavias || ',') > 0
+                
+                union all
+                
+                select drep.azs_id,
+                       drep.azs_inst,
+                       org.name,
+                       npt.id,
+                       npt.name as npname,
+                       npt.trademark_name,
+                       npt.codavias,
+                       dr.pr_litr as PRIH_COUNT,
+                       dr.pr_litr * dr.s_price as PRIH_SUM,
+                       0 as RestOnBegin,
+                       nvl(dr.out_nal_litr, 0) + nvl(sr.litr, 0) as rash_litr,
+                       dr.s_price as price,
+                       nvl(dr.out_nal_money, 0) + nvl(sr.amount, 0) as rash_money
+                  from oil_daily_rep drep,
+                       oil_dr_data   dr,
+                       oil_srother   sr,
+                       oil_rashod    r,
+                       oil_part      p,
+                       v_oil_np_type npt,
+                       v_oil_azs     org
+                 where dr.state = 'Y'
+                   and drep.state = 'Y'
+                   and r.state = 'Y'
+                   and sr.state(+) = 'Y'                      
+                   and dr.oper_type in (0, 1)                      
+                   and dr.pr_ud_weig = 1                      
+                   and dr.ttn_id = r.id
+                   and dr.ttn_inst = r.inst                      
+                   and dr.rep_id = drep.id
+                   and dr.rep_inst = drep.inst                      
+                   and r.part_id = p.id
+                   and r.part_inst = p.inst                      
+                   and sr.srep_id(+) = dr.id
+                   and sr.srep_inst(+) = dr.inst                      
+                   and p.np_type = npt.id
+                   and p.state = 'Y'                      
+                   and drep.azs_id = org.id
+                   and drep.azs_inst = org.inst                      
+                   and trunc(drep.rep_date) between :BeginDate and :EndDate
+                
+                union all
+                
+                select drep.azs_id,
+                       drep.azs_inst,
+                       org.NAME as name,
+                       npt.id,
+                       npt.name as npname,
+                       npt.trademark_name,
+                       npt.codavias,
+                       0 as PRIH_COUNT,
+                       0 as PRIH_SUM,
+                       sum((nvl(dr.pr_count, 0) - nvl(dr.out_nal_count, 0) -
+                           nvl(dr.out_ved_count, 0) -
+                           nvl(dr.out_talon_count, 0) -
+                           nvl(dr.out_sn_count, 0) - nvl(dr.out_count, 0))) as RestOnBegin,
+                       0 as rash_litr,
+                       0 as price,
+                       0 as rash_money
+                  from v_oil_azs     org,
+                       oil_daily_rep drep,
+                       oil_dr_data   dr,
+                       oil_rashod    r,
+                       oil_part      p,
+                       v_oil_np_type npt
+                 where drep.state = 'Y'
+                   and dr.state = 'Y'
+                   and r.state = 'Y'                      
+                   and drep.id = dr.rep_id
+                   and drep.inst = dr.rep_inst                      
+                   and dr.ttn_id = r.id
+                   and dr.ttn_inst = r.inst
+                   and dr.pr_ud_weig = 1
+                   and dr.oper_type in (0, 1)                      
+                   and r.part_id = p.id
+                   and r.part_inst = p.inst                      
+                   and p.np_type = npt.id
+                   and p.state = 'Y'                     
+                   and drep.azs_id = org.id
+                   and drep.azs_inst = org.inst                     
+                   and drep.rep_date < :BeginDate
+                 group by drep.azs_id,
+                          drep.azs_inst,
+                          org.NAME,
+                          npt.id,
+                          npt.name,
+                          npt.trademark_name,
+                          npt.codavias,
+                          dr.pr_litr,
+                          dr.pr_count,
+                          dr.s_price) X
+                          where  npp.codnnb = X.codavias
+         group by azs_id,
+                  AZS_INST,
+                  NAME,
+                  id,
+                  npname,
+                  trademark_name,
+                  codavias,
+                  npp.priceavs) Z,
+       oil_var Y
+ where Y.name = 'ZAYAVKA_AVIAS'
+   and instr(',' || Y.value || ',', ',' || Z.codavias || ',') > 0
+   and azs_id = :org1.id
+ order by it
+
+[FIELDS]
+
+   DEFAULT WIDTH = 12
+
+   NAME = it
+   CAPTION = Маркер@Маркер
+   FORMAT = 0
+   OPTIONAL=FALSE
+
+   NAME = trademark_name
+   CAPTION = Торговая марка@Торгова марка
+
+   NAME = npname
+   CAPTION = Наименование товара@Назва товара
+   WIDTH = 80
+
+   NAME = codavias
+   CAPTION = Код ННБ
+   WIDTH = 8
+
+   DEFAULT FORMAT = 0.00
+
+   NAME = price
+   CAPTION = Цена!грн.@Ціна!грн.
+   
+   NAME = RestOnBegin
+   CAPTION = Остаток на начало! периода, к-во@Залишок на початок! періода, к-сть
+   FORMAT = 0
+
+   NAME = Prih_Count
+   CAPTION = ПРИХОД СО СКЛАДА!к-во@Прихід зі склада!к-сть
+   FORMAT = 0
+
+   NAME = Rash_Count
+   CAPTION = РАСХОД!к-во@Витрата!к-сть
+   FORMAT = 0
+
+   NAME = RestOnEnd
+   CAPTION = Остаток на конец!к-во@Залишок на кінець!к-сть
+   FORMAT = 0
+
+[TYPES]
+  
+   CAPTION = Основной

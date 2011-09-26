@@ -1,0 +1,256 @@
+[GLOBAL]
+   TITLE = Движение нефтепродуктов по нефтескладу@Рух нафтопродуктів по нафтоскладу
+   MENU = Отчеты\Движение нефтепродуктов\Хранение собств. НБ@Зберігання власних НБ
+   MENU_POSITION = 0
+   NAME_FOR_SAVE = НБСобстХран
+   VERSION = 1.4
+   PAGES_WIDTH = 2
+   RAZM_SYMBOLS = NO
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+   PANEL
+      CAPTION = Стоимость@Вартість
+      ELEMENT UchReal:RadioButtonGroup
+         LIST = По учетной цене,По продажной цене@За обліковою ціною,За ціною продажу
+         VALUES = 0,1
+      END
+   END
+
+   PANEL
+      CAPTION = Дополнительно@Додатково
+      ELEMENT Barter:CheckBoxGroup
+         LIST = Вкл.бартер.партии@Вкл.бартер.партії
+      END
+
+      ELEMENT NpList:List
+          CAPTION = Группы НП@Групи НП
+          OILVARNAME = NPGG_COMMON
+          TABLENAME = oil_np_group
+      END
+
+      ELEMENT IR:CheckBoxGroup
+         LIST = Внутрисистемная реализация@Внутр.системна реалізація
+         VALUES = 1
+      END
+   END
+
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Тип товара:: :KOS.GetCaptions@Тип товару:: :KOS.GetCaptions
+   Подсчет суммы:: :UchReal.Name@Підрахунок суми:: :UchReal.Name
+
+[SQL]
+select Q.*,sale_money+azs_money+barter_money+setoff_money+avto_money+oth_money as rash_money,
+  (rest_tonn+rest_shtuki)*ss as rest_money,
+  (rest_end_tonn+rest_end_shtuki)*ss as rest_end_money
+from
+(select np_groupid,np_group,podrname,
+       dog,dog_date,ss,np_type,base_,dimname,oo.name as postav,
+
+       sum(rest_tonn) as rest_tonn, 
+       sum(rest_shtuki) as rest_shtuki,
+
+       sum(prihod_tonn) as prihod_tonn,
+       sum(prihod_shtuki) as prihod_shtuki,
+       (1-:UchReal.Value)*sum(prihod_money) as prihod_money,
+
+       sum(decode(operid,57,prihod_tonn,0)) as prihod_otherNB_tonn,
+       sum(decode(operid,57,prihod_shtuki,0)) as prihod_otherNB_shtuki,
+       sum(decode(operid,57,prihod_money,0)) as prihod_otherNB_money,
+
+       sum(rash_tonn) as rash_tonn,
+       sum(rash_shtuki) as rash_shtuki,
+
+       sum(rest_tonn+prihod_tonn-rash_tonn) as rest_end_tonn,
+       sum(rest_shtuki+prihod_shtuki-rash_shtuki) as rest_end_shtuki,
+       (1-:UchReal.Value)*sum(rest_money+prihod_money-rash_money) as rest_end_money_base,
+
+       sum(decode(operid,54,prihod_tonn,0)) as prih_voz_tonn,
+       sum(decode(operid,54,prihod_shtuki,0)) as prih_voz_shtuki,
+       (1-:UchReal.Value)*sum(decode(operid,54,prihod_money,0)) as prih_voz_money,
+
+       sum(decode(operid,54,0,prihod_tonn)) as prih_tonn,
+       sum(decode(operid,54,0,prihod_shtuki)) as prih_shtuki,
+       (1-:UchReal.Value)*sum(decode(operid,54,0,prihod_money)) as prih_money,
+
+       sum(decode(operid,11,rash_tonn,12,rash_tonn,0)) as sale_tonn,
+       sum(decode(operid,11,rash_shtuki,12,rash_shtuki,0)) as sale_shtuki,
+       sum(decode(operid,11,rash_money,12,rash_money,0)) as sale_money,
+
+       sum(decode(InsideNbAzs,'Y',rash_tonn,0)) as azs_tonn,
+       sum(decode(InsideNbAzs,'Y',rash_shtuki,0)) as azs_shtuki,
+       (1-:UchReal.Value)*sum(decode(InsideNbAzs,'Y',rash_money,0)) as azs_money,
+
+       sum(decode(operid,150,rash_tonn,0)) as rash_otherNB_tonn,
+       sum(decode(operid,150,rash_shtuki,0)) as rash_otherNB_shtuki,
+       (1-:UchReal.Value)*sum(decode(operid,150,rash_money,0)) as rash_otherNB_money,
+
+       sum(decode(operid,5,rash_tonn,0)) as barter_tonn,
+       sum(decode(operid,5,rash_shtuki,0)) as barter_shtuki,
+       sum(decode(operid,5,rash_money,0)) as barter_money,
+
+       sum(decode(operid,6,rash_tonn,48,rash_tonn,49,rash_tonn,50,rash_tonn,51,rash_tonn,52,rash_tonn,151,rash_tonn,152,rash_tonn,0)) as setoff_tonn,
+       sum(decode(operid,6,rash_shtuki,48,rash_shtuki,49,rash_shtuki,50,rash_shtuki,51,rash_shtuki,52,rash_shtuki,151,rash_shtuki,152,rash_shtuki,0)) as setoff_shtuki,
+       sum(decode(operid,6,rash_money,48,rash_money,49,rash_money,50,rash_money,51,rash_money,52,rash_money,151,rash_money,152,rash_money,0)) as setoff_money,
+
+       sum(decode(operid,40,rash_tonn,0)) as avto_tonn,
+       sum(decode(operid,40,rash_shtuki,0)) as avto_shtuki,
+       (1-:UchReal.Value)*sum(decode(operid,40,rash_money,0)) as avto_money,
+
+       sum(decode(InsideNbAzs,'Y',0,decode(operid,5,0,6,0,11,0,12,0,40,0,48,0,49,0,50,0,51,0,52,0,57,0,150,0,151,0,152,0,rash_tonn))) as oth_tonn,
+       sum(decode(InsideNbAzs,'Y',0,decode(operid,5,0,6,0,11,0,12,0,40,0,48,0,49,0,50,0,51,0,52,0,57,0,150,0,151,0,152,0,rash_shtuki))) as oth_shtuki,
+       (1-:UchReal.Value)*sum(decode(InsideNbAzs,'Y',0,decode(operid,5,0,6,0,11,0,12,0,40,0,48,0,49,0,50,0,51,0,52,0,57,0,150,0,151,0,152,0,rash_money))) as oth_money
+
+from
+
+(select Q.*,
+       -decode(rashprih,0,0,tonn) as prihod_tonn,
+       -decode(rashprih,0,0,shtuki) as prihod_shtuki,
+       -decode(rashprih,0,0,money) as prihod_money,
+       decode(rashprih,0,tonn,0) as rash_tonn,
+       decode(rashprih,0,shtuki,0) as rash_shtuki,
+       decode(rashprih,0,money,0) as rash_money
+ from
+  (select np_groupid,np_group,nvl(pponname,oblname) as podrname,
+          dog,dog_date,ss,np_type,base_,dimname,rashprih,InsideNbAzs,
+          partpostid,partpostinst,operid,
+         -decode(restreal,-1,nvl(doc_tonn,tonn),0) as rest_tonn,
+         -decode(restreal,-1,shtuki,0) as rest_shtuki,
+         -decode(restreal,-1,summa_ss,0) as rest_money,
+         decode(restreal,-1,0,nvl(doc_tonn,tonn)) as tonn,
+         decode(restreal,-1,0,shtuki) as shtuki,
+         decode(restreal,-1,0,decode(:UchReal.Value,0,summa_ss,summa)) as money
+   from
+     (select v.*,nvl(PponName,OblName) as PodrName,sign(date_-to_date(:BeginDate)) as restreal
+      from v_oil_npmove v
+      where date_ <= :EndDate and NbAzs=0 and operid<>56
+            and Is_Barter in (0,:Barter.GetState{0})
+            and own_goods in (:KOS.GetValues)
+            and :org1.id in (AzsId,PponId,OblId)
+            and :NpList.IsInList{np_groupid}
+            and (IsInsideReal<>decode(:IR.GetState{0},0,'Y','Q') or v.date_<:BeginDate)
+     ) Q2
+  )Q
+)Q1, oil_org oo
+
+where Q1.partpostid=oo.id(+) and Q1.partpostinst=oo.inst(+)
+
+group by np_groupid,np_group,podrname,dog,dog_date,ss,np_type,base_,dimname,oo.name
+having sum(rest_tonn)<>0 or sum(rest_shtuki)<>0
+       or sum(prihod_tonn)<>0 or sum(prihod_shtuki)<>0
+       or sum(rash_tonn)<>0 or sum(rash_shtuki)<>0
+) Q
+
+
+[FIELDS]
+  NAME = podrname
+  CAPTION = Подразделение@Підрозділ
+  WIDTH=25
+
+  NAME = np_type
+  ITOGIFIELD = np_group
+  CAPTION = Продукт@Продукт
+  WIDTH = 12
+
+  NAME = dog
+  CAPTION = Партия@Партія
+  WIDTH = 15
+
+  NAME = postav
+  CAPTION = Поставщик@Постачальник
+  WIDTH = 15
+
+  NAME = dog_date
+  CAPTION = Дата дог.
+
+  NAME = dimname
+  CAPTION = Ед.изм.@Од.вим.
+
+    DEFAULT TOSUM = TRUE
+    DEFAULT OPTIONAL = FALSE
+    DEFAULT HIDEIFEMPTY = TRUE
+
+    FIELDS_GROUP
+    TAILS
+      NAME = tonn
+      CAPTION = !т
+      WIDTH = 12
+      FORMAT = 0.000000
+
+      NAME = shtuki
+      CAPTION = !шт
+      WIDTH = 6
+      FORMAT = 0
+
+      NAME = money
+      CAPTION = !грн
+      WIDTH = 12
+      FORMAT = 0.00
+
+    HEADS
+      NAME = rest_
+      CAPTION = Остаток на начало периода@Залишок на початок періоду
+
+      NAME = prih_
+      CAPTION = Приход@Прихід
+
+      NAME = prihod_otherNB_
+      CAPTION = Приход!От других НБ@Прихід!Від інших НБ
+
+      NAME = prih_voz_
+      CAPTION = Возврат с АЗС@Повернення з АЗС
+
+      NAME = sale_
+      CAPTION = Расход!Реализ (нал и безнал)@Витрати!Реліз (нал та безнал)
+
+      NAME = azs_
+      CAPTION = Расход!На АЗС@Витрати!На АЗС
+
+      NAME = rash_otherNB_
+      CAPTION = Расход!На другие НБ@Витрати!На інші НБ
+
+      NAME = avto_
+      CAPTION = Расход!Тех.средства@Витрати!Тех.засоби
+
+      NAME = setoff_
+      CAPTION = Расход!Взаимозачеты@Витрати!Взаємозаліки
+
+      NAME = barter_
+      CAPTION = Расход!Бартер@Витрати!Бартер
+
+      NAME = oth_
+      CAPTION = Расход!Прочие@Витрати!Інше
+
+      NAME = rash_
+      CAPTION = Расход!Итого расход@Витрати!Разом витрати
+
+      NAME = rest_end_
+      CAPTION = Остаток на конец периода@Залишок на кінець періоду
+
+    END_GROUP
+
+
+[TYPES]
+   
+   CAPTION = НП
+   ITOGI = np_type
+   UNCHECKED = podrname
+
+   CAPTION = НП (с подразделением)@НП (з підрозділами)
+   ITOGI = np_type,podrname

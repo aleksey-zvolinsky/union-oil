@@ -1,0 +1,67 @@
+[GLOBAL]
+  TITLE = Ошибки по цистернам@Помилки по цистернам
+  MENU = Отчеты\Перевалка\Ошибки по цистернам@Помилки по цистернам
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+[DESCRIPTION]
+
+[SQL]
+select
+  decode(prev_q_id,
+    null,'Начало с '||q_rod_name,
+    q_name||' после '||prev_rod_name
+  ) as err_name,
+  v.id, v.head_id,
+  v.tank_num, v.date_, v.prev_date,
+  v.prev_head_id, v.prev_id
+from
+  (select v.*,
+     lag(q_id) over (partition by tank_num order by rnum) as prev_q_id,
+     lag(q_rod_name) over (partition by tank_num order by rnum) as prev_rod_name,
+     lag(date_) over (partition by tank_num order by rnum) as prev_date,
+     lag(head_id) over (partition by tank_num order by rnum) as prev_head_id,
+     lag(head_id) over (partition by tank_num order by rnum) as prev_id
+   from
+     (select v.*,
+        row_number() over (partition by tank_num order by date_, q_id) rnum
+      from v_oil_tank_move v
+     ) v
+  ) v
+where (q_id-nvl(prev_q_id,0)<>1 and not (q_id=1 and prev_q_id=3))
+
+
+[FIELDS]
+  DEFAULT WIDTH = 15
+
+  NAME = ERR_NAME
+  CAPTION = Тип ошибки@Тип помилки
+  WIDTH = 25
+  
+  NAME = HEAD_ID
+  CAPTION = НОМЕР
+
+  NAME = TANK_NUM
+  CAPTION = № цистерны@№ цистерни
+
+  NAME = DATE_
+  CAPTION = Дата
+
+  NAME = ID
+  CAPTION = ID
+
+  NAME = PREV_DATE
+  CAPTION = Предыдущая!дата@Попередня!Дата
+
+  NAME = PREV_HEAD_ID
+  CAPTION = Предыдущая!номер@Попередня!номер
+
+  NAME = PREV_ID
+  CAPTION = Предыдущая!ID@Попередня!ID
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

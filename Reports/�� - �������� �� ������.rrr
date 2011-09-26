@@ -1,0 +1,134 @@
+[GLOBAL]
+  TITLE = Движение по партии@Рух по партії
+  MENU = Отчеты\Отчеты по Нефтебазе\Движение по партии@Рух по партії
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+   PANEL
+      ELEMENT PART:ComboEdit
+	 CAPTION = Партия@Партiя
+	 TYPE = OIL_PART
+      END
+   END
+
+[DESCRIPTION]
+   Партия:: :PART.Description@Партiя:: :PART.Description
+
+[SQL]
+select res.rnum,
+       res.data_oper,
+       res.id,
+       og.name as name_oper,
+       res.count_,
+       res.summ,
+       from_org.name as from_org_name,
+       to_org.name as to_org_name,
+       res.in_out      
+  from (select res.*, sum(res.count_) over(order by res.rnum) as summ
+          from (select res.*,
+                       row_number() over(order by res.data_oper, sign(res.count_) desc, abs(res.count_) desc) as rnum
+                  from (select p.date_ as data_oper,
+                               decode(p.group_num, null, p.id, p.group_num) as id ,
+                               p.inst,
+                               p.oper_id,
+                               p.part_id,
+                               p.part_inst,
+                               p.from_ as from_id,
+                               p.from_inst,
+                               p.to_ as to_id,
+                               p.to_inst,
+                               sum(pd.fact_count) as count_,
+                               1 as in_out
+                          from oil_prih_det pd, oil_prihod p
+                         where (pd.prihod_id, pd.inst) in
+                               (select p.id, p.inst
+                                  from oil_prihod p
+                                 where p.state = 'Y')
+                           and pd.state = 'Y'
+                           and p.id = pd.prihod_id
+                           and pd.inst = p.inst
+                         group by p.date_,
+                                  decode(p.group_num, null, p.id, p.group_num),
+                                  p.inst,
+                                  p.oper_id,
+                                  p.part_id,
+                                  p.part_inst,
+                                  p.from_,
+                                  p.from_inst,
+                                  p.to_,
+                                  p.to_inst
+                        union all
+                        select r.date_ as data_oper,
+                               decode(r.group_num, null, r.id, r.group_num) as id ,
+                               r.inst,
+                               r.oper_id,
+                               r.part_id,
+                               r.part_inst,
+                               r.from_id,
+                               r.from_inst,
+                               r.to_id,
+                               r.to_inst,
+                               -r.count_,
+                               -1 as in_out
+                          from oil_rashod r
+                         where r.state = 'Y') res
+                 where res.part_id = :Part.id
+                   and res.part_inst = :Part.inst
+                 order by res.data_oper, sign(res.count_) desc) res) res,
+       v_org from_org,
+       v_org to_org,
+       v_oil_oper_type og
+ where res.from_id = from_org.id
+   and res.from_inst = from_org.inst
+   and res.to_id = to_org.id(+)
+   and res.to_inst = to_org.inst(+)
+   and og.id = res.oper_id
+ order by res.rnum
+
+[FIELDS]
+
+  NAME = RNUM
+  CAPTION = Порядок операций@Порядок операцій
+  WIDTH = 15
+
+  NAME = DATA_OPER
+  CAPTION = Дата операции@Дата операції
+  WIDTH = 13
+  FORMAT = dd.mm.yyyy
+
+  NAME = ID
+  CAPTION =Номер прихода/отпуска@Номер приходу/відпуску
+  WIDTH = 15
+
+  NAME = NAME_OPER
+  CAPTION = Название операции@Назва операції
+  WIDTH = 20
+
+  NAME = COUNT_
+  CAPTION = Фактическое количество@Фактична кількість
+  WIDTH = 17
+  TOSUM = TRUE
+  FORMAT = 0.000000
+
+  NAME = SUMM
+  CAPTION = Остаток на данную операцию@Залишок на дану операцію
+  WIDTH = 25
+  FORMAT = 0.000000
+
+  NAME = FROM_ORG_NAME
+  CAPTION = От кого@Від кого
+  WIDTH = 25
+
+  NAME = TO_ORG_NAME
+  CAPTION = Кому@Кому
+  WIDTH = 30
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 
+
+  CAPTION = По дням
+  ITOGI = DATA_OPER, NAME_OPER

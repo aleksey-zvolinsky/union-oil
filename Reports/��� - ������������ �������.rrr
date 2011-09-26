@@ -1,0 +1,153 @@
+[GLOBAL]
+   VERSION = 1.1
+   FORMTITLE = Отчет комиссионера с АЗС@Звіт комісіонера з АЗС
+   MENU = Отчеты\Отчеты по АЗС\Комиссионера строгой отчетности@Комісіонера строгой звітності
+   MENU_POSITION = 0
+   TITLE = 
+   TITLE_COORD = A6
+   TITLE_FONT=13
+   SHOW_INFO = NO
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NULLVALUE1=NO
+   END
+
+   PANEL
+       CAPTION = Номер отчета@Номер звіту
+       ELEMENT NOMER:Edit
+       END
+   END
+
+[VARIABLES]
+   VAR RECOVERY:varSql
+     select /*+ORDERED USE_HASH(drep,dm,voo)*/
+           sum(dm.sm_out) as recovery
+     from oil_dr_money dm,oil_daily_rep drep,v_oil_org voo
+     where dm.state='Y' and drep.state='Y' 
+           and dm.rep_id=drep.id and dm.rep_inst=drep.inst
+           and to_date(drep.rep_date) between :BeginDate and :EndDate
+           and drep.azs_id=voo.id and drep.azs_inst=voo.inst
+           and :org1.id in (voo.azsid,voo.pponid,voo.oblid)
+   END
+   VAR MANAGER_SHIP:varSql
+     select value from adm_settings where name='MANAGER_SHIP' and inst = ov.GetVal('INST')
+   END
+
+[DESCRIPTION]
+   \{B1}M\10SООО СП Украинско-Андорское "Тирос-Петроль"@\{B1}M\10SООО СП Україно-Андорське "Тірос-Петроль"
+   \{F1}MКомитент ООО "НК Альфа-Нафта"@\{F1}MКомітент ООО "НК Альфа-Нафта"
+   \{M1}M"Утверждаю"@\{M1}M"Затверджую"
+   \{M2}MГенеральный директор@\{M2}MГенеральний директор
+   \{M4}M________________ Чиркинян Ж.Н.@\{M4}M________________ Чіркінян Ж.Н.
+   \{D5}M\12SОтчет комиссионера № :NOMER@\{D5}M\12SЗвіт комісіонера № :NOMER
+   \{C6}Mо реализации с АЗС на основе сменных отчетов операторов@\{C6}Mпро реалізацію з АЗС на основі змінних звітів операторів
+   \{D8}M:DATE_DESCRIPTION
+   AFTER
+   Председатель правления  ___________________ Шеденко В.С\12L :MANAGER_SHIP ________________ Гондзюк М.М.@Голова правління  ___________________ Шеденко В.С\12L :MANAGER_SHIP ________________ Гондзюк М.М.
+   (Заместитель председателя)@(Замісник голови)
+   \1N Гл. Бухгалтер ___________________  Зибликевич Р.В.\12L Старший учетчик _______________ Захарова Л.А.@\1N Гл. Бухгалтер ___________________  Зіблікевич Р.В.\12L Старший обліковець _______________ Захарова Л.А.
+  
+
+[SQL]
+select Q.*, round(summa/6,2) as nds
+from
+(select nvl(pponname,oblname) as podrname,azsname,np_type,np_group,
+       dog,sub_part,decode(IsShtuki,'Y',dimname,'л') as dimname,
+       price,ss,to_number(null) as incass,
+       sum(decode(operid,11,summa,0)) as bnal_summa,
+       sum(decode(operid,12,summa,0)) as nal_summa,
+       sum(litr) as litr,
+       sum(tonn) as tonn,
+       sum(shtuki) as shtuki,
+       sum(summa) as summa
+       
+from v_oil_npmove v
+where NbAzs=1 and RashPrih=0 and IsSummary<>'Y' and IsTalonDet<>'Y'
+      and (operid in (11,12) or operid=40 and IsCard='Y')
+      and date_ between :BeginDate and :EndDate
+      and :Org1.Id in (OblId,PponId,AzsId)
+      and own_goods in ('K')
+      and selltypeid not in (4,9,11)
+group by pponname,oblname,azsname,np_type,np_group,dimname,dog,sub_part,price,ss,IsShtuki
+having sum(tonn)<>0 or sum(shtuki)<>0
+) Q
+
+[FIELDS]
+   HEAD_DEPTH = 3
+   DEFAULT OPTIONAL = FALSE
+ 
+   NAME = azsname
+   CAPTION = АЗС
+   WIDTH = 15
+   ITOGI_TYPE = ONE
+
+   NAME = np_type
+   CAPTION = Наименование нефтепродукта@Назва нафтопродукту
+   WIDTH = 25
+
+   NAME = dog
+   CAPTION = № договора комиссии@№ договору комісії
+   WIDTH = 15
+
+   DEFAULT WIDTH = 10
+
+   NAME = sub_part
+   CAPTION = Подпартия@Підпартія
+
+   NAME = dimname
+   CAPTION = Ед.изм@Од.вим.
+
+   NAME = price
+   CAPTION = Реализовано!Цена@Реалізовано!Ціна
+   FORMAT = 0.00
+
+   DEFAULT TOSUM = TRUE
+
+   NAME = litr
+   CAPTION = Реализовано!Литров@Реалізовано!Літрів
+   FORMAT = 0.000
+
+   NAME = tonn
+   CAPTION = Реализовано!Тонн@Реалізовано!Тон
+   FORMAT = 0.000000
+
+   NAME = shtuki
+   CAPTION = Реализовано!Штук@Реалізовано!Штук
+   FORMAT = 0
+   HIDEIFEMPTY = TRUE
+
+   DEFAULT FORMAT = 0.00
+
+   NAME = summa
+   CAPTION = Реализовано!сумма(грн)@Реалізовано!Сума(грн)
+
+   NAME = nds
+   CAPTION = В том числе!НДС(грн)@В тому числі!ПДВ(грн)
+   WIDTH = 12
+
+   NAME = bnal_summa
+   CAPTION = Форма оплаты!Безналичные@Форма оплати!Безготів.
+   WIDTH = 13
+   
+   NAME = nal_summa
+   CAPTION = Форма оплаты!Наличные@Форма оплати!Готівка
+   WIDTH = 13
+
+   NAME = incass
+   CONSTANT_DATA = :RECOVERY
+   CAPTION = Сдано выручки (инкас.) (грн)@Здано виручки(інкас.) (грн)
+   TOSUM = FALSE
+   WIDTH = 13
+   
+    
+
+[TYPES]
+   
+   CAPTION = Основной@Основний
+   ITOGI = azsname

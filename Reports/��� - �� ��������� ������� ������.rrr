@@ -1,0 +1,149 @@
+[GLOBAL]
+  TITLE = Не введенные сменные отчеты@Не уведені змінні звіти
+  MENU = Отчеты\Отчеты по АЗС\Проверочные\Не введенные сменные отчеты@Не уведені змінні звіти
+  VERSION = 1.5
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyynnnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  За период с :BeginDate по :EndDate@За період з :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select /*+ORDERED*/
+ rep_date,
+ azs_id,
+ azs_inst,
+ azs_name,
+ 1 as count_,
+ decode(rash_type,
+        1,
+        '',
+        2,
+        decode(ov.language, 0, 'Нет', 'Немає'),
+        3,
+        decode(ov.language,
+               0,
+               'Перепринять',
+               'Переприйняти')) as rash_type
+  from (select to_date(c.date_of, 'DD.MM.YYYY') as rep_date,
+               azs.id as azs_id,
+               azs.inst as azs_inst,
+               azs.name as azs_name,
+               azs.obl_id,
+               1 as rash_type
+          from oil_calendar c, v_oil_azs azs
+         where not exists (select *
+                  from oil_dr_summary s
+                 where s.state = 'Y'
+                   and s.azs_id = azs.id
+                   and s.azs_id = azs.inst
+                   and s.rep_id is null
+                   and s.rep_inst is null
+                   and to_date(c.date_of, 'DD.MM.YYYY') between
+                       trunc(s.begin_date) and trunc(s.end_date))
+           and to_date(c.date_of, 'DD.MM.YYYY') between
+               :BeginDate and :EndDate
+           and azs.obl_id = :org1.id
+           and azs.obl_id = :org1.inst
+        minus
+        select rep_date, azs_id, azs_inst, azs_name, obl_id, 1 as rash_type
+          from (select sum(nvl(rep_date_end,
+                               nvl(rep_date_next, trunc(rep_date_start) + 1)) -
+                           rep_date_start) as work_date,
+                       min(decode(rep_date_next, null, 0, 1)) as is_rep_date_next,
+                       rep_date,
+                       azs_id,
+                       azs_inst,
+                       azs_name,
+                       obl_id
+                  from (select dr.rep_date as rep_date_start,
+                               dr.rep_date_end,
+                               lead(dr.rep_date) over(partition by dr.azs_id order by dr.rep_date) as rep_date_next,
+                               trunc(dr.rep_date) as rep_date,
+                               azs.id as azs_id,
+                               azs.inst as azs_inst,
+                               azs.name as azs_name,
+                               azs.obl_id
+                          from oil_daily_rep dr, v_oil_azs azs
+                         where dr.state = 'Y'
+                           and dr.azs_id = azs.id
+                           and dr.azs_inst = azs.inst
+                           and azs.obl_id = :org1.id
+                           and azs.obl_id = :org1.inst)
+                 group by rep_date, azs_id, azs_inst, azs_name, obl_id)
+         where (work_date > 0.80 and
+               (is_rep_date_next = 0 or
+               trunc(rep_date + 1, 'mm') = rep_date + 1))
+            or (work_date > 0.90 and is_rep_date_next = 1)
+        union all
+        select /*+ORDERED*/
+         trunc(dr.rep_date) as rep_date,
+         azs.id as azs_id,
+         azs.inst as azs_inst,
+         azs.name as azs_name,
+         azs.obl_id,
+         2 as rash_type
+          from oil_daily_rep dr, oil_dr_data drd, v_oil_azs azs
+         where dr.state = 'Y'
+           and drd.state = 'Y'
+           and dr.azs_id = azs.id
+           and dr.azs_inst = azs.inst
+           and dr.id = drd.rep_id
+           and dr.inst = drd.rep_inst
+           and trunc(rep_date) between :BeginDate and :EndDate
+           and azs.obl_id = :org1.id
+           and azs.obl_id = :org1.inst
+         group by dr.rep_date, azs.id, azs.inst, azs.name, azs.obl_id
+        having sum((nvl(drd.out_nal_litr, 0) + nvl(drd.out_ved_litr, 0) + nvl(drd.out_talon_litr, 0) + nvl(drd.out_sn_litr, 0) + nvl(drd.out_litr, 0))) <= 0
+        union all
+        select /*+ORDERED*/
+         trunc(dr.rep_date) as rep_date,
+         azs.id as azs_id,
+         azs.inst as azs_inst,
+         azs.name as azs_name,
+         azs.obl_id,
+         3 as rash_type
+          from oil_daily_rep dr, v_oil_azs azs
+         where dr.state = 'Y'
+           and dr.azs_id = azs.id
+           and dr.azs_inst = azs.inst
+           and dr.resave = 'Y'
+           and trunc(rep_date) between :BeginDate and :EndDate
+           and azs.obl_id = :org1.id
+           and azs.obl_id = :org1.inst)
+ where trunc(rep_date) between :BeginDate and :EndDate
+   and obl_id = :org1.id
+   and obl_id = :org1.inst
+ order by rash_type desc, rep_date desc, azs_name
+
+[FIELDS]
+  NAME = rep_date
+  CAPTION = Дата@Дата
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = azs_name
+  CAPTION = АЗС@АЗС
+  WIDTH = 30
+
+  NAME = count_
+  CAPTION = Количество@Кількість
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = rash_type
+  CAPTION = Реализация@Реалізація
+  WIDTH = 12
+
+[TYPES]
+  CAPTION = Основной@Основний

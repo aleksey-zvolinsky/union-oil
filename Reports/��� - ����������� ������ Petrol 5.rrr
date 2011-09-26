@@ -1,0 +1,59 @@
+REGISTERED
+[GLOBAL]
+
+   TITLE = Отчет по недостающим пакетам Petrol 5@Звіт про невистачаючі пакети Petrol 5
+   VERSION = 2.1
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   ZERO_LINES = YES
+
+[SQL]
+
+select NumPack_From,
+       NumPack_To,
+       CountNotExist
+  from (select (npak - dd) NumPack_From,
+               (npak - 1) NumPack_To,
+               nvl(dd, 0) CountNotExist
+          from (select tr1.id_paketa npak,
+                       tr1.id_paketa -
+                       (lag(tr1.id_paketa,1, tr1.id_paketa - 1) over(order by tr1.id_paketa)) - 1 dd
+                  from (select tr.id_paketa
+                          from magicash5.ecfil153 tr
+                         where tr.id_emitenta_ot_kogo = 6000
+                           and tr.id_paketa >= 3323
+                         group by tr.id_paketa) tr1)
+         where dd > 0
+        union all
+        select decode(count(*), 0,-1, null) NumPack_From,
+               decode(count(*), 0,-1, null) NumPack_To,
+               decode(count(*), 0,-1, null) CountNotExist
+          from (select tr1.id_paketa npak,
+                       tr1.id_paketa -
+                       (lag(tr1.id_paketa, 1,tr1.id_paketa - 1) over(order by tr1.id_paketa)) - 1 dd
+                  from (select tr.id_paketa
+                          from magicash5.ecfil153 tr
+                         where tr.id_emitenta_ot_kogo = 6000
+                           and tr.id_paketa >= 3323
+                         group by tr.id_paketa) tr1))
+ where CountNotExist is not null
+
+[FIELDS]
+
+   NAME = NumPack_From
+   CAPTION = Номер пакета!c@Номер пакету!з
+   WIDTH = 10
+
+   NAME = NumPack_To
+   CAPTION = Номер пакета!по@Номер пакету!по
+   WIDTH = 10
+
+   NAME = CountNotExist
+   CAPTION = Не хватает@Не вистачає
+   WIDTH = 10
+   TOSUM = TRUE
+
+[TYPES]
+   
+   CAPTION = Основной@Основний
+   ITOGI =

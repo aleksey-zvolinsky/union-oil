@@ -1,0 +1,123 @@
+[GLOBAL]
+  TITLE = Выгрузка в 1С ведомость (их талоны на наших АЗС)@Вивантаження в 1С відомість (їх талони на наших АЗС)
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  MENU = Отчеты\Отчеты по талонам\Выгрузка в 1С (ведомость,их на наших)@Вивантаження в 1С (відомість, їх на наших)
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select sra.obl_id as filial_id,
+       odep.name as filial_name,
+       sra.azs_id,
+       sra.np_group,
+       oo.name as client_name,
+       oo.id_num,
+       sra.dog as part,
+       sra.sub_part,
+       dog.dog,
+       dog.dog_date,
+       sra.price,
+       sum(sra.litr) as litr,
+       sum(round(sra.litr * sra.price, 2)) as money,
+       sum(sra.tonn) as weight,
+       sra.date_ as rep_date
+  from v_oil_talon_srae_base sra,
+       oil_org               odep,
+       v_dual_org            oo,
+       v_dual_talon_dog      dog,
+       v_dual_date           ddate
+ where sra.date_ >= ddate.value
+   and sra.date_ between :BeginDate and :EndDate
+   and sra.obl_id = odep.id
+   and odep.id = odep.inst
+ group by sra.obl_id,
+          sra.azs_id,
+          sra.np_group,
+          oo.id_num,
+          sra.dog,
+          sra.sub_part,
+          dog.dog,
+          dog.dog_date,
+          sra.price,
+          sra.date_,
+          odep.name,
+          oo.name
+ order by Rep_Date
+
+[FIELDS]
+  NAME = FILIAL_ID
+  CAPTION = Код подразделения@Код підрозділу
+  WIDTH = 10
+
+  NAME = FILIAL_NAME
+  CAPTION = Подразделение@Підрозділ
+  WIDTH = 10
+
+  NAME = AZS_ID
+  CAPTION = Код АЗС
+  WIDTH = 10
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = CLIENT_NAME
+  CAPTION = Клиент@Клієнт
+  WIDTH = 10
+
+  NAME = ID_NUM
+  CAPTION = ОКПО Клиента@ЄДРПОУ клієнта
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION = Дата
+  WIDTH = 10
+
+  NAME = PART
+  CAPTION = Партия@Партія
+  WIDTH = 10
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION = Договор@Договір
+  WIDTH = 10
+
+  NAME = DOG_DATE
+  CAPTION = Дата договора@Дата договору
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION = Цена@Ціна
+  WIDTH = 10
+
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+
+  NAME = LITR
+  CAPTION = Литры@Літри
+  WIDTH = 10
+  FORMAT = 0.000
+
+  NAME = MONEY
+  CAPTION = Деньги@Гроші
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = WEIGHT
+  CAPTION = Тонны@Тони
+  WIDTH = 10
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI =

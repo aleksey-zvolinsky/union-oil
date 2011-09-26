@@ -1,0 +1,200 @@
+[GLOBAL]
+   FORMTITLE = Собственный по реализации@Власний по реалізації
+   MENU = Отчеты\Отчеты для Авиаса\Собственный по реализации@Власний по реалізації
+   MENU_POSITION = 0
+   VERSION = 1.9
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   TITLE_COORD = M3
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NULLVALUE1=NO
+   END
+
+   PANEL
+      ELEMENT AzsList:List
+          CAPTION = АЗС: 
+          TABLENAME = v_oil_azs
+          CONDITION = obl_id = ov.GetVal('INST')
+      END
+   END
+
+[VARIABLES]
+
+[DESCRIPTION]
+
+\{D3}MОТЧЕТ №________@\{D3}MЗВІТ №________
+\{C4}M:org1.name
+\{C5}Mо расходе на собственные нужды и тех. средства@\{C5}Mпро видатки на власні потреби та технічні засоби
+\{C6}M                 с :BeginDate по :EndDate г.@\{C6}M                 з :BeginDate по :EndDate р.
+\{C7}Mпо АЗС №№: :AzsList.DESCRIPTION
+
+AFTER
+\2LДиректор филиала ______________@\2LДиректор филії ______________
+\2N\2LГлавный бухгалтер ______________@\2N\2LГоловний бухгалтер ______________
+
+[SQL]
+select dog,
+       npg_name,
+       npg_id,
+       sum(is_perebrSN * litr) as perebrSN_litr,
+       sum(is_perebrSN * tonn) as perebrSN_tonn,
+       sum(is_perebrSN * money) as perebrSN_money,
+       sum(is_cards * litr) as cards_litr,
+       sum(is_cards * tonn) as cards_tonn,
+       sum(is_cards * money) as cards_money,
+       sum(is_talons * litr) as talons_litr,
+       sum(is_talons * tonn) as talons_tonn,
+       sum(is_talons * money) as talons_money,
+       sum(is_techloss * litr) as techloss_litr,
+       sum(is_techloss * tonn) as techloss_tonn,
+       sum(is_techloss * money) as techloss_money,
+       sum(is_eub * litr) as eub_litr,
+       sum(is_eub * tonn) as eub_tonn,
+       sum(is_eub * money) as eub_money,
+       sum(is_other * litr) as other_litr,
+       sum(is_other * tonn) as other_tonn,
+       sum(is_other * money) as other_money,
+       sum(litr) as litr,
+       sum(tonn) as tonn,
+       sum(money) as money
+  from (select dog,
+               npg_id,
+               npg_name,
+               oper_id,
+               decode(oper_id, 15,1, 40,1, 0) as is_perebrSN,
+               decode(oper_id, 153,1, 0) as is_cards,
+               decode(oper_id, 193,1, 0) as is_talons,
+               decode(oper_id, 102,1, 0) as is_techloss,
+               decode(oper_id, 16,1, 0) as is_eub,
+               decode(oper_id, 193,0, 15,0, 16,0, 40,0, 102,0, 153,0, 1) as is_other,
+               litr as litr,
+               tonn as tonn,
+               money as money
+          from (/* НБ,АЗС- Прочий отпуск */
+                select npm.dog,
+                       npm.np_groupid as npg_id,
+                       npm.np_group as npg_name,
+                       operid as oper_id,
+                       sum(npm.litr) as litr,
+                       sum(npm.tonn) as tonn,
+                       sum(npm.summa_ss_base) as money
+                  from v_oil_npmove npm, v_oil_oper_type oper
+                 where npm.operid = oper.id
+                   and oper.InsideNbAzs = 'N'
+                   and npm.dog like 'ТД%'
+                   and npm.selltypeid in (1, 3)
+                   and :AzsList.IsInList{npm.AzsId}
+                   and (npm.operid in (5,6,13,15,16,17,40,47,48,49,50,51,52,102,151,152) or npm.dog like 'ТД%/И')
+                   and npm.date_ between :BeginDate and :EndDate
+                 group by npm.dog, npm.np_groupid, npm.np_group, operid
+
+                 union all
+                /* Талоны- Спонсорская помощь и Собственные нужды или Излишки */
+                select t.Dog,
+                       np.np_grp as npg_id,
+                       np.np_grp_name as npg_name,
+                       t.out_oper_id as oper_id,
+                       sum(t.litr) as litr,
+                       sum(t.tonn) as tonn,
+                       sum(t.summa) as money
+                  from v_oil_talon_real t, v_oil_np_type np, oil_part p
+                 where p.state = 'Y'
+                   and p.dog like 'ТД%'
+                   and t.part_id = p.id
+                   and t.part_inst = p.inst
+                   and p.np_type = np.id
+                   and :AzsList.IsInList{t.Azs_Id}
+                   and (t.out_oper_id in (193, 245) or p.dog like 'ТД%/И')
+                   and trunc(t.rep_date) between :BeginDate and :EndDate
+                 group by t.Dog, np.np_grp, np.np_grp_name, t.out_oper_id
+
+                union all
+                /* Смарт-карты- Собственные и Дуальные списания */
+                select nvl(c.part_fil, c.part) as dog,
+                       decode(c.np_id, 4, 5, c.np_id) as npg_id,
+                       npg.name as npg_name,
+                       153 as oper_id,
+                       sum(litr) as litr,
+                       sum(weight) as tonn,
+                       sum(decode(c.part, null,c.summ_uch,round(p.ss*c.weight,2))) as money
+                  from v_card_1c c, v_oil_np_group npg, oil_part p, v_card_azs azs
+                 where nvl(c.part_fil, c.part) like 'ТД%'
+                   and ((c.auto_id is not null and c.auto_inst is not null) or (IsDual = 1) or (nvl(c.part_fil, c.part) like 'ТД%/И'))
+                   and npg.id = decode(c.np_id, 4, 5, c.np_id)
+                   and (c.price_uch is not null or c.part is not null)
+                   and trunc(c.Rep_Date) between :BeginDate and :EndDate
+                   and p.state(+) = 'Y' and p.dog(+) = c.part
+                   and p.to_inst(+) = ov.GetVal('INST')
+                   and azs.id = c.azs_id
+                   and azs.inst = c.azs_id
+                   and ((azs.is_alien_azs = 1)
+                        or
+                        (azs.is_alien_azs = 0 and (:AzsList.IsInList{c.AZS_Id})))
+                 group by nvl(c.part_fil, c.part), decode(c.np_id, 4, 5, c.np_id), npg.name
+        ))
+ group by dog, npg_name, npg_id
+ order by npg_id
+
+[FIELDS]
+   NAME = rownum
+   CAPTION = №№ п/п@№№ п/п
+   WIDTH = 15
+
+   NAME = npg_name
+   CAPTION = Тип НП@Тип НП
+   WIDTH = 15
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 12
+
+   DEFAULT WIDTH = 12
+   DEFAULT TOSUM = TRUE
+   DEFAULT OPTIONAL = FALSE
+   DEFAULT HIDEIFEMPTY = FALSE
+
+   FIELDS_GROUP
+      TAILS
+        NAME = litr
+        CAPTION = !Кол-во,л@!К-сть,л
+        FORMAT = 0.000
+
+        NAME = tonn
+        CAPTION = !Кол-во,т@!К-сть,т
+        FORMAT = 0.000000
+
+        NAME = money
+        CAPTION = !грн без НДС
+        FORMAT = 0.00
+     HEADS
+
+           NAME = perebrSN_
+           CAPTION = Переброска на собств. нужды@Перекидання на власні потреби
+
+           NAME = cards_
+           CAPTION = Отпуск СН по смарт-картам@Відпуски на власн.потреби по смарт-карткам
+
+           NAME = talons_
+           CAPTION = Отпуск СН по талонам@Відпуски на власн.потреби по талонам
+
+           NAME = techloss_
+           CAPTION = Техн. потери@Техн. втрати
+
+           NAME = eub_
+           CAPTION = Ест. убыль@Природні втрати
+
+           NAME = other_
+           CAPTION = Прочий расход (взаимозачет и прочий)@Інші видатки (зваємозалік та інші)
+
+           NAME =
+           CAPTION = Всего@Всього
+    END_GROUP
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI =

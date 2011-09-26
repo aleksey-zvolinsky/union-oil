@@ -1,0 +1,102 @@
+[GLOBAL]
+  TITLE = Акт приема - передачи@Акт прийому передачі 
+  MENU = Отчеты\Отчеты по Нефтебазе\Акт приема - передачи@Акт прийому передачі
+  VERSION = 2.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  PAGE_ORIENT = VER
+  SHOW_INFO = NO
+
+
+[PANELS]
+
+  DATEPANEL
+    NUM = 1
+    CAPTION1 = На
+  END
+
+  ORGPANEL
+    NUM=2
+    CAPTION1=Получатель@Одержувач
+    CAPTION2=Поставщик@Постачальник
+    NULLVALUE1=NO
+    NULLVALUE2=NO
+    STARTCONDITION1=1
+    STARTCONDITION2=0
+  END
+
+[VARIABLES]
+   VAR MANAGER_SHIP:varSql
+     select value from adm_settings where name='MANAGER_SHIP' and inst = ov.GetVal('INST')
+   END
+
+[DESCRIPTION] 
+:org1.par_name 
+  \{C3}MАКТ
+  \{B4}Mприема-передачи с хранения нефтепродуктов@\{B4}Mприйому-передачі з зберігання нафтопродуктів
+  \{B5}Mпо Договору № __________ от _______________@\{B5}Mза Договором № __________ від _______________
+  \{A6}M\0Wмежду :org2.name и :org1.oblname &@\{A6}M\0Wміж :org2.name і :org1.oblname &
+  \{D8}M:BeginDate
+  \{A10}M\0W\B:org2.name\b, :org2.dogovor, с одной стороны и \B:org1.oblname\b, :org1.obldogovor, &@\{A10}M\0W\B:org2.name\b, :org2.dogovor, з однієї сторони і \B:org1.oblname\b, :org1.obldogovor, &
+  с другой стороны, составили настоящий акт о том, что: \B:org2.name\b настоящим передает, &@з іншої сторони, склали справжній акт про те, що: \B:org2.name\b посправжньому передає, &
+  а \B:org1.oblname\b принимает с ответственного хранения нефтепродукты на условиях франко-терминал &@а \B:org1.oblname\b приймає з відповідного зберігання нафтопродукти на умовах франко-термінал &
+  нефтебаза \B:org1.name\b в арендованных резервуарах \B:org2.name\b для налива &@нафтобаза \B:org1.name\b в арендованих резервуарах \B:org2.name\b для наливу &
+  Поклажедателем в автотранспортные средства нефтепродуктов в следующем количестве:\0A@Поклажедателем в автотранспортні засоби нафтопродуктів в наступній кількості:\0A
+ AFTER
+         \1LПОДПИСИ СТОРОН@        \1LПІДПИСИ СТОРІН
+ ПРИНЯЛ:                \2LОТПУСТИЛ:@ПРИЙНЯВ:                \2LВІДПУСТИВ:
+ :org1.oblname          \2L:org2.name
+ Председатель правления \2LПервый заместитель@Голова правління \2LПерший замісник 
+                        \2LКоммерческого директора@                       \2LКомерційного директора
+\0N________________ 
+                        \2L________________ Векилян С.Б.@                        \2L________________ Векілян С.Б.  
+:org1.Name
+:MANAGER_SHIP
+\1N________________:org1.Boss  
+
+[SQL]
+
+select
+  npt.name as np_type_name,
+  r.count_,
+  r.ttn_num,
+  rez.num as rez_num 
+from 
+  oil_rashod r,oil_part p,oil_rezervuar rez,
+  oil_np_type npt,v_oil_rez_arenda rza
+where r.state='Y' and p.state='Y' 
+  and rez.state='Y' 
+  and r.part_id=p.id and r.part_inst=p.inst
+  and p.np_type=npt.id
+  and r.rez=rez.id and r.rez_inst=rez.inst
+  and r.date_=:BeginDate
+  and r.from_id=:org1.id
+  and r.from_inst=:org1.inst
+  and rez.id=rza.rez_id
+  and rez.inst=rza.rez_inst
+  and r.date_ between rza.date_from and rza.date_to
+  and rza.oper_type=1
+  and r.oper_id not in (3,18,45,171)
+
+[FIELDS]
+
+  NAME = np_type_name
+  CAPTION = Нефтепродукт@Нафтопродукт
+  WIDTH = 30
+  
+  NAME = ttn_num
+  CAPTION = № ТТН
+  WIDTH = 20
+
+  NAME = rez_num
+  CAPTION = № Резервуара
+  WIDTH = 20
+
+  NAME = count_
+  CAPTION = Кол-во, т@К-сть,т.
+  TOSUM = true
+  WIDTH = 20
+  
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI =

@@ -1,0 +1,102 @@
+[GLOBAL]
+   TITLE = Проверка отпущенно и по счетчикам@Перевірка відпущенно і по лічильникам
+   MENU = Отчеты\Отчеты по АЗС\Проверка отпущенно и по счетчикам@Перевірка відпущенно і по лічильникам
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   VERSION = 1.0
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   С :BeginDate по :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+[SQL]
+select to_number(azs.azs_num) as azs_num,
+       azs.name,
+       dr.rep_date,
+       dr.rep_date_end,
+       ex.date_receive,
+       np.np_grp_name,
+       (drd.out_nal_litr + drd.out_ved_litr + drd.out_talon_litr + drd.out_sn_litr + drd.out_litr) as out_litr_rep,
+       sum(tc.end_counter - tc.begin_counter) as out_litr_tc,
+       (drd.out_nal_litr + drd.out_ved_litr + drd.out_talon_litr + drd.out_sn_litr + drd.out_litr) -
+         sum(tc.end_counter - tc.begin_counter) as diff_litr
+  from oil_daily_rep dr, oil_dr_data drd, oil_rashod r, oil_part p, v_oil_np_type np, v_oil_azs azs,
+       exch_receive_azs ex, oil_azs_trkcounters tc
+ where dr.state = 'Y'
+   and dr.id = drd.rep_id
+   and dr.inst = drd.rep_inst
+   and drd.state = 'Y'
+   and dr.azs_id = azs.id
+   and dr.azs_inst = azs.inst
+   and dr.id = ex.rep_id(+)
+   and dr.inst = ex.rep_inst(+)
+   and ex.state(+) = 'Y'
+   and oper_type = 1
+   and drd.ttn_id = r.id
+   and drd.ttn_inst = r.inst
+   and r.part_id = p.id
+   and r.part_inst = p.inst
+   and p.np_type = np.id
+   and tc.state = 'Y'
+   and dr.id = tc.rep_id
+   and dr.inst = tc.rep_inst
+   and tc.np_id = np.np_grp
+   and trunc(dr.rep_date) between :BeginDate and :EndDate
+ group by azs.name,
+       azs.azs_num,
+       dr.rep_date,
+       dr.rep_date_end,
+       ex.date_receive,
+       np.np_grp_name,
+       drd.out_nal_litr + drd.out_ved_litr + drd.out_talon_litr + drd.out_sn_litr + drd.out_litr
+
+[FIELDS]
+
+   NAME = azs_num
+   CAPTION = Номер АЗС@Номер АЗС
+   WIDTH = 10
+
+   NAME = name
+   CAPTION = АЗС@АЗС
+   WIDTH = 30
+
+  NAME = rep_date
+  CAPTION = Начало смены@Початок зміни
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+  NAME = rep_date_end
+  CAPTION = Конец смены@Кінець зміни
+  WIDTH = 20
+  FORMAT = dd.mm.yyyy hh:mm:ss
+
+   NAME = np_grp_name
+   CAPTION = Группа НП@Група НП
+   WIDTH = 12
+
+   NAME = out_litr_rep
+   CAPTION = Отпущено@Відпуценно
+   WIDTH = 10
+   FORMAT = 0.00
+
+   NAME = out_litr_tc
+   CAPTION = По счетчикам@По лічильникам
+   WIDTH = 10
+   FORMAT = 0.00
+
+   NAME = diff_litr
+   CAPTION = Разница@Різниця
+   WIDTH = 10
+   FORMAT = 0.00
+
+[TYPES]
+   CAPTION = Основной
+   ITOGI = azs_num
+   UNCHECKED = 

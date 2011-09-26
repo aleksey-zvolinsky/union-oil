@@ -1,0 +1,110 @@
+[GLOBAL]
+   TITLE = Талоны на руках у клиентов@Талони на руках у клієнтів
+   MENU = Отчеты\Отчеты по талонам\На руках у клиентов@На руках у клієнтів
+   VERSION = 1.04
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+
+  PANEL
+    CAPTION = Тип талона@Тип талона
+    ELEMENT TALONNUM:CheckBoxGroup
+      LIST = Региональные,Всеукраинские@Регіональні,Всеукраїнські
+      VALUES = 1,-1
+    END
+  END
+
+  PANEL
+    CAPTION = Серия@Серія
+      ELEMENT Ser:Edit
+    END
+  END
+
+[DESCRIPTION]
+   На :BeginDate
+
+[SQL]
+select oo.id,oo.name as org_name,oo.id_num as org_okpo,dog.dog,tal.date_,
+  npg.name as np_group,
+  tal.nominal,tal.ser,tal.num,tal.nominal as litr,tal.price,1 as shtuki,
+  round(tal.nominal*tal.price,2) as summa
+from 
+  (select v.*,
+    row_number() over (partition by ser,num order by date_ desc,tip desc) as rnum
+   from v_oil_talon_op v
+   where date_<:BeginDate
+     and sign(5e8-v.num) in (:TALONNUM.GetValues)
+     and (:Ser is null or v.ser like '%'||:Ser||'%')
+  ) tal,
+  oil_org oo,oil_np_group npg,oil_dog dog
+   
+where tal.rnum=1 and tal.tip='O' and tal.oper_id in (190,245)
+  and tal.to_id=oo.id and tal.to_inst=oo.inst
+  and tal.dog_id=dog.id(+) and tal.dog_inst=dog.inst(+)
+  and tal.npgrp_id=npg.id
+
+[FIELDS]
+   NAME = org_name
+   CAPTION = Потребитель@Споживач
+   WIDTH=25
+
+   NAME = org_okpo
+   CAPTION = Код ОКПО@Код ЄДРПОУ
+   WIDTH = 12
+
+   NAME = dog
+   CAPTION = Договор@Договір
+   WIDTH = 10
+
+   NAME = np_group
+   CAPTION = НП
+   WIDTH = 10
+
+   NAME = date_
+   CAPTION = Дата
+   WIDTH = 10
+
+   NAME = nominal
+   CAPTION = Номинал@Номінал
+   WIDTH=15
+
+   NAME = ser
+   CAPTION = Серия@Серія
+   WIDTH = 6
+
+   NAME = num
+   CAPTION = Номер
+   WIDTH = 8
+
+   NAME = price
+   CAPTION = Цена@Ціна
+   WIDTH = 10
+   FORMAT = 0.00
+
+   NAME = shtuki
+   CAPTION = Кол-во@К-сть
+   WIDTH = 8
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = litr
+   CAPTION = Литры@Літри
+   WIDTH = 10
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = summa
+   CAPTION = Сумма (грн)@Сума (грн)
+   WIDTH = 12
+   FORMAT = 0.00
+   TOSUM = TRUE
+
+[TYPES]
+   
+   CAPTION = Потребитель - Группа НП@Споживач - Група НП
+   ITOGI = org_name,np_group

@@ -1,0 +1,117 @@
+[GLOBAL]
+   VERSION = 1.1
+   TITLE = Отчет по клиентам - 1@Звіт про клієнтів - 1
+   MENU = Отчеты\Отчеты по клиентам\Отчет по клиентам@Звіт про клієнтів
+   RAZM_SYMBOLS = YES
+   PAGES_WIDTH = 1
+   PAGE_ORIENT = VER
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+      NUM=2
+      CAPTION1=Подразделение@Підрозділ
+      CAPTION2=Клиент@Клієнт
+      STARTCONDITION2=3
+   END
+
+   PANEL
+      CAPTION = Тип отпуска@Тип відпуску
+      WIDTH=150
+      ELEMENT TYPES:CheckBoxGroup
+         LIST = Нефтебаза,АЗС (ведомость),АЗС (талоны),АЗС (прочее)@Нафтобаза,АЗС (ВІдомість),АЗС (талони),АЗС (інше)
+         VALUES = 1,2,4,3
+      END
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Подразделение:: :org1.name@Підрозділ:: :org1.name
+   Клиент:: :CLIENTNAME@Клієнт:: :CLIENTNAME
+   Тип отпуска:: :TYPES.GetCaptions@Тип відпуску:: :TYPES.GetCaptions
+
+[VARIABLES]
+   VAR CLIENTNAME:varSql
+     select nvl(:org2.name,'Все') from dual
+   END
+
+[SQL]
+select np_type,np_group,OrgName,ClientName,ClientOkpo,OperName,
+       decode(operid,14,ss,153,ss,price) as price,
+       decode(IsShtuki,'Y','за штуку',decode(NbAzs,0,'за тонну',1,decode(operid,14,'за тонну',153,'эа тонну','за литр'))) as Dim,
+       sum(litr) as litr,sum(tonn) as tonn,sum(shtuki) as shtuki,sum(summa) as summa
+from v_oil_npmove 
+where date_ between :BeginDate and :EndDate
+      and RashPrih=0 and IsSummary<>'Y' and IsTalonDet<>'N'
+      and ClientId is not null and ClientId<>ClientInst
+      and (:org1.id in (AzsId,PponId,OblId) or :org1.id is null)
+      and (:org2.id=ClientId and :org2.inst=ClientInst or :org2.id is null)
+      and SellTypeId in (:TYPES.GetValues)
+group by np_type,np_group,OrgName,ClientName,ClientOkpo,OperName,
+      decode(operid,14,ss,153,ss,price),
+      decode(IsShtuki,'Y','за штуку',decode(NbAzs,0,'за тонну',1,decode(operid,14,'за тонну',153,'эа тонну','за литр')))
+
+[FIELDS]
+   NAME = ClientName
+   CAPTION = Клиент@Клієнт
+   WIDTH=25
+
+   NAME = ClientOkpo
+   CAPTION = ОКПО@ЄДРПОУ
+   WIDTH = 10
+
+   NAME = np_type
+   CAPTION = Н/П
+   WIDTH = 20
+
+   NAME = OrgName
+   CAPTION = Продавец@Продавець
+   WIDTH=15
+
+   NAME = OperName
+   CAPTION = Операция@Операція
+   WIDTH = 15
+
+   NAME = litr
+   CAPTION = Кол-во!Литры@К-сть!Літри
+   WIDTH = 10
+   FORMAT = 0.000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = tonn
+   CAPTION = Кол-во!Тонны@К-сть!Тон
+   WIDTH = 10
+   FORMAT = 0.000000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = shtuki
+   CAPTION = Кол-во!Штуки@К-сть!Штук
+   WIDTH = 8
+   FORMAT = 0
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = price
+   CAPTION = Цена@Ціна
+   WIDTH = 10
+   FORMAT = 0.00
+
+   NAME = dim
+   CAPTION = Цена@Ціна
+   WIDTH = 8
+
+   NAME = summa
+   CAPTION = Сумма@Сума
+   WIDTH = 10
+   FORMAT = 0.00
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+[TYPES]
+   
+   CAPTION = Клиент - НП@Клієнт - НП
+   ITOGI = ClientName,Np_Type

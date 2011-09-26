@@ -1,0 +1,150 @@
+[GLOBAL]
+  TITLE = Не верные плотности@Не вірні густини
+  MENU = Отчеты\Отчеты по АЗС\Проверочные\Не верные плотности@Не вірні густини
+  VERSION = 1.5
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  За период с :BeginDate по :EndDate@За період з :BeginDate до :EndDate
+
+[SQL]
+select *
+  from (select /*+ORDERED*/
+         r.date_ as r_date,
+         r.from_id as ppon_id,
+         oo.name as ppon_name,
+         drep.azs_id,
+         azs.name as azs_name,
+         trunc(drep.rep_date) as rep_date,
+         drep.smena_num,
+         p.dog,
+         dr.pr_ud_weig,
+         r.ud_weig
+          from oil_daily_rep drep,
+               oil_dr_data   dr,
+               oil_rashod    r,
+               oil_part      p,
+               v_org         oo,
+               v_oil_azs     azs
+         where drep.state = 'Y'
+           and dr.state = 'Y'
+           and r.state = 'Y'
+           and p.state = 'Y'
+              
+           and dr.rep_id = drep.id
+           and dr.rep_inst = drep.inst
+              
+           and r.id = dr.ttn_id
+           and r.inst = dr.ttn_inst
+              
+           and p.id = r.part_id
+           and p.inst = r.part_inst
+              
+           and dr.oper_type in (0, 1)
+           and pr_ud_weig <> ud_weig
+           and trunc(drep.rep_date) <
+               to_date(nvl(ov.getval('DR_AVERAGE_DATE'), sysdate),
+                       'dd.mm.yyyy')
+           and (r.date_ >= :BeginDate or trunc(drep.rep_date) >= :BeginDate)
+              
+           and oo.id = r.from_id
+           and oo.inst = r.from_inst
+              
+           and azs.id = drep.azs_id
+           and azs.inst = drep.azs_inst
+        union all
+        select /*+ORDERED*/
+         decode(dr.oper_type, 0, r.date_, to_date(null)) as r_date,
+         decode(dr.oper_type, 0, r.from_id, to_number(null)) as ppon_id,
+         decode(dr.oper_type, 0, oo.name, to_char(null)) as ppon_name,
+         drep.azs_id,
+         azs.name as azs_name,
+         trunc(drep.rep_date) as rep_date,
+         drep.smena_num,
+         npt.name as dog,
+         dr.pr_ud_weig,
+         decode(dr.oper_type, 0, r.ud_weig, to_number(null)) as ud_weig
+          from oil_daily_rep drep,
+               oil_dr_data dr,
+               oil_rashod r,
+               oil_part p,
+               v_oil_np_type npt,
+               (select min(density_with) as density_with
+                  from oil_np_koef_density
+                 where state = 'Y') d,
+               v_org oo,
+               v_oil_azs azs
+         where drep.state = 'Y'
+           and dr.state = 'Y'
+           and r.state = 'Y'
+           and p.state = 'Y'
+              
+           and dr.rep_id = drep.id
+           and dr.rep_inst = drep.inst
+              
+           and r.id = dr.ttn_id
+           and r.inst = dr.ttn_inst
+              
+           and p.id = r.part_id
+           and p.inst = r.part_inst
+              
+           and npt.id = p.np_type
+              
+           and dr.oper_type in (0, 1)
+           and ((dr.oper_type <> 0 and (nvl(pr_ud_weig, 0) < density_with or
+               nvl(pr_ud_weig, 0) > 1)) or
+               (dr.oper_type = 0 and pr_ud_weig <> ud_weig))
+           and ov.getval('DR_DENSITY_CALC') = 'AVERAGE'
+           and trunc(drep.rep_date) >=
+               to_date(ov.getval('DR_AVERAGE_DATE'), 'dd.mm.yyyy')
+           and trunc(drep.rep_date) >= :BeginDate
+              
+           and oo.id = r.from_id
+           and oo.inst = r.from_inst
+              
+           and azs.id = drep.azs_id
+           and azs.inst = drep.azs_inst)
+ order by rep_date, azs_name, dog, ppon_name
+
+[FIELDS]
+  NAME = r_date
+  CAPTION = Дата отпуска@Дата відпуску
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = rep_date
+  CAPTION = Дата см.отчета@Дата зм.звіту
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = ppon_name
+  CAPTION = ППОН
+  WIDTH = 30
+
+  NAME = azs_name
+  CAPTION = АЗС@АЗС
+  WIDTH = 30
+
+  NAME = smena_num
+  CAPTION = Смена@Зміна
+  WIDTH = 8
+
+  NAME = DOG
+  CAPTION = Партия/НП@Партія/НП
+  WIDTH = 20
+
+  NAME = pr_ud_weig
+  CAPTION = Плотность (расход)@Густина (відпуску)
+  WIDTH = 18
+
+  NAME = ud_weig
+  CAPTION = Плотность (см.отчет)@Густина (зм.звіт)
+  WIDTH = 18
+
+[TYPES]
+  CAPTION = Основной@Основний

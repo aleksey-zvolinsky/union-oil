@@ -1,0 +1,90 @@
+[GLOBAL]
+  TITLE = Акт инвентаризации@Акт інвентаризації
+  MENU = Отчеты\Сопутствующий товар\Акт инвентаризации@Акт інвентаризації
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  TITLE_COORD = D7
+
+[PANELS]
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1 = Подразделение@Підрозділ
+    STARTCONDITION1=0
+    NULLVALUE1=NO
+    CAPTION2 = АЗС
+    STARTCONDITION2=2
+    NULLVALUE2=NO
+  END
+
+  DATEPANEL
+    NUM=1
+    CAPTION1 = На
+  END
+
+
+[DESCRIPTION]
+ \{F2}M\B:org1.Name\b
+ \{F3}M\B:org2.Name\b
+ \{F5}M\B :BeginDate\b@\{F5}M\B :BeginDate\b
+
+[SQL]       
+select X.trademark_name,
+       X.name,
+       to_number(substr(max(to_char(X.date_on, 'YYYYMMDD') || X.price), 9)) as price,
+       X.codavias,
+       X.Quantity,
+       to_number(substr(max(to_char(X.date_on, 'YYYYMMDD') || X.price), 9)) * X.Quantity as GRN
+  from (select np.trademark_name,
+               np.name,
+               np.codavias as codavias,
+               np.fiscal_name as fname,
+               np_p.date_on,
+               np_p.price,
+               sum(-shtuki) as Quantity
+          from v_oil_npmove m, v_oil_np_type np, oil_np_price np_p
+         where NbAzs = 1
+           and IsSummary <> 'N'
+           and date_ < to_date(:BeginDate, 'dd.mm.yyyy')
+           and AzsId = :org2.id
+           and AzsInst = :org2.id
+           and np_groupid = 9
+           and np_p.np_id = m.np_typeid
+           and np_p.np_id = np.id
+           and np_p.date_on <= to_date(:BeginDate, 'dd.mm.yyyy')
+         group by np.trademark_name, np.name, np.codavias, np.fiscal_name, np_p.date_on, np_p.price
+        having sum(shtuki) <> 0) X
+ group by trademark_name, name, codavias, Quantity
+
+[FIELDS]
+
+  NAME = trademark_name
+  CAPTION = Торг. марка@Торг. марка
+  WIDTH = 20
+
+  NAME = Name
+  CAPTION = Полное наименование@Повна назва
+  WIDTH = 30
+
+  NAME = price
+  CAPTION = Цена розн, грн@Цена розд, грн
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = codavias
+  CAPTION = Код ННБ
+  WIDTH = 8
+
+  NAME = Quantity
+  CAPTION = Остаток по бух. учету@Остаток по бух. учету
+  WIDTH = 10
+
+  NAME = GRN
+  CAPTION = Сумма розн, грн@Сума розд, грн
+  WIDTH = 10
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

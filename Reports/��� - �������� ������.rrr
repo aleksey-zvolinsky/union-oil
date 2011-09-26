@@ -1,0 +1,249 @@
+[GLOBAL]
+   TITLE = Движение по АЗС сопутствующих товаров@Рух по АЗС супутніх товарів
+   MENU = Отчеты\Отчеты по АЗС\Движение сопутств.товара@Рух супутніх товарів
+   MENU_POSITION = 3
+   VERSION = 1.9
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+   PANEL
+      CAPTION = Партии@Партії
+      ELEMENT PART:CheckBoxGroup
+         LIST = Только по партиям СП@Тільки за партіями СП
+         VALUES = 1
+      END
+   END
+
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+[SQL]
+select Q.*,
+       round(decode(ss_av,0,0,(end_price-ss_av)*100/ss_av),2) as nacproc,
+       round(rest_end*end_price,2) as rest_end_summa,
+       rash_summa-rash_ss_summa as nacsumm,
+       decode(rash_summa,0,0,(rash_summa-rash_ss_summa)/rash_summa) as nackoef,
+       decode(QSumm.report_summa,0,0,rash_summa*100/QSumm.report_summa) as koef
+from 
+(select Q1.*,
+       round(rest*beg_price,2) as rest_summa, 
+       rest+prih-rash as rest_end,
+       decode(full_prih,0,0,round(full_prih_summa/full_prih,2)) as ss_av
+from
+ (select us_group,us_subgroup,np_type,pponname,fullazsname,dimname,codavias,
+         sum(rest) as rest, 
+         sum(rash) as rash, sum(price*rash) as rash_summa, sum(rash*ssnds) as rash_ss_summa,
+         sum(rash_voz) as rash_voz, sum(price*rash_voz) as rash_voz_summa,
+         sum(prih) as prih, sum(price*prih) as prih_summa,
+         sum(full_prih) as full_prih, sum(ssnds*full_prih) as full_prih_summa,
+         nvl(to_number(substr(max(date_price),9)),0) as end_price,
+         nvl(to_number(substr(max(decode(restreal,-1,date_price,to_char(null))),9)),0) as beg_price
+  from  
+    (select us_group,us_subgroup,np_type,pponname,fullazsname,ssnds,price,restreal,dimname,codavias,
+           -decode(restreal,-1,shtuki,0) as rest,
+           substr(date_,7,4)||substr(date_,4,2)||substr(date_,1,2)||lpad(to_char(price),20) as date_price,
+            decode(restreal,-1,0,decode(sign(shtuki),1,decode(operid,55,0,shtuki),0)) as rash,      
+            decode(restreal,-1,0,decode(sign(shtuki),1,decode(operid,55,shtuki,0),0)) as rash_voz,      
+           -decode(restreal,-1,0,decode(sign(shtuki),-1,shtuki,0)) as prih,
+           -decode(sign(shtuki),-1,shtuki,0) as full_prih
+     from       
+       (select us_group,us_subgroup,np_type,pponname,date_,dimname,
+               nvl(fullazsname,pponname) as fullazsname,operid,
+               round(ss*1.2,2) as ssnds,
+               price, azsid,pponid,oblid,shtuki,
+               -1 as restreal,
+               codavias
+        from v_oil_npmove
+        where IsSummary<>'N' and date_<:BeginDate
+              and nbazs=1
+              and :org1.id in (azsid,pponid,oblid)
+              and us_subgroupid is not null
+              and own_goods in (:KOS.GetValues)
+              and IsShtuki='Y'
+              and decode(:PART.GetState{0},'1',dog,'СП') like 'СП%'
+        UNION ALL
+              select us_group,us_subgroup,
+               np_type,pponname,date_,dimname,nvl(fullazsname,pponname) as fullazsname,operid,
+               round(ss*1.2,2) as ssnds,
+               price, azsid,pponid,oblid,shtuki,
+               1 as restreal,
+               codavias
+        from v_oil_npmove
+        where IsTalonDet<>'Y' and IsSummary<>'Y' 
+              and date_ between :BeginDate and :EndDate
+              and nbazs=1
+              and :org1.id in (azsid,pponid,oblid)
+              and us_subgroupid is not null
+              and own_goods in (:KOS.GetValues) 
+              and IsShtuki='Y' and IsInsideReal='N'
+              and decode(:PART.GetState{0},1,dog,'СП') like 'СП%'
+             )
+    )
+  group by us_group,us_subgroup,np_type,pponname,fullazsname,dimname,codavias)Q1
+) Q,
+  
+  (select sum(price*shtuki) as report_summa
+   from v_oil_npmove
+   where selltypeid<>4
+         and nbazs=1
+         and date_ between :BeginDate and :EndDate
+         and :org1.id in (azsid,pponid,oblid)
+         and us_subgroupid is not null and RashPrih=0
+         and decode(:PART.GetState{0},1,dog,'СП') like 'СП%'
+         ) QSumm
+
+where (rest<>0 or prih<>0 or rash<>0)
+ 
+[FIELDS]
+   NAME = us_group
+   CAPTION = Группа@Група
+   WIDTH = 25
+
+   NAME = us_subgroup
+   CAPTION = Подгруппа@Підгрупа
+   WIDTH = 25
+
+   NAME = CODAVIAS
+   CAPTION = Код ННБ
+   WIDTH = 8
+
+   NAME = np_type
+   CAPTION = Наименование@Назва
+   WIDTH = 25
+
+   NAME = dimname
+   CAPTION = Ед.изм.@Од.вим.
+   WIDTH = 15
+
+   NAME = pponname
+   CAPTION = Нефтебаза@Нафтобаза
+   WIDTH = 25
+
+   NAME = fullazsname
+   CAPTION = АЗС
+   WIDTH = 25
+
+   NAME = ss_av
+   CAPTION = Цена поставки@Ціна поставки
+   WIDTH = 14
+   FORMAT = 0.00
+
+   NAME = end_price
+   CAPTION = Цена реализ.@Ціна реалізації
+   WIDTH = 14
+   FORMAT = 0.00
+
+   NAME = nacproc
+   CAPTION = Наценка %@Націнка %
+   WIDTH = 12
+   FORMAT = 0.00
+
+   DEFAULT TOSUM = TRUE
+
+   NAME = rest
+   CAPTION = Ост. на начало!шт.@Зал. на початок!шт.
+   WIDTH = 12
+   FORMAT = 0
+   OPTIONAL=FALSE
+
+   NAME = rest_summa
+   CAPTION = Ост. на начало!грн.@Зал. на початок!грн.
+   WIDTH = 12
+   FORMAT = 0.00
+   
+   NAME = prih
+   CAPTION = Приход!шт.@Прихід!шт.
+   WIDTH = 12
+   FORMAT = 0
+   OPTIONAL=FALSE
+
+   NAME = prih_summa
+   CAPTION = Приход!грн.@Прихід!грн.
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = rash
+   CAPTION = Реализация!шт.@Реалізація!шт.
+   WIDTH = 12
+   FORMAT = 0
+   OPTIONAL=FALSE
+
+   NAME = rash_summa
+   CAPTION = Реализация!грн.@Реалізація!грн.
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = rash_voz
+   CAPTION = Возврат!шт.@Повернення!шт.
+   WIDTH = 12
+   FORMAT = 0
+   HIDEIFEMPTY = TRUE
+
+   NAME = rash_voz_summa
+   CAPTION = Возврат!грн.@Повернення!грн.
+   WIDTH = 12
+   FORMAT = 0.00
+   HIDEIFEMPTY = TRUE
+
+   NAME = rest_end
+   CAPTION = Ост. на конец!шт.@Зал. на кінець!шт.
+   WIDTH = 12
+   FORMAT = 0
+   OPTIONAL=FALSE
+
+   NAME = rest_end_summa
+   CAPTION = Ост. на конец!грн.@Зал. на кінець!грн.
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = rash_ss_summa
+   CAPTION = Реал. по цене пост.@Реалізація за ціною пост.
+   WIDTH = 14
+   FORMAT = 0.00
+
+   NAME = nacsumm
+   CAPTION = Торг.наценка@Торгова націнка
+   WIDTH = 14
+   FORMAT = 0.00
+
+   NAME = nackoef
+   CAPTION = Коэфф.@Коеф.
+   WIDTH = 14
+   FORMAT = 0.00
+
+   NAME = koef
+   CAPTION = % в общ.@% в заг.
+   WIDTH = 12
+   FORMAT = 0.00
+    
+[TYPES]
+   
+   CAPTION = Суммарно по товару@Сумарно за товаром
+   ITOGI = us_group,us_subgroup,np_type
+   UNCHECKED = fullazsname,pponname
+
+   CAPTION = По товару с разбивкой по АЗС@За товаром з розбивкою по АЗС
+   ITOGI = us_group,us_subgroup,np_type,pponname
+
+   CAPTION = По АЗС@За АЗС 
+   ITOGI = fullazsname
+   UNCHECKED = us_group,us_subgroup,pponname
+   ORDER = fullazsname,np_type
+                

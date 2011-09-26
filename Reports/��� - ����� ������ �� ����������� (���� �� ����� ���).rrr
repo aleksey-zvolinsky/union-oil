@@ -1,0 +1,128 @@
+[GLOBAL]
+   TITLE = Наши на чужих АЗС@Наші на чужих АЗС
+   MENU = Отчеты\Отчеты по эл. карточкам\Чужие списания\Наши на чужих АЗС@Наші на чужих АЗС
+   MENU_POSITION = 2
+   VERSION = 1.2
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NUM = 2
+     CAPTION1 = Кому
+     CAPTION2 = От кого
+   END
+
+[DESCRIPTION]
+   От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+   От кого:: :org2.name@Від кого:: :org2.name
+   Кому:: :org1.name
+
+[SQL]
+select c.id,
+       c.inst,
+       c.transit_id,
+       c.transit_inst,
+       decode(from_.org_type,3,from_obl.name,from	_.name)from_name,
+       c.oper_date,
+       c.card_np_type,
+       c.azs_id,
+       c.azs_inst,
+       oazs.name azs_name,
+       c.term_price,
+       c.card_number,
+       c.part_id,
+       c.part_inst,
+       c.dog,
+       c.cert,
+       c.np_type,
+       np.name np_type_name,
+       c.ss,
+       c.litr,
+       c.tonn,
+       c.sub_part,
+       c.rep_date,
+       to_.name to_name
+  from card_transit_part c, oil_np_group np, oil_org from_, oil_org oazs, oil_org to_, oil_org from_obl
+ where c.state = 'Y'
+   /*and c.inst <> (select main_inst from oil_info)*/
+   and np.id = c.np_type
+   and c.state = 'Y'
+   and c.azs_id = oazs.id
+   and oazs.inst = oazs.id
+   and from_.id = from_.inst
+   and from_.id = oazs.par
+   and Card.GetObl(card_number, c.rep_date) = to_.id
+   and to_.id = to_.inst
+   and from_.par = from_obl.id and from_obl.id=from_obl.inst
+   and (decode(from_.org_type,3,from_obl.id,from_.id) = :org2.id or :org2.id is null)
+   and (to_.id = :org1.id or :org1.id is null)
+   and trunc(c.oper_date) between :BeginDate and :EndDate
+
+[FIELDS]
+   NAME = from_name
+   CAPTION = Где!Филиал@Де!Філія
+   WIDTH = 30
+
+   NAME = azs_name
+   CAPTION = Где!АЗС@Де!АЗС
+   WIDTH = 30
+
+   NAME = transit_id
+   CAPTION = Транзакция!Код@Транзакція!Код
+   WIDTH = 10
+
+   NAME = oper_date
+   CAPTION = Транзакция!Дата@Транзакція!Дата
+   WIDTH = 20
+
+   NAME = rep_date
+   CAPTION = Транзакция!Дата см.отчета@Транзакція!Дата зм.звіту
+   WIDTH = 20
+
+   NAME = term_price
+   CAPTION = Цена@Ціна
+   WIDTH = 10
+
+   NAME = card_number
+   CAPTION = Номер карты@Номер картки
+   WIDTH = 15
+
+   NAME = part_id
+   CAPTION = Партия!Код@Партія!Код
+   WIDTH = 10
+
+   NAME = dog
+   CAPTION = Партия!Договор@Партія!Договір
+   WIDTH = 15
+
+   NAME = cert
+   CAPTION = Партия!Сертификат@Партія!Сертифікат
+   WIDTH = 20
+
+   NAME = np_type_name
+   CAPTION = Партия!Тип НП@Партія!Тип НП
+   WIDTH = 25
+
+   NAME = ss
+   CAPTION = Партия!Учетная цена@Партія!Облікова ціна
+   WIDTH = 10
+
+   NAME = litr
+   CAPTION = Партия!Литры@Партія!Літри
+   TOSUM = TRUE
+   WIDTH = 10
+
+   NAME = tonn
+   CAPTION = Партия!Тонны@Партія!Тони
+   TOSUM = TRUE
+   WIDTH = 10
+
+   NAME = sub_part
+   CAPTION = Партия!Подпартия@Партія!Підпартія
+   WIDTH = 10
+
+[TYPES]
+   CAPTION = Основной@Основний

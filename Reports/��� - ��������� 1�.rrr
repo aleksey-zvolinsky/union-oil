@@ -1,0 +1,118 @@
+[GLOBAL]
+    TITLE = Дебиторка по данным 1С@Дебіторка за даними 1С
+    MENU = Отчеты\Дебет и Кредит\Дебеторка по данным 1С@Дебіторка за даними 1С
+    VERSION = 0.9
+    RAZM_SYMBOLS = NO
+    PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+
+   PANEL
+      CAPTION = Тип товара
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+    
+
+   PANEL
+      CAPTION = Тип артикула
+      ELEMENT ART:CheckBoxGroup
+         LIST = Нефтепродукты,Непрофильный@Нафтопродукти,Непрофільний
+         VALUES = 0,1
+      END
+   END
+
+[DESCRIPTION]
+   На :BeginDate
+   Тип товара:: :KOS.GetCaptions
+   Тип артикула:: :ART.GetCaptions
+
+[SQL]
+select dep_name,org_name,org_okpo,own_goods,type_art,
+       decode(year,substr(sysdate,-4),
+           decode(days,0,summa,0)) as deb0,
+       decode(year,substr(sysdate,-4),
+           decode(days,30,summa,0)) as deb30,
+       decode(year,substr(sysdate,-4),
+           decode(days,60,summa,0)) as deb60,
+       decode(year,substr(sysdate,-4),
+           decode(days,90,summa,0)) as deb90,
+       decode(year,2002,summa,0) as deb2002,
+       decode(year,2001,summa,0) as deb2001,
+       decode(year,2000,summa,0) as deb2000,
+       decode(year,1999,summa,0) as deb1999,
+       decode(sign(year-1999),-1,summa,0) as deb_last
+from
+
+(select oo.name as dep_name,dc.org_name,dc.org_okpo,
+       decode(dc.deb_type,'O','Собственный','K','Комиссия','Прочее') as own_goods,
+       decode(dc.type_art,0,'Нефтепродукты',1,'Непрофильный') as type_art,
+       year,days,summa
+ from oil_deb_1c d,oil_deb_1c_det dc,oil_org oo
+ where dc.state='Y' and d.state='Y'
+       and dc.deb_1c_id=d.id and dc.inst=d.inst
+       and dc.dep_id=oo.id(+) and oo.id(+)=oo.inst(+)
+)
+
+[FIELDS]
+    NAME = dep_name
+    CAPTION = Подразделение@Підрозділ
+    WIDTH = 15
+
+    NAME = own_goods
+    CAPTION = Тип товара
+    WIDTH = 12
+
+    NAME = type_art
+    CAPTION = Тип артикула
+    WIDTH = 12
+
+    NAME = org_name
+    CAPTION = Клиент@Клієнт
+    WIDTH = 15
+
+    NAME = org_okpo
+    CAPTION = ОКПО@ЄДРПОУ
+    WIDTH = 10
+
+    DEFAULT FORMAT = 0.00
+    DEFAULT TOSUM = TRUE
+    DEFAULT HIDEIFEMPTY = TRUE
+
+    NAME = deb0
+    CAPTION = Текущий год!До 30 дн.@Поточний рік!до 30 дн
+
+    NAME = deb30
+    CAPTION = Текущий год!От 30 до 60 дн.@Поточний рік!від 30 до 60 дн
+
+    NAME = deb60
+    CAPTION = Текущий год!От 60 до 90 дн.@Поточний рік!від 60 до 90 дн
+
+    NAME = deb90
+    CAPTION = Текущий год!Свыше 90 дн.@Поточний рік!більше 90 дн
+
+    NAME = deb2002
+    CAPTION = 2002г.@2002р.
+
+    NAME = deb2001
+    CAPTION = 2001г.@2001р.
+
+    NAME = deb2000
+    CAPTION = 2000г.@2000р.
+
+    NAME = deb1999
+    CAPTION = 1999г.@1999р.
+
+    NAME = deb_last
+    CAPTION = Предыдущие года@Попередні роки
+
+[TYPES]
+    CAPTION = Основной@Основний
+    ITOGI = dep_name,own_goods,type_art
+    

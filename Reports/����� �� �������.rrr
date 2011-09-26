@@ -1,0 +1,112 @@
+[GLOBAL]
+   TITLE = Отчет по оплатам@Звіт по оплатам
+   MENU = Отчеты\Отчет по оплатам@Звіт по оплатам
+   VERSION = 1.3
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип оплаты@Тип оплати
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия, Собственная, Прочая@Комісія, Власна, Інша
+         VALUES = 0,1,2
+      END
+   END
+
+   PANEL
+      ELEMENT OperList:List
+	 CAPTION = Типы операций :@Типи операцій :
+         TABLENAME = oil_oper_type
+         CONDITION = grp=11
+      END
+      ELEMENT GoalList:List
+	 CAPTION = Цел.назначение:@Ціл.призначення:
+         TABLENAME = oil_goal_part_type
+      END
+   END
+
+[DESCRIPTION]
+   От :BeginDate по :EndDate@Від :BeginDate по :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+[SQL]
+select /*+ORDERED USE_HASH(m,oo,odep,op,ogp)*/
+ oo.name as orgname,
+ oo.id_num,
+ m.mdate,
+ op.name as oper_name,
+ ogp.name as goal_name,
+ m.money,
+ oo.addr
+  from oil_money          m,
+       v_org              oo,
+       v_oil_org_norek    odep,
+       v_oil_oper_type    op,
+       oil_goal_part_type ogp
+ where m.state = 'Y'
+   and m.org_id = oo.id
+   and m.org_inst = oo.inst
+   and m.dep_id = odep.id
+   and m.dep_inst = odep.inst
+   and m.oper_id = op.id(+)
+   and m.goal_part_type = ogp.id(+)
+   and oo.state = 'Y'
+   and m.mdate between :BeginDate AND :EndDate
+   and :org1.id in (odep.pponid, odep.oblid, odep.id)
+   and m.money_t in (:KOS.GetValues)
+   and :OperList.IsInList{m.oper_id}
+   and :GoalList.IsInList{m.goal_part_type}
+
+[FIELDS]
+   NAME = orgname
+   CAPTION = Организация@Організація
+   WIDTH = 40
+
+   NAME = id_num
+   CAPTION = ОКПО@ЄДРПОУ
+   WIDTH = 12
+
+   NAME = addr
+   CAPTION = Адресс@Адрес
+   WIDTH = 30
+
+   NAME = mdate
+   CAPTION = Дата@Дата
+   WIDTH = 12
+
+   NAME = oper_name
+   CAPTION = Операция@Операція
+   WIDTH = 20
+
+   NAME = goal_name
+   CAPTION = Цел.назначение@Ціл.призначення
+   WIDTH = 20
+
+   NAME = money
+   CAPTION = Сумма@Сума
+   WIDTH = 12
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+   TOSUM = TRUE
+
+[TYPES]
+   CAPTION = Основной@Основна
+   ITOGI =
+
+   CAPTION = По операциям@Пл операціям
+   ORDER  = oper_name,orgname,mdate
+   ITOGI = oper_name
+
+   CAPTION = По клиентам@По клієнтам
+   ITOGI = orgname
+
+   CAPTION = По датам@По датам
+   ORDER = mdate,orgname
+   ITOGI = mdate

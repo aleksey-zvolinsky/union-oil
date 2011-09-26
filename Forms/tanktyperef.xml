@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Общие" caption="Типы цистерн">
+	<sql>
+select * from oil_tank_type
+</sql>
+	<columns>
+		<column align="left" width="150">
+			<caption align="center">Название</caption>
+			<fieldname>name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="200" wholevalue="false">
+			<name>filter1</name>
+			<caption>Название:</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

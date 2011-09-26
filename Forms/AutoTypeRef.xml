@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Общие" caption="Типы технических средств">
+<sql>
+select *
+  from (select aut.*, ag.name as group_name
+          from oil_auto_type aut, oil_auto_group ag
+         where aut.state = 'Y'
+           and aut.auto_group = ag.id)
+</sql>
+	<columns>
+		<column align="left" width="60">
+			<caption align="center">Номер</caption>
+			<fieldname>id</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Название</caption>
+			<fieldname>name</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Группа</caption>
+			<fieldname>group_name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="200" wholevalue="false">
+			<name>filter1</name>
+			<caption>Название:</caption>
+			<fieldname>name</fieldname>
+		</edit>
+		<xmlform width="250" left="230" top="10" wholevalue="true">
+			<name>AutoGrpRef</name>
+			<caption>Группа:</caption>
+			<link>
+				<srcfield> id </srcfield>
+				<destfield> auto_group </destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+	</filters>
+</form>

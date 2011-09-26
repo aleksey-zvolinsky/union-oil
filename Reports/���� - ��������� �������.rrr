@@ -1,0 +1,117 @@
+[GLOBAL]
+  TITLE = Состояние бланков@Стан бланків
+  MENU = Отчеты\Отчеты по эл. карточкам\Бланки\Состояние бланков@Стан бланків
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+    NUM = 1
+    CAPTION1 = На
+  END
+
+  ORGPANEL
+    NUM = 1
+    CAPTION1=Организация@Організація
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+  PANEL
+    ELEMENT OperList:List
+      CAPTION = Операции:@Операцiї
+      TABLENAME = oil_oper_type
+      CONDITION = grp in (17,18)
+    END
+  END
+
+[DESCRIPTION]
+  На :BeginDate@На :BeginDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+  Операции:: :OperList.NameList@Операції:: :OperList.NameList
+
+[SQL]
+
+select nvl(oo.par_name,oo.name) as obl,
+       oo.name as ppon,
+       card_number,
+       decode(ov.GetVal('LANGUAGE'),0,
+           decode(oper_id, 255,'Продано',
+                           256,'В пути',
+                           257,'Списано',
+                           258,'Собственные',
+                           267,'Служебные',
+                           'В кассе'),
+           decode(oper_id, 255,'Продано',
+                           256,'В шляху',
+                           257,'Списано',
+                           258,'Власні',
+                           267,'Службові',
+                           'В касі')
+             ) as stan,
+       oper_name,
+       date_,
+       1 as ones
+  from (select row_number() over(partition by card_number
+                 order by date_ desc, order_ desc ) rn,
+               b.*
+          from v_card_blank_full_base b
+         where date_ < :BeginDate )q, v_oil_org_norek oo
+ where rn = 1
+   and :OperList.IsInList{oper_id}
+   and oo.id = oo.inst
+   and :org1.id in (oo.id,oo.par)
+   and :org1.inst in (oo.inst,oo.par_inst)
+   and oo.id = decode(in_out,1,to_id,-1,from_id)
+   and oo.inst = decode(in_out,1,to_inst,-1,from_inst)
+
+[FIELDS]
+
+  NAME = OBL
+  CAPTION = Филиал@Філіал
+  WIDTH = 50
+
+  NAME = PPON
+  CAPTION = Нефтебаза@Нафтобаза
+  WIDTH = 50
+
+  NAME = CARD_NUMBER
+  CAPTION = Бланк@Бланк
+  WIDTH = 15
+
+  NAME = STAN
+  CAPTION = Состояние@Стан
+  WIDTH = 17
+
+  NAME = DATE_
+  CAPTION = Последняя операция!Дата@Остання операція!Дата
+  WIDTH = 10
+
+  NAME = OPER_NAME
+  CAPTION = Последняя операция!Название@Остання операція!Назва
+  WIDTH = 25
+
+  NAME = ONES
+  CAPTION = Кол-во, шт@Кіл-ть, шт
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = OPER_NAME
+  UNCHECKED = DATE_
+
+  CAPTION = С датами@З датами
+  ITOGI = OPER_NAME
+
+  CAPTION = По н/б
+  ITOGI = OPER_NAME, PPON
+  UNCHECKED = DATE_
+
+  CAPTION = По н/б c датами@По н/б з датами
+  ITOGI = OPER_NAME, PPON
+
+  CAPTION = Сводный@Зведений
+  ITOGI = STAN
+  UNCHECKED = CARD_NUMBER,DATE_,OPER_NAME

@@ -1,0 +1,88 @@
+[GLOBAL]
+   TITLE = Отчет
+   TITLE_COORD = D4
+   NAME_FOR_SAVE = КРТ_ЧужФилиалы
+   MENU = Отчеты\Отчеты по эл. карточкам\Чужие списания филиалов
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   PAGE_ORIENT = VER
+   SHOW_INFO = NO
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NUM = 2
+     CAPTION1 = От кого
+     CAPTION2 = Кому
+   END
+
+[DESCRIPTION]
+   \{A2}MОператор (:org1.name)
+   \{B5}Mотпусков ГСМ по смарт-картам контрагентам :org2.name
+   \{C6}MЗа период с :BeginDate по :EndDate
+
+[SQL]
+select 
+  trunc(rep_date) as rep_date,azs_name,card_number,np_name,
+  litr,weight*1000 as kg,
+  part_dog,part_ss,round(weight*part_ss,2) as summa_ss
+from v_card_sr_equal vc
+where trunc(rep_date) between :BeginDate and :EndDate
+  and client_id=:org2.id 
+  and client_inst=client_id
+
+[FIELDS]
+   HEAD_DEPTH = 3
+
+   NAME = rep_date
+   CAPTION = Дата
+   WIDTH=12
+
+   NAME = azs_name
+   CAPTION = АЗС
+   WIDTH = 15
+
+   NAME = card_number
+   CAPTION = № смарт-карты
+   WIDTH = 12
+
+   NAME = np_name
+   CAPTION = Наименование ГСМ
+   WIDTH = 10
+
+   DEFAULT TOSUM = TRUE
+
+   NAME = litr
+   CAPTION = Кол-во отпуска, л.
+   WIDTH = 10
+   FORMAT = 0.000
+
+   NAME = kg
+   CAPTION = Кол-во отпуска, кг.
+   WIDTH = 10
+   FORMAT = 0.000
+
+   NAME = part_dog
+   CAPTION = Партия отпуска
+   WIDTH = 15
+   TOSUM = FALSE
+
+   NAME = part_ss
+   CAPTION = Учетная цена партии за 1т.
+   WIDTH = 12
+   FORMAT = 0.00
+   
+   NAME = summa_ss
+   CAPTION = Сумма внутреннего перемещения, грн.
+   WIDTH = 15
+   FORMAT = 0.00
+
+[TYPES]
+   
+   CAPTION = Основной
+   ITOGI = np_name
+
+   CAPTION = По датам и АЗС (для расх.накладных)
+   ITOGI = rep_date,azs_name,np_name

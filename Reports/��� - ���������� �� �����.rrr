@@ -1,0 +1,317 @@
+[GLOBAL]
+   TITLE = Реализация с АЗС по датам@Реалізація з АЗС по датам
+   MENU = Отчеты\Отчеты по АЗС\Реализация с АЗС по датам@Реалізація з АЗС по датам
+   MENU_POSITION = 2
+   VERSION = 1.8
+   ZERO_LINES = YES
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+   PANEL
+      CAPTION = Стоимость@Вартість
+      HEIGHT=90
+      WIDTH=150
+      ELEMENT UchReal:RadioButtonGroup
+         LIST = По продажной цене,По учетной цене@По продажній ціні,По обліковій ціні
+         VALUES = 1, 0
+      END
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Тип товара:: :KOS.GetCaptions@Тип товару:: :KOS.GetCaptions
+   Подсчет суммы:: :UchReal.Name@Обрахунок суми:: :UchReal.Name
+
+[SQL]
+select podrname,azsname,date_,dog,np_type,np_group,dimname,postname,ss,
+       sub_part,ud_weig,price,rep_price,
+       sum(litr) as litr,
+       sum(tonn) as tonn,
+       sum(shtuki) as shtuki,
+       sum(summa) as summa,
+
+       sum(decode(operid,11,litr,0)) as bnal_litr,
+       sum(decode(operid,11,tonn,0)) as bnal_tonn,
+       sum(decode(operid,11,shtuki,0)) as bnal_shtuki,
+       sum(decode(operid,11,summa,0)) as bnal_summa,
+
+       sum(decode(operid,12,litr,0)) as nal_litr,
+       sum(decode(operid,12,tonn,0)) as nal_tonn,
+       sum(decode(operid,12,shtuki,0)) as nal_shtuki,
+       sum(decode(operid,12,summa,0)) as nal_summa,
+
+       sum(decode(operid,14,litr,0)) as tal_litr,
+       sum(decode(operid,14,tonn,0)) as tal_tonn,
+       sum(decode(operid,14,shtuki,0)) as tal_shtuki,
+       sum(decode(operid,14,summa,0)) as tal_summa,
+
+       sum(decode(operid,15,litr,47,litr,0)) as own_litr,
+       sum(decode(operid,15,tonn,47,tonn,0)) as own_tonn,
+       sum(decode(operid,15,shtuki,47,shtuki,0)) as own_shtuki,
+       sum(decode(operid,15,summa,47,summa,0)) as own_summa,
+
+       sum(decode(operid,16,litr,0)) as eub_litr,
+       sum(decode(operid,16,tonn,0)) as eub_tonn,
+       sum(decode(operid,16,shtuki,0)) as eub_shtuki,
+       sum(decode(operid,16,summa,0)) as eub_summa,
+
+       sum(decode(operid,19,litr,0)) as shr_litr,
+       sum(decode(operid,19,tonn,0)) as shr_tonn,
+       sum(decode(operid,19,shtuki,0)) as shr_shtuki,
+       sum(decode(operid,19,summa,0)) as shr_summa,
+
+       sum(decode(operid,40,litr,0)) as avt_litr,
+       sum(decode(operid,40,tonn,0)) as avt_tonn,
+       sum(decode(operid,40,shtuki,0)) as avt_shtuki,
+       sum(decode(operid,40,summa,0)) as avt_summa,
+
+       sum(decode(operid,49,litr,0)) as com_litr,
+       sum(decode(operid,49,tonn,0)) as com_tonn,
+       sum(decode(operid,49,shtuki,0)) as com_shtuki,
+       sum(decode(operid,49,summa,0)) as com_summa,
+
+       sum(decode(operid,51,litr,0)) as sec_litr,
+       sum(decode(operid,51,tonn,0)) as sec_tonn,
+       sum(decode(operid,51,shtuki,0)) as sec_shtuki,
+       sum(decode(operid,51,summa,0)) as sec_summa,
+
+       sum(decode(operid,153,litr,0)) as card_litr,
+       sum(decode(operid,153,tonn,0)) as card_tonn,
+       sum(decode(operid,153,shtuki,0)) as card_shtuki,
+       sum(decode(operid,153,summa,0)) as card_summa,
+
+       sum(decode(operid,201,litr,0)) as bcard_litr,
+       sum(decode(operid,201,tonn,0)) as bcard_tonn,
+       sum(decode(operid,201,shtuki,0)) as bcard_shtuki,
+       sum(decode(operid,201,summa,0)) as bcard_summa,
+
+       sum(decode(operid,270,litr,0)) as avs_talplukr_litr,
+       sum(decode(operid,270,tonn,0)) as avs_talplukr_tonn,
+       sum(decode(operid,270,shtuki,0)) as avs_talplukr_shtuki,
+       sum(decode(operid,270,summa,0)) as avs_talplukr_summa,
+
+       sum(decode(operid,271,litr,0)) as avs_talplreg_litr,
+       sum(decode(operid,271,tonn,0)) as avs_talplreg_tonn,
+       sum(decode(operid,271,shtuki,0)) as avs_talplreg_shtuki,
+       sum(decode(operid,271,summa,0)) as avs_talplreg_summa,
+
+       sum(decode(operid,272,litr,0)) as avs_talbukr_litr,
+       sum(decode(operid,272,tonn,0)) as avs_talbukr_tonn,
+       sum(decode(operid,272,shtuki,0)) as avs_talbukr_shtuki,
+       sum(decode(operid,272,summa,0)) as avs_talbukr_summa,
+
+       sum(decode(operid,273,litr,0)) as avs_talsukr_litr,
+       sum(decode(operid,273,tonn,0)) as avs_talsukr_tonn,
+       sum(decode(operid,273,shtuki,0)) as avs_talsukr_shtuki,
+       sum(decode(operid,273,summa,0)) as avs_talsukr_summa,
+
+       sum(decode(operid,274,litr,0)) as avs_talsreg_litr,
+       sum(decode(operid,274,tonn,0)) as avs_talsreg_tonn,
+       sum(decode(operid,274,shtuki,0)) as avs_talsreg_shtuki,
+       sum(decode(operid,274,summa,0)) as avs_talsreg_summa,
+
+       sum(decode(operid,275,litr,0)) as avs_cardukr_litr,
+       sum(decode(operid,275,tonn,0)) as avs_cardukr_tonn,
+       sum(decode(operid,275,shtuki,0)) as avs_cardukr_shtuki,
+       sum(decode(operid,275,summa,0)) as avs_cardukr_summa,
+
+       sum(decode(operid,276,litr,0)) as avs_cardreg_litr,
+       sum(decode(operid,276,tonn,0)) as avs_cardreg_tonn,
+       sum(decode(operid,276,shtuki,0)) as avs_cardreg_shtuki,
+       sum(decode(operid,276,summa,0)) as avs_cardreg_summa,
+
+       sum(decode(operid,277,litr,0)) as avs_cardukrnafta_litr,
+       sum(decode(operid,277,tonn,0)) as avs_cardukrnafta_tonn,
+       sum(decode(operid,277,shtuki,0)) as avs_cardukrnafta_shtuki,
+       sum(decode(operid,277,summa,0)) as avs_cardukrnafta_summa,
+
+       sum(is_oth*litr) as oth_litr,
+       sum(is_oth*tonn) as oth_tonn,
+       sum(is_oth*shtuki) as oth_shtuki,
+       sum(is_oth*summa) as oth_summa
+from
+(select /*+ORDERED USE_HASH(v_oil_npmove,oo)*/
+        nvl(pponname,oblname) as podrname,azsname,date_,dog,ss,
+        np_type,np_group,dimname,operid,sub_part,ud_weig,oo.name as postname,
+        litr,tonn,shtuki,
+        decode(:UchReal.Value,0,summa_ss,
+          1,decode(operid,14,round(rep_price*litr,2),153,round(rep_price*litr,2),summa),round(rep_price*litr,2)) as summa,
+        price,rep_price,
+        decode(operid,11,0,12,0,14,0,15,0,16,0,19,0,40,0,47,0,49,0,51,0,201,0,153,0,270,0,271,0,272,0,273,0,274,0,275,0,276,0,277,0,1) as is_oth
+from v_oil_npmove,oil_org oo
+where date_ between :BeginDate and :EndDate
+      and :org1.id in (azsid,pponid,oblid)
+      and partpostid=oo.id and partpostinst=oo.inst
+      and nbazs=1 and IsSummary<>'Y' and IsTalonDet<>'Y' and rashprih=0
+)
+group by podrname,azsname,date_,dog,np_type,np_group,dimname,sub_part,ud_weig,postname,ss,price,rep_price
+having sum(litr)<>0 or sum(tonn)<>0 or sum(shtuki)<>0
+
+[FIELDS]
+   NAME = np_type
+   CAPTION = Тип Н/П
+   WIDTH = 15
+
+   NAME = np_group
+   ITOGIFIELD = np_group
+   CAPTION = Группа Н/П@Група Н/П
+   WIDTH = 15
+
+   NAME = podrname
+   CAPTION = Подразделение@Підрозділ
+   WIDTH=25
+
+   NAME = azsname
+   CAPTION = АЗС
+   WIDTH = 15
+
+   NAME = rep_price
+   CAPTION = Цена(АЗС)@Ціна(АЗС)
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = date_
+   CAPTION = Дата
+   FORMAT = dd.mm.yyyy
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 12
+
+   NAME = postname
+   CAPTION = Поставщик
+   WIDTH = 15
+
+   NAME = ss
+   CAPTION = Уч.цена@Обл.ціна
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = sub_part
+   CAPTION = Подпартия@Підпартія
+   WIDTH = 12
+
+   NAME = ud_weig
+   CAPTION = Уд.вес.@Питома вага
+   WIDTH = 12
+   FORMAT = 0.0000
+
+   NAME = dimname
+   CAPTION = Ед.изм.@Од.вим.
+
+   DEFAULT WIDTH=10
+   DEFAULT TOSUM = TRUE
+   DEFAULT OPTIONAL = FALSE
+   DEFAULT HIDEIFEMPTY = TRUE
+
+   FIELDS_GROUP
+      TAILS
+        NAME = litr
+        CAPTION = !Кол-во,л@!К-сть,л
+        FORMAT = 0.000
+
+        NAME = tonn
+        CAPTION = !Кол-во,т@!К-сть,т
+        FORMAT = 0.000000
+
+        NAME = shtuki
+        CAPTION = !Кол-во,шт@!К-сть,шт
+        FORMAT = 0
+
+        NAME = summa
+        CAPTION = !грн
+        FORMAT = 0.00
+
+      HEADS
+        NAME = bnal_
+        CAPTION = Безналичные@Безготів.
+
+        NAME = nal_
+        CAPTION = Наличные@Готівка
+
+        NAME = tal_
+        CAPTION = Талоны@Талони
+
+        NAME = card_
+        CAPTION = Эл.карты@Ел.карти
+
+        NAME = bcard_
+        CAPTION = Банк.карты@Банк.карти
+
+        NAME = own_
+        CAPTION = Собственные нужды@Власні потреби
+
+        NAME = eub_
+        CAPTION = Естественная убыль@Природні втрати
+
+        NAME = shr_
+        CAPTION = Недостача
+
+        NAME = avt_
+        CAPTION = Автотранспорт
+
+        NAME = com_
+        CAPTION = Вз.усл.связи@Вз.посл.звязку
+
+        NAME = sec_
+        CAPTION = Вз.охрана@Вз.охорона
+
+        NAME = avs_talplukr_
+        CAPTION = Пластиковые талоны - Украина
+
+        NAME = avs_talplreg_
+        CAPTION = Пластиковые талоны - Региональные
+
+        NAME = avs_talbukr_
+        CAPTION = Бумажные талоны - Украина
+
+        NAME = avs_talsukr_
+        CAPTION = Скретч-карта - Украина
+
+        NAME = avs_talsreg_
+        CAPTION = Скретч-карта - Региональные
+
+        NAME = avs_cardukr_
+        CAPTION = Топливные карты - Украина
+
+        NAME = avs_cardreg_
+        CAPTION = Топливные карты - Региональные
+
+        NAME = avs_cardukrnafta_
+        CAPTION = Топливные карты Укрнафты - Украина
+
+        NAME = oth_
+        CAPTION = Прочее@Інше
+
+        NAME =
+        CAPTION = ИТОГО@Всього
+
+   END_GROUP
+
+[TYPES]
+   CAPTION = НП - АЗС
+   ITOGI = np_type,azsname
+   UNCHECKED = podrname,sub_part,ud_weig,postname,ss
+
+   CAPTION = АЗС - НП
+   ITOGI = azsname,np_type
+   UNCHECKED = podrname,sub_part,ud_weig,postname,ss
+
+   CAPTION = С подпартиями@ З підпартіями
+   ITOGI = np_type,azsname
+   UNCHECKED = podrname,postname,ss

@@ -1,0 +1,194 @@
+[GLOBAL]
+   TITLE = Остатки партий в резервуарах@Залишки партій в резервуарах
+   MENU = Отчеты\Отчеты по Нефтебазе\Остатки партий в резервуарах - 2@Залишки партій в резервуарах - 2
+   MENU_POSITION = 2
+   NAME_FOR_SAVE = РезервуарыОст
+   VERSION = 1.5
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   На :BeginDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+[SQL]
+select nvl(dnpg_r.groupname,npt.np_grp_name) as rez_np_dop_group,
+       nvl(dnpg_p.groupname,vnp.np_group) as part_np_dop_group,
+       nvl(pponname, oblname) as podrname,
+       dog,
+       ss,
+       rez_num,
+       rezname,
+       vnp.np_group,
+       npt.np_grp_name as rez_np_group,
+       vnp.np_type,
+       npt.name as rez_np_type,
+       own_goods_name,
+       -sum(nvl(doc_tonn,tonn)) as rest_tonn,
+       -sum(shtuki) as rest_shtuki,
+       r.capacity,
+       decode(r.condition,
+                      0,
+                      'Исправен',
+                      1,
+                      'В ремонте (текущем)',
+                      2,
+                      'На обследовании',
+                      3,
+                      'Проводится дефектоскопия',
+                      4,
+                      'Требует ремонта (посля обследования)',
+                      5,
+                      'Подлежит утилизации',
+                      6,
+                      'Капитальный ремонт') as condition_text,
+       r.inspection_date,
+       r.rez_type
+  from v_oil_npmove      vnp,
+       v_oil_rez_np_type rzn,
+       v_oil_np_type     npt,
+       v_oil_dop_np_groups dnpg_p,
+       v_oil_dop_np_groups dnpg_r,
+       oil_rezervuar     r
+ where date_ < :BeginDate
+   and NbAzs = 0
+   and :org1.id in (pponid, oblid)
+   and vnp.rezid = rzn.rez_id(+)
+   and vnp.rezinst = rzn.rez_inst(+)
+   and rzn.date_from(+) <= :BeginDate
+   and rzn.date_to(+) >= :BeginDate
+   and rzn.np_type = npt.id(+)
+   and r.state = 'Y'
+   and r.id = vnp.rezid
+   and r.inst = vnp.rezinst
+   and dnpg_p.is_to_total(+) = 0
+   and dnpg_p.real_group(+) = 3 /*дизелі розділяємо на літній/зимовий/EN-590(-F)*/
+   and dnpg_p.id(+) = npt.id   
+   and dnpg_r.is_to_total(+) = 0
+   and dnpg_r.real_group(+) = 3 /*дизелі розділяємо на літній/зимовий/EN-590(-F)*/
+   and dnpg_r.id(+) = vnp.np_typeid   
+ group by partid,
+          partinst,
+          dog,
+          ss,
+          rezid,
+          rezinst,
+          rez_num,
+          rezname,
+          np_group,
+          own_goods_name,
+          npt.np_grp_name,
+          nvl(pponname, oblname),
+          r.capacity,
+          r.condition,
+          r.inspection_date,
+          r.rez_type,
+          vnp.np_type,
+          dnpg_p.groupname,
+          dnpg_r.groupname,
+          npt.name
+having sum(tonn) <> 0 or sum(shtuki) <> 0
+
+[FIELDS]
+   NAME = podrname
+   CAPTION = Подразделение@Підрозділ
+   WIDTH = 20
+
+   NAME = own_goods_name
+   CAPTION = Тип товара
+   WIDTH = 15
+
+   NAME = np_group
+   CAPTION = Группа НП@Група НП
+   WIDTH = 20
+
+   NAME = rez_np_group
+   CAPTION = Группа НП резервуара@Група НП резервуара
+   WIDTH = 20
+
+   NAME = part_np_dop_group
+   CAPTION = Доп. группа НП@Доп. група НП
+   WIDTH = 20
+
+   NAME = rez_np_dop_group
+   CAPTION = Доп. группа НП резервуара@Доп. група НП резервуара
+   WIDTH = 20
+
+   NAME = np_type
+   CAPTION = Тип НП@Тип НП
+   WIDTH = 30
+
+   NAME = rez_np_type
+   CAPTION = Тип НП резервуара@Тип НП резервуара
+   WIDTH = 30
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH=25
+
+   NAME = ss
+   CAPTION = Уч.цена@Обл.ціна
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = rez_num
+   CAPTION = № резервуара
+   WIDTH = 10
+
+   NAME = rezname
+   CAPTION = Имя резервуара@Імя резервуара
+   WIDTH = 15
+
+   NAME = rest_tonn
+   CAPTION = Остаток(тонн)@Залишок(тон)
+   WIDTH = 15
+   FORMAT = 0.000000
+   TOSUM = TRUE
+
+   NAME = rest_shtuki
+   CAPTION = Остаток(шт.)@Залишок(шт.)
+   WIDTH = 15
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = capacity
+   CAPTION = Емкость резервуара@Ємність резервуара
+   WIDTH = 15
+   FORMAT = 0
+
+   NAME = condition_text
+   CAPTION = Состояние резервуара@Стан резервуара
+   WIDTH = 15
+
+   NAME = inspection_date
+   CAPTION = Дата последнего обследования резервуара@Дата останнього обстеження резервуара
+   WIDTH = 20
+
+   NAME = rez_type
+   CAPTION = Тип резервуара
+   WIDTH = 15
+
+[TYPES]
+   CAPTION = По партиям с доп.итогами@За партіями з дод.результатами
+   ITOGI = podrname,own_goods_name,np_group
+   UNCHECKED = part_np_dop_group,rez_np_dop_group
+
+   CAPTION = По группам НП резервуаров@За групами НП резервуарів
+   ITOGI = podrname,rez_np_group,own_goods_name
+   ORDER = podrname,rez_np_group
+   UNCHECKED = part_np_dop_group,rez_np_dop_group
+
+   CAPTION = По доп. группам НП резервуаров@За доп. групами НП резервуарів
+   ITOGI = podrname,rez_np_dop_group,own_goods_name
+   ORDER = podrname,rez_np_dop_group
+   UNCHECKED = np_group,rez_np_group
+   

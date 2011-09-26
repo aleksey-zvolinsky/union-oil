@@ -1,0 +1,178 @@
+[GLOBAL]
+  TITLE = Расходная накладная №@Видаткова накладна № 
+  TITLE_COORD = C3
+  VERSION = 1.3
+  MENU = Отчеты\Отчеты по АЗС\Расходная накладная@Видаткова накладна
+  RAZM_SYMBOLS = NO
+  SHOW_INFO = NO
+  PAGE_ORIENT=VER
+  PAGES_WIDTH = 1
+  STYLE = RN
+
+[PANELS]
+  DATEPANEL
+   END
+
+   ORGPANEL
+     NUM = 2
+     CAPTION1 =  От кого
+     STARTCONDITION1=1
+     CAPTION2 = Клиент
+     STARTCONDITION2=3
+    END
+    
+    PANEL
+      CAPTION = Операция
+      HEIGHT=90
+      WIDTH=150
+      ELEMENT OPER:RadioButtonGroup
+       LIST = По ведомости, Спонсорская помощь  
+       VALUES = 11, 52
+      END
+    END
+     
+     PANEL
+      CAPTION = АЗС 
+      HEIGHT=90
+      WIDTH=90
+       ELEMENT AZS:ComboEdit
+       TYPE = OIL_ORG
+        STARTCONDITION=2
+     END
+  END
+ 
+ PANEL
+       CAPTION = Дата формирования
+       ELEMENT data:Edit
+       END
+   END
+
+
+[DESCRIPTION]
+  \{F3}M от :data @\{F3}M  від :data 
+  \B Поставщик:\b :org1.name , :azs.name@\B Постачальник:\b :org1.name , :azs.name
+   1. Свидетельство о реестрации плательщика налога на добавочную стоимость № :org1.svid_num @1. Свідоцтво про реєстрацію платника податку на Додану вартість № :org1.svid_num
+   2. Индивидуальный налоговый номер юридического лица № :org1.nal_num @2. Індивідуальний податковий номер юридичної особи :org1.nal_num
+  _____________________________________________________
+  \B Клиент:\b :org2.name@\B Одержувач:\b :org2.name
+   1. Свидетельство о реестрации плательщика налога на добавочную стоимость № :org2.svid_num @1. Свідоцтво про реєстрацію платника податку на Додану вартість № :org2.svid_num
+   2. Индивидуальный налоговый номер юридического лица № :org2.nal_num @2. Індивідуальний податковий номер юридичної особи :org2.nal_num
+   _____________________________________________________
+   Через кого: :org2.rn_throuth @Через кого: :org2.rn_through
+   Доверенность: @Довіреність:
+   _____________________________________________________
+   За период с :BeginDate по :EndDate@За період з :BeginDate по :EndDate	
+          
+[SQL]
+   select row_number() over(order by end_.rep_date, end_.name_np desc) num,
+       rep_date, 
+       price_ price_litr,  
+       name_np,litr,tonn,
+      decode(oper_id, 52,NDS.GetNDS_NoNDS(sum_tonn,:EndDate),end_.NDS) NDS,
+      decode(oper_id,52,sum_tonn,end_.sum_) SUM_,
+      decode(oper_id,52,price_,NDS.GetNoNDS_WithNDS(price_, :EndDate,4)) priceNoNDS,
+      decode(oper_id,52,NDS.GetWithNDS_NoNDS(sum_tonn,:EndDate),litrWithNDS) allNDS
+    
+  from (select wt.Name_np,
+               sum(wt.litr) as litr,
+               sum(wt.tonn) as tonn,
+               wt.price_,
+               round(sum(wt.price_ * wt.tonn),2) as sum_tonn,
+               sum(wt.amount) as litrWithNDS,
+               trunc(wt.rep_date) rep_date,
+               wt.oper_id,
+               sum(wt.NDS) as NDS,
+               sum(wt.allNDS) as allNDS,
+               sum(wt.SUM_) as SUM_
+        from (
+        select  t.*,c.name Name_Np,g.rep_date,decode(t.oper_id,52,b.ss,t.price) price_,
+                  round(t.amount - (t.amount -round(t.amount *NDS.TAX_RATE(:EndDate) /(1 + NDS.TAX_RATE(:EndDate)),2)), 4) NDS,
+                  t.amount allNDS, 
+                  t.amount-round(t.amount *NDS.TAX_RATE(:EndDate) /(1 + NDS.TAX_RATE(:EndDate)),2) as SUM_ 
+ 
+         from 
+        (
+          select s.id,s.inst,s.oper_id,s.litr,s.price,s.srep_id,s.srep_inst,s.date_mod,s.count_t tonn,s.amount,s.org_id,s.org_inst
+          from oil_srother s
+            union all
+          select v.id,v.inst,11 as oper_id, v.litr,v.price,v.srep_id,v.srep_inst,v.date_mod,v.count_t tonn,v.amount,v.org_id,v.org_inst
+          from oil_vedomost v
+        ) t,oil_dr_data f, oil_daily_rep g, oil_rashod a, oil_part b, v_oil_np_type c
+      where f.ttn_id=a.id
+      and f.ttn_inst=a.inst
+      and f.id=t.srep_id
+      and f.inst=t.srep_inst
+      and f.rep_id=g.id
+      and f.rep_inst=g.inst
+      and a.part_id=b.id
+      and a.part_inst=b.inst
+      and b.np_type=c.id
+      and a.state='Y' and b.state='Y' and f.state='Y'and g.state='Y'
+      and trunc(g.rep_date)>=:BeginDate
+      and trunc(g.rep_date)<=:EndDate
+      and g.azs_id= :azs.id
+      and g.azs_inst= :azs.inst
+      and t.org_id=nvl(:org2.id,t.org_id)
+      and t.oper_id=nvl(:OPER.Value,t.oper_id)
+      ) wt
+     group by wt.Name_np,wt.price_,trunc(wt.rep_date),wt.oper_id
+   ) end_
+           
+[FIELDS]
+   NAME = Num
+   CAPTION = №
+   WIDTH = 5
+      
+   NAME = Rep_date
+   CAPTION = Дата
+   WIDTH = 18
+   FORMAT=dd.mm.yyyy
+
+   NAME = Name_Np
+   CAPTION = Название@Назва
+   WIDTH = 25
+   
+   NAME = litr
+   CAPTION = Кол-во!Литры@Кі-сть!Літри
+   WIDTH = 10
+   FORMAT = 0.000
+   OPTIONAL = FALSE
+
+   NAME = tonn
+   CAPTION = Кол-во!Тонны@Кі-сть!Тонни
+   WIDTH = 10
+   FORMAT = 0.000000
+   OPTIONAL = FALSE
+
+   NAME = Price_litr
+   CAPTION = Цена за литр!c НДС@Ціна за літр!з ПДВ
+   WIDTH = 12
+   FORMAT = 0.00
+
+   NAME = PriceNoNDS
+   CAPTION = ?:OPER.Value<11>Цена за литр! без НДС<>Цена за тонну@?:OPER.Value<11>Ціна за літр!без ПДВ<>Ціна за тону
+   WIDTH = 12
+   FORMAT = 0.00
+   
+   DEFAULT TOSUM = FALSE
+   DEFAULT OPTIONAL = FALSE
+   
+   NAME = NDS
+   CAPTION = НДС
+   WIDTH = 12
+
+   NAME = allNDS
+   CAPTION = Cумма с НДС
+   WIDTH = 12
+
+   NAME = Sum_
+   CAPTION = Сумма без НДС@Сума без ПДВ
+   WIDTH = 12
+   FORMAT=0.00
+ 
+ 
+[TYPES]
+    CAPTION = По ведомости (цена с НДС)@По відомості (ціна з ПДВ)
+                    
+    CAPTION = Спонсорская помощь (цена без НДС)@Спонсорська допомога (ціна без ПДВ)
+    UNCHECKED = price_litr

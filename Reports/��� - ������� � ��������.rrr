@@ -1,0 +1,138 @@
+[GLOBAL]
+   TITLE = Приходы и возвраты сопутствующего товара по АЗС@Приходы и возвраты сопутствующего товара по АЗС
+   MENU = Отчеты\Сопутствующий товар\Приходы и возвраты сопутствующего товара по АЗС@Приходы и возвраты сопутствующего товара по АЗС
+   MENU_POSITION = 10
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+[SQL]
+select * from
+(select
+       codavias,
+       npname,
+       NAME,
+       sum(Prih_Count) Prih_Count,
+       sum(ret) as ret
+  from (select X.azs_id,
+               X.azs_inst,
+               X.NAME,
+               X.id,
+               X.npname,
+               X.US_GROUP_NAME,
+               X.codavias,
+               sum(nvl(X.restonbegin, 0)) as RestOnBegin,
+               sum(nvl(X.prih_count, 0)) as Prih_Count,
+               sum(nvl(X.prih_sum, 0)) as Prih_Sum,
+               sum(nvl(X.rash_litr, 0)) as Rash_Count,
+               max(X.price) as Price,
+               sum(nvl(X.rash_money, 0)) as Rash_Money,
+               sum(nvl(X.restonbegin, 0) + nvl(X.prih_count, 0) -
+                   nvl(X.rash_litr, 0)-nvl(X.ret, 0)) as RestOnEnd1,
+               sum(ret) as ret                   
+          from (select /*+ORDERED INDEX(dr I_DR_DATA) INDEX(drep IDX$REP_DATE_TRUNC)*/
+                 drep.azs_id as azs_id,
+                 drep.inst as azs_inst,
+                 to_date(trunc(drep.rep_date)) as date_,
+                 org.name,
+                 npt.id,
+                 npt.name as npname,
+                 npt.us_group_name,
+                 npt.codavias,
+                 decode(r.oper_id,10,dr.pr_litr,0) as PRIH_COUNT,
+                 dr.pr_litr * dr.s_price as PRIH_SUM,
+                 0 as RestOnBegin,
+                 nvl(dr.out_nal_litr, 0) + nvl(decode(sr.oper_id,55,0,sr.litr),0) as rash_litr,
+                 dr.s_price as price,
+                 nvl(dr.out_nal_money, 0) + nvl(decode(sr.oper_id,55,0,sr.amount), 0) as rash_money,
+                 nvl(decode(sr.oper_id,55,sr.litr,0), 0) as ret
+                  from oil_daily_rep drep,
+                       oil_dr_data   dr,
+                       oil_srother   sr,
+                       oil_rashod    r,
+                       oil_part      p,
+                       v_oil_np_type npt,
+                       v_oil_azs     org
+                 where dr.state = 'Y'
+                   and drep.state = 'Y'
+                   and r.state = 'Y'
+                   and sr.state(+) = 'Y'
+                      
+                   and dr.oper_type in (0, 1)
+                      
+                   and dr.pr_ud_weig = 1
+                      
+                   and dr.ttn_id = r.id
+                   and dr.ttn_inst = r.inst
+                      
+                   and dr.rep_id = drep.id
+                   and dr.rep_inst = drep.inst
+                      
+                   and r.part_id = p.id
+                   and r.part_inst = p.inst
+                      
+                   and sr.srep_id(+) = dr.id
+                   and sr.srep_inst(+) = dr.inst
+                      
+                   and p.np_type = npt.id
+                   and p.state = 'Y'
+                      
+                   and org.obl_id = :org1.id
+                   and drep.inst = :org1.id
+                   and drep.azs_id = org.id
+                   and drep.azs_inst = org.inst
+                      
+                   and trunc(drep.rep_date) between :BeginDate and :EndDate) X
+         where us_group_name is not null
+         group by azs_id,
+                  AZS_INST,
+                  date_,
+                  NAME,
+                  id,
+                  npname,
+                  us_group_name,
+                  codavias                
+                  ) Y
+ group by azs_id, azs_inst, NAME, id, npname, US_GROUP_NAME, codavias)Z
+ where  Prih_Count<>0  or ret<>0
+order by Name
+
+[FIELDS]
+   DEFAULT WIDTH = 12
+   
+   NAME = name
+   CAPTION = АЗС
+
+   NAME = codavias
+   CAPTION = Код ННБ
+   WIDTH = 8
+
+   NAME = npname
+   CAPTION = Наименование товара@Назва товара
+   WIDTH = 20
+
+   DEFAULT FORMAT = 0.00
+   
+   NAME = Prih_Count
+   CAPTION = ПРИХОД!к-во@Прихід!к-сть
+   FORMAT = 0
+   TOSUM=true
+  
+   NAME = Ret
+   CAPTION = Возврат на нб!к-во@Повернення на нб!к-сть
+   FORMAT = 0
+   TOSUM=true
+   
+[TYPES]  
+   CAPTION = Основной

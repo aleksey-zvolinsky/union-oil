@@ -1,0 +1,132 @@
+[GLOBAL]
+  TITLE = Талоны - отоваренные@Талони - затоварені
+  VERSION = 1.0
+  MENU = Отчеты\Выгрузка в 1С\Талоны - отоваренные@Талони - затоварені
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select
+  tal.out_from_id as emitent_id,
+  oo.id_num,
+  dog.dog,
+  dog.dog_date,
+  tal.to_id as filial_id,
+  tal.from_id as azs_id,
+  p.dog as part,
+  tal.sub_part,
+  tal.ser,
+  tal.out_price as price,
+  round(sum(decode(tal.Nominal, null, 0, 0, 0, tal.litr_azs/tal.Nominal)),10) as Quantity,
+  sum(tal.litr_azs) as Litr,
+  sum(tal.tonn_azs) as Weight,
+  sum(Round(tal.ss*tal.tonn_azs,2)) as SMoney,
+  tal.date_ as Rep_Date,
+  decode(sign(5e8-tal.num),1,0,1) as old_new,
+  pfi.first_inst,
+  substr(tal.out_org_name,1,100) as org_name
+from
+  andriy.v_oil_talon_fullfil tal, oil_dog dog, oil_org oo, oil_org odep, oil_part p, oil_info oi,
+  v_oil_part_first_inst pfi
+where tal.oper_id=180
+  and prih_is_filial=out_is_filial
+  and tal.out_org_id=oo.id
+  and tal.out_org_inst=oo.inst
+  and tal.out_dog_id=dog.id(+)
+  and tal.out_dog_inst=dog.inst(+)
+  and tal.part_id=p.id and tal.part_inst=p.inst
+  and tal.to_id=odep.id and tal.to_inst=odep.inst
+  and oi.main_inst in (odep.id,odep.par)
+  and p.state='Y'
+  and p.dog=pfi.dog(+)
+  and tal.date_ between :BeginDate and :EndDate
+group by
+  tal.out_from_id, oo.id_num, dog.dog, dog.dog_date, tal.to_id, tal.from_id,
+  p.dog, tal.sub_part, tal.ser, tal.price_azs, tal.out_price,tal.date_,
+  decode(sign(5e8-tal.num),1,0,1), pfi.first_inst,
+  substr(tal.out_org_name,1,100)
+
+[FIELDS]
+
+  NAME = EMITENT_ID
+  CAPTION =Код организации@Код організації
+  WIDTH = 10
+
+  NAME = ID_NUM
+  CAPTION =Идентификационный код@Ідентифікаційний код
+  WIDTH = 15
+
+  NAME = DOG
+  CAPTION =Договор@Договір
+  WIDTH = 13
+
+  NAME = DOG_DATE
+  CAPTION =Дата договора@Дата договору
+  WIDTH = 10
+
+  NAME = FILIAL_ID
+  CAPTION =Код филиала@Код філії
+  WIDTH = 10
+
+  NAME = AZS_ID
+  CAPTION =Код АЗС
+  WIDTH = 10
+
+  NAME = PART
+  CAPTION =Партия@Партія
+  WIDTH = 13
+
+  NAME = SUB_PART
+  CAPTION =Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = SER
+  CAPTION =Серия@Серія
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION =Цена@Ціна
+  WIDTH = 10
+
+  NAME = QUANTITY
+  CAPTION =Количество@Кількість
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION =Литры@Літри
+  WIDTH = 10
+
+  NAME = WEIGHT
+  CAPTION =Вес@Вага
+  WIDTH = 10
+
+  NAME = SMONEY
+  CAPTION =Стоимость@Вартість
+  WIDTH = 13
+
+  NAME = REP_DATE
+  CAPTION =Дата
+  WIDTH = 10
+
+  NAME = OLD_NEW
+  CAPTION =Номер
+  WIDTH = 10
+
+  NAME = FIRST_INST
+  CAPTION =FIRST_INST
+  WIDTH = 10
+
+  NAME = ORG_NAME
+  CAPTION =Название организации@Назва організації
+  WIDTH = 25
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

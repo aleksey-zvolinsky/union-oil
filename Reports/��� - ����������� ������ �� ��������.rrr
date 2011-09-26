@@ -1,0 +1,91 @@
+[GLOBAL]
+  TITLE = Недостающие данные по транзакциям "Свои на других филиалах"@Відсутні дані по транзакціях "Свої на інших філіях"
+  MENU = Отчеты\Отчеты по эл. карточкам\Чужие списания\Недостающие данные по транзакциям "Свои на других филиалах"@Відсутні дані по транзакціях "Свої на інших філіях"
+  VERSION = 1.3
+  MENU_POSITION = 5
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select
+  azs_obl_name,azs_name,card_number,
+  to_char(oper_date,'DD.MM.YYYY HH24:MI:SS') as oper_date,
+  np_grp_name,litr
+from
+(
+  select ct.*, ctp.inst as q_inst
+  from
+    (select
+       azs.obl_name as azs_obl_name,
+       azs.name as azs_name,
+       azs.obl_id as azs_obl_id,
+       azs.id as azs_id,
+       ct.card_number,
+       ct.oper_date,
+       npg.id as np_grp,
+       npg.name as np_grp_name,
+       ct.litr
+    from v_card_transaction ct, v_main_org morg, v_card_azs azs, oil_np_group npg
+    where ct.date_ between :BeginDate and :EndDate
+      and ct.номер_терминала+1000000=azs.id
+      and azs.id=azs.inst
+      and azs.obl_id<>morg.obl_id
+      and azs.is_filial=1
+      and not exists
+        (select * from oil_org_link lnk
+         where lnk.to_id=azs.id and lnk.to_inst=azs.inst
+           and lnk.state='Y'
+           and lnk.link_type_id=9)
+      and ct.np_type=npg.petrol_id) CT,
+    (select ctp.inst,ctp.card_number,ctp.azs_id,ctp.oper_date,
+       decode(npt.np_grp,4,5,npt.np_grp) as np_grp,
+       sum(ctp.litr) as litr
+     from card_transit_part ctp, v_oil_np_type npt
+     where ctp.card_np_type=npt.id
+       and state='Y'
+     group by ctp.inst,ctp.card_number,ctp.azs_id,ctp.oper_date,decode(npt.np_grp,4,5,npt.np_grp)) CTP
+  where ct.card_number=ctp.card_number(+)
+    and ct.oper_date=ctp.oper_date(+)
+    and decode(ct.np_grp,4,5,ct.np_grp)=ctp.np_grp(+)
+    and ct.azs_obl_id=ctp.inst(+)
+    and ct.litr=ctp.litr(+))
+where q_inst is null
+
+[FIELDS]
+  NAME = AZS_OBL_NAME
+  CAPTION = Филиал@Філія
+  WIDTH = 50
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+  WIDTH = 12
+
+  NAME = CARD_NUMBER
+  CAPTION = № карточки@№ картки
+  WIDTH = 15
+
+  NAME = OPER_DATE
+  CAPTION = Дата и время@Дата і час
+  WIDTH = 20
+
+  NAME = NP_GRP_NAME
+  CAPTION = Группа НП@Група НП
+  WIDTH = 12
+
+  NAME = LITR
+  CAPTION = Литры@Літри
+  WIDTH = 15
+  TOSUM = TRUE
+  FORMAT = 0.000
+  OPTIONAL = FALSE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = AZS_OBL_NAME

@@ -1,0 +1,120 @@
+[GLOBAL]
+   TITLE = Остатки на АЗС@Залишки на АЗС
+   NAME_FOR_SAVE = АЗС_Остатки
+   MENU = Отчеты\Отчеты по АЗС\Остатки на АЗС@Залишки на Азс
+   MENU_POSITION = 2
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   VERSION = 1.7.1
+
+[PANELS]
+   DATEPANEL
+      NUM = 1
+      CAPTION1 = На
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   На :BeginDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+AFTER
+   \2LНачальник нефтебазы №_________________________@\2LНачальник нафтобази №_________________________
+   \2N\2LСт. специалист по учету _________________________@\2N\2LСт. спеціаліст по обліку _________________________
+
+[SQL]
+   select nvl(PponName,OblName) as PodrName,AzsName,
+          np_type,np_group,dog,sub_part,ud_weig,
+          -litr as litr,-tonn as tonn,-shtuki as shtuki,
+          codavias, ov.GetOutLinkVal('OIL_NP_TYPE', 2, m.np_typeid) as ext_id
+    from v_oil_npmove m
+   where NbAzs=1 and IsSummary<>'N' and date_<:BeginDate
+     and (:org1.id in (OblId,PponId,AzsId) or :org1.id is null)
+
+[HAVING]
+   sum(litr)<>0 or sum(tonn)<>0 or sum(shtuki)<>0
+
+[FIELDS]
+   NAME = podrname
+   CAPTION = Подразделение@Підрозділ
+   WIDTH = 30
+
+   NAME = azsname
+   CAPTION = АЗС@АЗС
+   WIDTH = 30
+
+   NAME = np_group
+   CAPTION = Группа НП@Група НП
+   WIDTH = 12
+
+   NAME = codavias
+   CAPTION = Код ННБ
+   WIDTH = 8
+
+   NAME = ext_id
+   CAPTION = Код 1C
+   WIDTH = 8
+
+   NAME = np_type
+   CAPTION = Нефтепродукт@Нафтопродукт
+   WIDTH = 25
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 15
+
+   NAME = sub_part
+   CAPTION = Подпартия@Підпартія
+   WIDTH = 15
+
+   NAME = ud_weig
+   CAPTION = Уд.вес@Пит.вага
+   WIDTH = 10
+   FORMAT = 0.0000
+
+   NAME = litr
+   CAPTION = Остаток!литры@Залишок!літри
+   WIDTH = 12
+   FORMAT = 0.000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = tonn
+   CAPTION = Остаток!тонны@Залишок!тонни
+   WIDTH = 12
+   FORMAT = 0.000000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = shtuki
+   CAPTION = Остаток!штуки@Залишок!штуки
+   WIDTH = 12
+   FORMAT = 0
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+[TYPES]
+   CAPTION = АЗС - Группа НП@АЗС - Група НП
+   ITOGI = azsname
+   UNCHECKED = podrname,np_type,dog,sub_part,ud_weig
+
+   CAPTION = АЗС@АЗС
+   ITOGI = azsname
+   UNCHECKED = podrname,dog,sub_part
+
+   CAPTION = АЗС - Нефтепродукт@АЗС - Нафтопродукт
+   ITOGI = azsname,np_group
+   UNCHECKED = podrname,dog,sub_part
+
+   CAPTION = Подразд.- АЗС@Підрозділ - АЗС
+   ITOGI = podrname,azsname,np_group
+   UNCHECKED = dog,sub_part
+
+   CAPTION = Без группировки по АЗС@Без групування за АЗС
+   ITOGI = np_group,dog
+
+   CAPTION = НП - Партия@НП - Партія
+   ITOGI = azsname,np_group
+   UNCHECKED = podrname,sub_part,ud_weig

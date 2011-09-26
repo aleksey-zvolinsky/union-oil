@@ -1,0 +1,168 @@
+[GLOBAL]
+  TITLE = РЕЄСТР ОТРИМАНИХ ТА ВИДАНИХ ПОДАТКОВИХ НАКЛАДНИХ@РЕЄСТР ОТРИМАНИХ ТА ВИДАНИХ ПОДАТКОВИХ НАКЛАДНИХ
+  MENU = Отчеты\Налоговые накладные\Реестр налоговых@Реєстр податкових
+  VERSION = 1.9
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  PAGE_ORIENT = GOR
+  SHOW_INFO = NO
+
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    STARTCONDITION1=0
+    STARTCONDITION2=4
+  END
+
+   PANEL
+       ELEMENT Fnumber:Edit
+          CAPTION = Суфикс подразделения@Суфикс підрозділу
+       END
+   END
+
+   PANEL
+      ELEMENT CauseList:List
+	  CAPTION = Источник:@Джерело:
+          TABLENAME = (select id,name_ name,'Y' state from oil_nn_cause)
+	  CONDITION = id <> 111
+      END
+      ELEMENT TypeList:List
+	  CAPTION = Тип:
+          TABLENAME = (select id,name_ name,'Y' state from oil_nn_type)
+	  CONDITION = id<>111
+      END
+   END
+
+[DESCRIPTION]
+                                                                                       \{I1}MЗатверджено наказом ДПА України
+                                                                                       \{I2}Mвід 30.06.2005 № 244
+  \{A4}MНазва платника податку :org1.name                                              \{F4}MРеэстр розпочато :BeginDate
+  \{A5}MІндивідуальний податковий номер :org1.NAL_NUM                                  \{F5}MРеэстр закінчено :EndDate
+  \{A6}MСвідоцтво про реєстрацію платника податку на додану вартість :org1.SVID_NUM    \{F6}MЗберігати_______________________
+  \{D7}M\BРозділ ІІ. Видані податкові накладні
+AFTER
+  \1LВиписав_________________________________
+
+[SQL]
+
+select rownum,sb.*
+  from
+(select to_char(sb.s_date,'DD.MM.YYYY')s_date,
+       substr(sb.grid_num||decode(:FNUMBER,null,fnum.value,:FNUMBER),1,50) num,
+       sb.organ_name,
+       sb.organ_naln,
+       sb.organ_okpo,
+       sb.nds_t,
+       sb.sum_base nds_base,
+       sb.sum_20 nds_20,
+       0 as q,
+       0 as w,
+       0 as e
+  from v_oil_sale_book sb,
+       (select decode(max(value),'0','',max(value)) as value
+          from adm_settings
+         where name = 'FILIAL_NUMBER'
+           and inst=:org1.inst ) fnum
+ where sb.S_DATE between :BeginDate and :EndDate
+   and sb.FROM_INST = :org1.inst and sb.FROM_ = :org1.inst
+   and ((sb.organ_INST = :org2.inst and sb.organ = :org2.id)or(:org2.id is null))
+   and :CauseList.IsInList{sb.nn_cause_id}
+   and :TypeList.IsInList{sb.nn_type_id}
+ group by sb.s_date,
+       to_number(TRANSLATE(upper(sb.num),
+                 '0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЬЫЄЮЯ.,\/|*-+}{][=~`!@#$%^''"№;%?',
+                 '0123456789')),
+       sb.grid_num,
+       sb.organ_name,
+       sb.organ_naln,
+       sb.organ_okpo,
+       sb.nds_t,
+       sb.sum_base,
+       sb.sum_20,
+       fnum.value )sb
+
+[FIELDS]
+  COL_NUMERATION=TRUE
+
+  NAME = rownum
+  CAPTION = № з/п
+  WIDTH = 15
+
+  NAME = s_date
+  CAPTION = Податкова накладна!!!дата виписки
+  WIDTH = 15
+
+  NAME = num
+  CAPTION = Податкова накладна!!!номер
+  WIDTH = 15
+
+  NAME = organ_name
+  CAPTION = Податкова накладна!платник податку - покупець!!назва
+  WIDTH = 30
+
+  NAME = organ_naln
+  CAPTION = Податкова накладна!платник податку - покупець!індивідуальний!податковий номер
+  WIDTH = 20
+
+  NAME = organ_okpo
+  CAPTION = Податкова накладна!платник податку - покупець!!ОКПО
+  WIDTH = 20
+
+  NAME = nds_t
+  CAPTION = Загальна сума поставки, включаючи ПДВ
+  TOSUM = TRUE
+  WIDTH = 20
+  FORMAT = 0.00
+
+  NAME = nds_base
+  CAPTION = Поставка товарів (послуг) та послуги, надані нерезидентом на митній території України, які!підлягають оподаткуванню за ставкою!20%!база оподаткування
+  TOSUM = TRUE
+  WIDTH = 20
+  FORMAT = 0.00
+
+  NAME = nds_20
+  CAPTION = Поставка товарів (послуг) та послуги, надані нерезидентом на митній території України, які!підлягають оподаткуванню за ставкою!20%!сума ПДВ
+  TOSUM = TRUE
+  WIDTH = 15
+  FORMAT = 0.00
+
+  NAME = q
+  CAPTION = Поставка товарів (послуг) та послуги, надані нерезидентом на митній території України, які!підлягають оподаткуванню за ставкою!0%!база оподаткування
+  TOSUM = TRUE
+  WIDTH = 20
+
+  NAME = w
+  CAPTION = Поставка товарів (послуг) та послуги, надані нерезидентом на митній території України, які!звільнені від оподаткування,! не є об'єктами оподаткування!(сума поставки)
+  TOSUM = TRUE
+  WIDTH = 26
+
+  NAME = e
+  CAPTION = Експорт товарів та супутніх такому експорту послуг (база оподаткування)
+  TOSUM = TRUE
+  WIDTH = 20
+
+[TYPES]
+  CAPTION = Нет@Ні
+  ITOGI =
+  UNCHECKED = organ_okpo
+
+  CAPTION = Нет(с ОКПО)@Ні(з ОКПО)
+  ITOGI =
+
+  CAPTION = По дате@По даті
+  ITOGI = s_date
+  UNCHECKED = organ_okpo
+
+  CAPTION = По дате(с ОКПО)@По даті(з ОКПО)
+  ITOGI = s_date
+
+  CAPTION = По клиенту@По клієнті
+  ITOGI = organ_name
+  UNCHECKED = organ_okpo
+
+  CAPTION = По клиенту(с ОКПО)@По клієнті(з ОКПО)
+  ITOGI = organ_name

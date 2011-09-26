@@ -1,0 +1,317 @@
+#REGISTERED
+
+[GLOBAL]
+  TITLE = 
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  \{A5}MПриложение к сменному отчету \B:org1.Name\b@\{A5}MДодаток до змінного звіту \B:org1.Name\b
+  \{A4}M\B:org1.par_name\b
+
+[EXEC_BEFORE]
+  declare cnt number;
+  begin
+    select count(*) into cnt from v_bank_card_check where delta <> 0 and to_date(begin_date,'dd.mm.rrrr hh24:mi') = to_date(:begindate,'dd.mm.rrrr hh24:mi') ;
+    if cnt > 0 then
+      RAISE_APPLICATION_ERROR(-20001,'Банковские карты:'||chr(13)||
+         'Имеется расхождение присланных из банка и введенных в сменном отчете сумм.'||chr(13)||
+         'Отчет недоступен');
+    end if;
+  end;
+
+[SQL]
+select
+  np_group,
+  rep_price,
+  rest_end + nal + ved + ved_own + tal + tal_own + card + card_own + card_move + bcard_master + bcard_visa + other - prihod  as rest_begin,
+  prihod,
+  nal + ved + ved_own + tal + tal_own + card + card_own + card_move + bcard_master + bcard_visa + other as out_all,
+  nal,
+  ved,
+  ved_own,
+  ved + ved_own as ved_all,
+  tal,
+  tal_own,
+  tal + tal_own as tal_all,
+  card,
+  card_own,
+  card_move,
+  card + card_own + card_move as card_all,
+  bcard_master,
+  bcard_visa,
+  bcard_master + bcard_visa as bcard_all,
+  other,
+  rest_end
+from
+(
+  select
+    np_group,
+    max(rep_price) as rep_price,
+    nvl(abs(sum(rest)),0) as rest_end,
+    nvl(abs(sum(prihod)),0) as prihod,
+    nvl(sum(nal),0) as nal,
+    nvl(sum(ved),0) as ved,
+    nvl(sum(ved_own),0) as ved_own,
+    nvl(sum(tal),0) as tal,
+    nvl(sum(tal_own),0) as tal_own,
+    nvl(sum(card),0) as card,
+    nvl(sum(card_own),0) as card_own,
+    nvl(sum(card_move),0) as card_move,
+    nvl(sum(bcard_master),0) as bcard_master,
+    nvl(sum(bcard_visa),0) as bcard_visa,
+    nvl(sum(other),0) as other
+  from
+    (
+      select
+        selltypeid,
+        selltype,
+        litr,
+        rep_price,
+        np_group,
+        np_groupid,
+        decode(selltypeid,10,litr,null) as rest,
+        decode(selltypeid,7,litr,null) as prihod,
+        decode(selltypeid,5,litr,null) as nal,
+        decode(selltypeid,2,
+          decode(clientid-clientinst,0,
+            decode(clientid,ov.getval('INST'),null,litr),
+            litr
+          )
+        )  as ved,
+        decode(selltypeid,2,
+          decode(clientid-clientinst,0,
+            decode(clientid,ov.getval('INST'),litr,null)
+          )
+        )  as ved_own,
+        decode(selltypeid,4, decode(autoid,null,litr,null ))  as tal,
+        decode(selltypeid,4, decode(autoid,null,null,litr ))  as tal_own,
+        decode(card_alien,'N',
+          decode(autoid,null,litr,null )
+        )  as card,
+        decode(card_alien,'Y',litr) as card_move,
+        decode(selltypeid,11, decode(autoid,null,null,litr ))  as card_own,
+        decode(selltypeid,101, decode(bank_id,1, Litr)) as bcard_master,
+        decode(selltypeid,101, decode(bank_id,92, Litr)) as bcard_visa,
+        decode(selltypeid,3,Litr) as other
+      from
+      (
+        select
+          selltypeid,
+          selltype,
+          litr,
+          rep_price,
+          np_group,
+          np_groupid,
+          clientid,
+          clientinst,
+          autoid,
+          autoinst,
+          card_alien,
+          to_number(null) as bank_id
+        from v_oil_npmove
+        where nbazs=1 and istalondet<>'N' and issummary <>'Y'
+          and rep_date = to_date(:begindate,'dd.mm.rrrr hh24:mi')
+          and azsid = :org1.id
+          and azsinst = :org1.inst
+          and operid <> 201
+        union all  
+        select 
+          101 as selltypeid,
+          'Отпуск по банковским картам' as selltype,
+          s.litr,
+          s.price as rep_price,
+          s.np_group_name,
+          s.np_group_id,
+          to_number(null) as clientid,
+          to_number(null) as clientinst,
+          to_number(null) as Autoid,
+          to_number(null) as AutoInst,
+          to_char(null) as card_alien,
+          bank_id 
+        from v_bank_card_equal s
+        where s.azs_id =:org1.id
+           and s.azs_inst = :org1.inst
+           and s.rep_date = to_date(:begindate,'dd.mm.rrrr hh24:mi')
+        union all
+         select
+          selltypeid,
+          selltype,
+          sum(litr) as litr,
+          rep_price,
+          np_group,
+          np_groupid,
+          to_number(null) as clientid,
+          to_number(null) as clientinst,
+          to_number(null) as autoid,
+          to_number(null) as autoinst,
+          to_char(null) as card_alien,
+          to_number(null) as bank_id
+        from
+          (
+          select
+            selltypeid,
+            selltype,
+            litr,
+            to_number(null) as rep_price,
+            np_group,
+            np_groupid
+          from v_oil_npmove
+          where selltypeid = 10
+            and rep_date <= to_date(:begindate,'dd.mm.rrrr hh24:mi')
+            and azsid = :org1.id
+            and azsinst = :org1.inst
+          )
+        group by
+          selltypeid,
+          selltype,
+          rep_price,
+          np_group,
+          np_groupid
+      )
+    )
+  group by
+    np_group,
+    np_groupid
+)
+
+
+[FIELDS]
+
+  NAME = NP_GROUP
+  CAPTION = Тип НП
+  WIDTH = 8
+
+  NAME = REP_PRICE
+  CAPTION =Цена@Ціна
+  WIDTH = 8
+
+  NAME = REST_BEGIN
+  CAPTION =Остаток на начало смены@Залишок на початок зміни
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+
+  NAME = PRIHOD
+  CAPTION =Приход@Прихід
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+  
+  NAME = OUT_ALL
+  CAPTION =Отпуск, всего@Відпуск, всього
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = NAL
+  CAPTION = Наличные@Готівка
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = VED
+  CAPTION = В т.ч. по видам!Ведомость!Реализация@В т.ч. по видах!Відомість!Реалізація
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = VED_OWN
+  CAPTION =В т.ч. по видам!Ведомость!Собств.нужды@В т.ч. по видах!Відомість!Власні потреби
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = VED_ALL
+  CAPTION =В т.ч. по видам!Ведомость!Всего@В т.ч. по видах!Відомість!Всього
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = TAL
+  CAPTION =В т.ч. по видам!Талоны!Реализация@В т.ч. по видах!Талони!Реалізація
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = TAL_OWN
+  CAPTION =В т.ч. по видам!Талоны!Собств.нужды@В т.ч. по видах!Талони!Власні потреби
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = TAL_ALL
+  CAPTION =В т.ч. по видам!Талоны!Всего@В т.ч. по видах!Талони!Всього
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = CARD
+  CAPTION =В т.ч. по видам!Смарт-карты!Реализация@В т.ч. по видах!Смарт-картки!Реалізація
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = CARD_OWN
+  CAPTION =В т.ч. по видам!Смарт-карты!Собств.нужды@В т.ч. по видах!Смарт-картки!Власні потреби
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = CARD_MOVE
+  CAPTION =В т.ч. по видам!Смарт-карты!Вн.перемещ.@В т.ч. по видах!Смарт-картки!Вн.переміщення
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = CARD_ALL
+  CAPTION =В т.ч. по видам!Смарт-карты!Всего@В т.ч. по видах!Смарт-картки!Всього
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = BCARD_VISA
+  CAPTION =В т.ч. по видам!Банковские карты!VISA@В т.ч. по видах!Банківські картки!VISA
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = BCARD_MASTER
+  CAPTION =В т.ч. по видам!Банковские карты!MASTER CARD@В т.ч. по видах!Банківські картки!MASTER CARD
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = BCARD_ALL
+  CAPTION =В т.ч. по видам!Банковские карты!Всего@В т.ч. по видах!Банківські картки!Всього
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = OTHER
+  CAPTION =Прочее@Інше
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = REST_END
+  CAPTION =Остаток на конец смены@Залишок на кінець зміни
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

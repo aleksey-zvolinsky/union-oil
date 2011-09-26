@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" width="850" height="500"  menu="Справочники" caption = "Транзакции  ПЦ" >
+	<sql>
+  select * from card_transaction_pc
+  order by pc_date desc
+  </sql>
+	<columns>
+		<column align="center" width="70">
+			<caption align="center">Эмитент где</caption>
+			<fieldname>pc_em_gde</fieldname>
+		</column>
+		<column align="center" width="70">
+			<caption align="center">Эмитент кто</caption>
+			<fieldname>pc_em_kto</fieldname>
+		</column>
+		<column align="center" width="110">
+			<caption align="center">Дата</caption>
+			<fieldname>pc_date</fieldname>
+		</column>
+		<column align="center" width="100">
+			<caption align="center">Карта</caption>
+			<fieldname>pc_card_num</fieldname>
+		</column>
+		<column align="right" width="30">
+			<caption align="center">НП</caption>
+			<fieldname>pc_np_za_chto</fieldname>
+		</column>
+		<column align="right" width="40">
+			<caption align="center">К-во</caption>
+			<fieldname>pc_summa_za_chto</fieldname>
+		</column>
+		<column align="right" width="40">
+			<caption align="center">Ц.терм</caption>
+			<fieldname>pc_term_price</fieldname>
+		</column>
+		<column align="right" width="40">
+			<caption align="center">Tерм</caption>
+			<fieldname>pc_term_number</fieldname>
+		</column>
+		<column align="center" width="100">
+			<caption align="center">Пакет сформирован</caption>
+			<fieldname>pc_forming_date</fieldname>
+		</column>
+		<column align="center" width="100">
+			<caption align="center">Пакет принят</caption>
+			<fieldname>pc_recive_date</fieldname>
+		</column>
+		<column align="center" width="100">
+			<caption align="center">Дата модификации</caption>
+			<fieldname>date_mod</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>deFromDate</name>
+			<caption>Дата с:</caption>
+			<fieldname>pc_date</fieldname>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>deToDate</name>
+			<caption>по:</caption>
+			<fieldname>pc_date</fieldname>
+		</dateedit>
+		<edit left="140" top="10" width="100" wholevalue="false">
+			<name>edtCardNum</name>
+			<caption>Номер карты:</caption>
+			<fieldname>pc_card_num</fieldname>
+		</edit>
+		<edit left="140" top="50" width="100" wholevalue="false">
+			<name>edtNp</name>
+			<caption>Тип НП:</caption>
+			<fieldname>pc_np_za_chto</fieldname>
+		</edit>
+		<edit left="270" top="10" width="100" wholevalue="false">
+			<name>edtEmGde</name>
+			<caption>Эмитент где:</caption>
+			<fieldname>pc_em_gde</fieldname>
+		</edit>
+		<edit left="270" top="50" width="100" wholevalue="false">
+			<name>edtEmKto</name>
+			<caption>Эмитент кто:</caption>
+			<fieldname>pc_em_kto</fieldname>
+		</edit>				
+	</filters>
+</form>

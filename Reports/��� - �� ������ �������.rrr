@@ -1,0 +1,137 @@
+[GLOBAL]
+  TITLE = Не верные отпуски@Не вірні відпуски
+  MENU = Отчеты\Отчеты по АЗС\Проверочные\Не верные отпуски@Не вірні відпуски
+  VERSION = 1.5
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  За период с :BeginDate по :EndDate@За період з :BeginDate до :EndDate
+
+[SQL]
+select A.dog,
+       A.date_ as RASH_DATE,
+       trunc(drep.rep_date) as SM_DATE,
+       A.PPON_NAME,
+       org_dr.name as AZS_TO,
+       org_to.name as AZS_FROM,
+       drep.smena_num as SMENA,
+       A.count_,
+       A.pr_count,
+       A.rash_double_in_srep
+  from (select /*+ORDERED USE_HASH(r,p,oo,dr,rr)*/
+         r.date_,
+         p.dog,
+         r.count_,
+         dr.pr_count,
+         dr.rep_id,
+         dr.rep_inst,
+         r.to_inst,
+         r.to_id,
+         oo.name as PPON_NAME,
+         decode(sign(rr.id - r.id), null, 'N', 0, 'N', 'Y') as rash_double_in_srep
+          from oil_rashod r,
+               oil_part p,
+               v_org oo,
+               (select *
+                  from oil_dr_data
+                 where state = 'Y'
+                   and oper_type = 0) dr,
+               (select r.*
+                  from oil_rashod r, oil_dr_data dr
+                 where r.state = 'Y'
+                   and dr.state = 'Y'
+                   and dr.oper_type = 0
+                   and r.id = dr.ttn_id
+                   and r.id = dr.ttn_id) rr
+         where r.state = 'Y'
+           and p.state = 'Y'
+           and r.id = dr.ttn_id(+)
+           and r.inst = dr.ttn_inst(+)
+              
+           and r.oper_id in (7, 10)
+              
+           and r.date_ >= :BeginDate
+              
+           and r.part_id = p.id
+           and r.part_inst = p.inst
+              
+           and oo.id = r.from_id
+           and oo.inst = r.from_inst
+              
+           and rr.inst(+) = r.inst
+           and rr.date_(+) between r.date_ - 5 and r.date_ + 5
+           and rr.from_id(+) = r.from_id
+           and rr.from_inst(+) = r.from_inst
+           and rr.to_id(+) = r.to_id
+           and rr.to_inst(+) = r.to_inst
+           and rr.oper_id(+) = r.oper_id
+           and rr.litr(+) = r.litr
+           and rr.ud_weig(+) = r.ud_weig
+           and rr.count_(+) = r.count_
+           and rr.part_id(+) = r.part_id
+           and rr.part_inst(+) = r.part_inst) A,
+       oil_daily_rep drep,
+       v_org org_dr,
+       v_org org_to
+ where (A.count_ <> A.pr_count or A.pr_count is null or
+       drep.azs_id <> A.to_id and drep.azs_inst <> A.to_inst)
+   and drep.id(+) = A.rep_id
+   and drep.inst(+) = A.rep_inst
+   and drep.azs_id = org_dr.id(+)
+   and drep.azs_inst = org_dr.inst(+)
+   and A.to_id = org_to.id(+)
+   and A.to_inst = org_to.inst(+)
+ order by date_
+
+[FIELDS]
+  NAME = DOG
+  CAPTION = Партия@Партія
+  WIDTH = 12
+
+  NAME = PPON_NAME
+  CAPTION = Организация
+  WIDTH = 30
+
+  NAME = RASH_DATE
+  CAPTION = Дата отпуска@Дата відпуску
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = SM_DATE
+  CAPTION = Дата прихода@Дата приходу
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = AZS_FROM
+  CAPTION = АЗС отпуска@АЗС відпуску
+  WIDTH = 30
+
+  NAME = AZS_TO
+  CAPTION = АЗС прихода@АЗС приходу
+  WIDTH = 30
+
+  NAME = SMENA
+  CAPTION = Смена@Зміна
+  WIDTH = 8
+
+  NAME = COUNT_
+  CAPTION = Отпуск с НБ, тонн@Відпуск з НБ, тонн
+  WIDTH = 15
+  TOSUM = TRUE
+
+  NAME = PR_COUNT
+  CAPTION = Приход на НБ, тонн@Прихід на НБ, тонн
+  WIDTH = 15
+  TOSUM = TRUE
+
+  NAME = RASH_DOUBLE_IN_SREP
+  CAPTION = Существование отпуска/прихода@Існування відпуску/приходу
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной@Основний

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form menu="Смарт-карты" caption="Приход бланков смарт-карт" menuname="CardBlankRefIn" menuposition="0" filters="true" editbuttons="true" tablename="CARD_BLANK">
+	<editbuttons>
+		<addbutton />
+		<editbutton />
+		<deletebutton />
+		<showtotalbutton />
+		<showdetailcheckbox />
+	</editbuttons>
+	<sql>
+select b.*,  
+       b.numb as name,
+       (select count(*) from card_blank_det d where d.head_id=b.id and d.head_inst=b.inst and state='Y') blank_count
+  from v_card_blank_base b
+ where in_out = 1 
+   and ((:card_number is null) or ((b.id, b.inst) in (select head_id, head_inst from card_blank_det where state='Y' and card_number=:card_number)))
+ order by date_ desc,in_out
+	</sql>
+	<sqldetail>
+select card_number, price from v_card_blank_det where head_id = :id and head_inst = :inst
+	</sqldetail>
+	<editclass classname="TCardBlankForm">
+	</editclass>
+	<columns>
+		<column align="left" width="60">
+			<caption>Дата</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="50">
+			<caption>Номер</caption>
+			<fieldname>numb</fieldname>
+			<total valuetype="statictext">
+				<value>Кол-во :</value>
+			</total>
+		</column>
+		<column align="left" width="80">
+			<caption>Кол-во</caption>
+			<fieldname>blank_count</fieldname>
+			<total valuetype="sum">
+				<fieldname>blank_count</fieldname>
+			</total>
+		</column>
+		<column align="left" width="150">
+			<caption>Поставщик</caption>
+			<fieldname>from_name</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption>Получатель</caption>
+			<fieldname>to_name</fieldname>
+		</column>
+		<column align="left" width="100">
+			<caption>Договор</caption>
+			<fieldname>dog</fieldname>
+		</column>
+		<column align="left" width="60">
+			<caption>Дата дог.</caption>
+			<fieldname>dog_date</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption>Операция</caption>
+			<fieldname>oper_name</fieldname>
+		</column>
+		<column align="left" width="80">
+			<caption>РН</caption>
+			<fieldname>rn_var_number</fieldname>
+		</column>
+	</columns>
+	<columnsdetail>
+		<column align="left" width="100">
+			<caption>Номер карты</caption>
+			<fieldname>card_number</fieldname>
+		</column>
+	</columnsdetail>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>DateFrom</name>
+			<caption>Дата с:</caption>
+			<fieldname>date_</fieldname>
+			<default>month_ago</default>
+		</dateedit>
+		<dateedit left="10" top="50" width="100" direction="todate">
+			<name>DateTo</name>
+			<caption>по:</caption>
+			<fieldname>date_</fieldname>
+			<default>now</default>
+		</dateedit>
+		<edit left="120" top="10" width="100" wholevalue="false">
+			<name>EditNumber</name>
+			<caption>Номер:</caption>
+			<fieldname>numb</fieldname>
+		</edit>
+		<edit left="120" top="50" width="100" onlynumbers="true">
+			<name>card_number</name>
+			<caption>Номер бланка:</caption>
+		</edit>
+		<xmlform width="250" left="230" top="10" wholevalue="true" orgref="true" orgtype="3" enableflags="yyy">
+			<name>FromOrg</name>
+			<caption>Поставщик:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>from_id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>from_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+		<xmlform width="250" left="230" top="50" wholevalue="true" orgref="true" orgtype="3" enableflags="yyy">
+			<name>ToOrg</name>
+			<caption>Получатель:</caption>
+			<link>
+				<srcfield>id</srcfield>
+				<destfield>to_id</destfield>
+			</link>
+			<link>
+				<srcfield>inst</srcfield>
+				<destfield>to_inst</destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+	</filters>
+</form>

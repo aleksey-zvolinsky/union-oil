@@ -1,0 +1,139 @@
+[GLOBAL]
+  TITLE = Реестр отоваренных по потребителям@Реєстр отоварених за споживачами
+  MENU = Отчеты\Отчеты по талонам\По потребителям-2\Реестр отоваренных@Реєстр отоварених
+  VERSION = 1.3
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM = 2
+    CAPTION1 = Подразделение@Підрозділ
+    CAPTION2 = Потребитель@Споживач
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Подразделение:: :org1.Name@Підрозділ:: :org1.Name
+  Потребитель:: :org2.Name@Споживач:: :org2.Name
+
+[SQL]
+select
+  ootp.name as dep_prih_name,
+  odep.name as dep_out_name,
+  oo.name as org_name,
+  oo.id_num as org_okpo,
+  npg.name as np_group,
+  dog, sub_part,
+  azs.name as azs_name,
+  v.smena_num,
+  v.nominal, v.ser, v.num,
+  v.prev_date,
+  v.date_,
+  v.prev_price as price,
+  1 as co,
+  nvl(litr_azs,nominal) as litr_azs, tonn_azs,
+  round(nvl(litr_azs,nominal)*prev_price,2) as summa
+from v_oil_talon_sropl v, oil_org oo, oil_org odep, oil_org ootp, oil_org azs, oil_np_group npg
+where date_ between :BeginDate and :EndDate
+  and odep.id=odep.inst
+  and (:org1.id in (odep.id,odep.par) or :org1.id is null)
+  and v.prev_to_id=nvl(:org2.id,v.prev_to_id)
+  and v.prev_to_inst=nvl(:org2.id,v.prev_to_inst)
+  and v.prev_from_id=ootp.id
+  and v.prev_from_inst=ootp.inst
+  and oper_id=180 and prev_oper_id=190
+  and v.to_id=odep.id
+  and v.to_inst=odep.inst
+  and v.prev_to_id=oo.id
+  and v.prev_to_inst=oo.inst
+  and v.from_id=azs.id and v.from_inst=azs.inst
+  and v.npgrp_id=npg.id
+
+[FIELDS]
+  DEFAULT WIDTH = 10
+  HEAD_DEPTH = 2
+
+  NAME = DEP_PRIH_NAME
+  CAPTION = Оприходовавшая организация@Оприходуюча організація
+  WIDTH = 25
+
+  NAME = DEP_OUT_NAME
+  CAPTION = Отпустившая организация@Організація, що відпустила
+  WIDTH = 25
+
+  NAME = ORG_NAME
+  CAPTION = Наименование потребителя@Назва споживача
+  WIDTH = 25
+
+  NAME = ORG_OKPO
+  CAPTION = Код ОКПО@Код ЄДРПОУ
+  WIDTH = 12
+
+  NAME = NP_GROUP
+  CAPTION = НП
+
+  NAME = DOG
+  CAPTION = Партия@Партія
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+
+  NAME = AZS_NAME
+  CAPTION = АЗС
+
+  NAME = SMENA_NUM
+  CAPTION = № смены@№ зміни
+
+  NAME = NOMINAL
+  CAPTION = Номинал@Номінал
+
+  NAME = SER
+  CAPTION = Серия@Серія
+
+  NAME = NUM
+  CAPTION = Номер
+
+  NAME = PREV_DATE
+  CAPTION = Дата отпуска@Дата відпуску
+
+  NAME = DATE_
+  CAPTION = Дата прихода@Дата приходу
+
+  NAME = PRICE
+  CAPTION = Цена с НДС, грн@Ціна з ПДВ, грн
+  FORMAT = 0.00
+
+  DEFAULT TOSUM = TRUE
+  DEFAULT OPTIONAL = FALSE
+
+  NAME = CO
+  CAPTION = Кол-во, шт.@К-сть, шт.
+  FORMAT = 0
+
+  NAME = LITR_AZS
+  CAPTION = Всего, л.@Всього, л.
+  FORMAT = 0.000
+
+  NAME = TONN_AZS
+  CAPTION = Всего, т.@Всього, т.
+  FORMAT = 0.000000
+
+  NAME = SUMMA
+  CAPTION = Сумма с НДС, грн@Сума з ПДВ, грн
+  FORMAT = 0.00
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = DEP_PRIH_NAME,ORG_NAME,NP_GROUP
+  UNCHECKED = NUM
+  
+  CAPTION = Суммарный@Сумарний
+  ITOGI = DEP_PRIH_NAME,ORG_NAME,NP_GROUP
+  UNCHECKED = NUM,PREV_DATE,DATE_,DOG,SUB_PART,AZS_NAME,SMENA_NUM

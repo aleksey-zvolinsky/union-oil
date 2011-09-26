@@ -1,0 +1,125 @@
+[GLOBAL]
+   TITLE = Ежедневное поступление нефтепродуктов на АЗС@Щоденне надходження нафтопродуктів на АЗС
+   MENU = Отчеты\Отчеты для Авиаса\Поступление НП на АЗС@Надходження НП на АЗС
+   MENU_POSITION = 2
+   VERSION = 1.3
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+[DESCRIPTION]
+   \2LДанные c :BeginDate по :EndDate@   \2LДані з :BeginDate по :EndDate
+
+[SQL]
+select npm.clientname as from_name,
+       npm.OrgName as azs_name,
+       npm.OblName,
+       npm.ttn_date,
+       npm.date_,
+       npm.np_type,
+       npm.np_group,
+       npm.ttn_num,
+      -npm.litr as litr,
+       npm.ud_weig,
+       r.temper,
+      -npm.tonn as tonn,
+       a.numb as auto_numb,
+       a.atp as auto_atp,
+       ct.name as cert,
+       r.comm
+  from v_oil_npmove npm, oil_rashod r, v_oil_auto a, oil_cert ct
+ where r.state='Y' and ct.state(+)='Y'
+   and r.id = npm.ttn_id
+   and r.inst = npm.ttn_inst
+   and a.id(+) = r.auto_id
+   and a.inst(+) = r.auto_inst
+   and r.cert_id = ct.id(+)
+   and npm.selltypeid =7
+   and npm.date_ between :BeginDate and :EndDate
+
+
+[FIELDS]
+   NAME = ttn_date
+   CAPTION = Дата ТТН
+   WIDTH = 13
+   FORMAT = dd.mm.yyyy
+
+   NAME = date_
+   CAPTION = Дата прихода на АЗС@Дата приходу на АЗС
+   WIDTH = 13
+   FORMAT = dd.mm.yyyy
+
+   NAME = np_type
+   CAPTION = наменование н/продукта@назва н/продукту
+   WIDTH = 30
+
+   NAME = np_group
+   CAPTION = группа н/продукта@група н/продукту
+   WIDTH = 20
+
+   NAME = ttn_num
+   CAPTION = № ТТН
+   WIDTH = 8
+
+   NAME = azs_name
+   CAPTION = Место слива (№ АЗС)@Місце зливу (№ АЗС)
+   WIDTH = 15
+
+   NAME = litr
+   CAPTION = Объем, л@Об'єм, л
+   WIDTH = 10
+   FORMAT = 0.000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = tonn
+   CAPTION = Масса, тн@Маса, тн
+   WIDTH = 10
+   FORMAT = 0.000000
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+
+   NAME = ud_weig
+   CAPTION = Плотность@Густина
+   WIDTH = 10
+   FORMAT = 0.000
+
+   NAME = temper
+   CAPTION = Температура
+   WIDTH = 10
+
+   NAME = auto_numb
+   CAPTION = Бензовоз (номер автомобиля)@Бензовоз (номер автомобіля)
+   WIDTH = 15
+
+   NAME = OblName
+   CAPTION = Получатель (наименование филиала)@Отримувач (назва філії)
+   WIDTH = 20
+
+   NAME = from_name
+   CAPTION = Место отгрузки (наименование н/базы)@Місце відвантаження (назва н/бази)
+   WIDTH=45
+   
+   NAME = cert
+   CAPTION = Сертификат@Сертифікат
+   WIDTH = 25
+
+   NAME = auto_atp
+   CAPTION = Автопредприятие (указать принадлежность бензовоза НК)@Автопідприємство (вказати приналежність бензовозу НК)
+   WIDTH = 25
+
+   NAME = comm
+   CAPTION = Примечание@Примітка
+   WIDTH = 15
+
+[TYPES]
+   CAPTION = Без группировки@Без угрупування
+
+   CAPTION = С группировкой по АЗС@З угрупованням по АЗС
+   ITOGI = azs_name
+
+   CAPTION = С группировкой по АЗС и НП@З угрупованням по АЗС та НП
+   ITOGI = azs_name,np_type

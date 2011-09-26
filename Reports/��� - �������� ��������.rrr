@@ -1,0 +1,73 @@
+[GLOBAL]
+  TITLE = Зависшие цистерны@Зависші цистерни
+  MENU = Отчеты\Перевалка\Зависшие цистерны@Зависші цистерни
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+    NUM = 1
+    CAPTION1 = На
+  END
+  
+  PANEL
+    CAPTION = Стоимость@Вартість
+    ELEMENT RecType:RadioButtonGroup
+      LIST = Отпущенные без раскредитации,Раскредитованные без отпуска@Відпущені без разкридетації,Разкредитовані без відпуска
+      VALUES = 1,2
+    END
+  END
+
+[DESCRIPTION]
+  На :BeginDate
+
+[SQL]
+select
+  q_name,
+  zrd.gtd_num,
+  Q.tank_num,
+  Q.head_id as num,
+  Q.date_,
+  1 as co
+from
+ (select v.*,
+    row_number() over (partition by tank_num order by date_ desc, q_id desc) as rnum
+  from v_oil_tank_move v
+  where date_<:BeginDate
+ ) Q, v_oil_zavod_rash_full zrd
+where rnum=1
+  and q_id=:RecType.Value
+  and Q.zrd_id=zrd.zrd_id
+  and Q.zrd_inst=zrd.zrd_inst
+
+
+[FIELDS]
+  DEFAULT WIDTH = 15
+
+  NAME = q_name
+  CAPTION = Тип
+  
+  NAME = GTD_NUM
+  CAPTION = № ГТД@№ ДТД
+  WIDTH = 25
+
+  NAME = TANK_NUM
+  CAPTION = № цистерны@№ цистерни
+  WIDTH = 20
+  
+  NAME = NUM
+  CAPTION = № документа
+
+  NAME = DATE_
+  CAPTION = Дата
+
+  NAME = CO
+  CAPTION = Кол-во@К-сть
+  TOSUM = TRUE
+  FORMAT = 0
+  OPTIONAL = FALSE
+  
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = GTD_NUM

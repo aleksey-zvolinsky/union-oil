@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" menu="Общие" caption="Акции">
+
+<sql>select * from oil_share where state = 'Y' order by id
+</sql>
+	<columns>
+		<column align="left" width="50">
+			<caption align="center">№</caption>
+			<fieldname>ID</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">Название акции</caption>
+			<fieldname>NAME</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Примечание</caption>
+			<fieldname>COMMENTS</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="300" wholevalue="false">
+			<name>NAME</name>
+			<caption>Название акции:</caption>
+			<fieldname>NAME</fieldname>
+		</edit>
+	</filters>
+</form>

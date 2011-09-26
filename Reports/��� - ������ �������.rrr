@@ -1,0 +1,73 @@
+[GLOBAL]
+  TITLE = Резерв номеров@Резерв номерів
+  MENU = Отчеты\Налоговые накладные\Резерв номеров@Резерв номерів
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  PAGE_ORIENT = GOR
+  SHOW_INFO = NO
+
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+  END
+
+
+[DESCRIPTION] 
+
+  \{A5}MОрганизация :org1.name@\{A5}MОрганізація :org1.name
+  \{A6}MПериод с :BeginDate по :EndDate@\{A6}MПеріод з :BeginDate по :EndDate
+
+[SQL]
+
+select r.date_,
+       r.num,
+       nvl(t.name_,'Налогoвая') type_,
+       count(*) cnt
+  from oil_nnum_reserve r,
+       oil_nn_type t
+ where r.state = 'Y'
+   and t.id(+) = r.nn_type_id
+   and inst = :Org1.ID
+   and date_ between :BeginDate and :EndDate
+group by r.date_,
+       r.num,
+       nvl(t.name_,'Налогoвая')
+
+[FIELDS]
+
+  NAME = cnt
+  CAPTION = Кол.номеров@К-сть номерів
+  WIDTH = 15
+
+  NAME = date_
+  CAPTION = Дата
+  WIDTH = 15
+  
+  NAME = num
+  CAPTION = Номер
+  WIDTH = 15
+
+  NAME = type_
+  CAPTION = Тип
+  WIDTH = 30
+
+[TYPES]
+  CAPTION = Нет@Немає
+  ITOGI =
+
+  CAPTION = По типу@За типом
+  ITOGI = type_
+
+  CAPTION = По дате@За датою
+  ITOGI = date_
+
+  CAPTION = По номеру@За номером
+  ITOGI = num
+
+  CAPTION = По дате,номеру@По даті,номеру
+  ITOGI = date_,num

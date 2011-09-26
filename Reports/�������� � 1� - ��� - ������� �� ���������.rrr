@@ -1,0 +1,181 @@
+[GLOBAL]
+  TITLE = АЗС - продажа по ведомости@АЗС - продаж по відомості
+  VERSION = 1.1
+  MENU = Отчеты\Выгрузка в 1С\АЗС - продажа по ведомости@АЗС - продаж по відомості
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate
+
+[SQL]
+select /*ORDERED USE_HASH(drep,azs,dr,r,p,v,dog,oo,odet2)*/
+ azs.par as filial_id,
+ azs.id as azs_id,
+ nvl(oo.id_num, odet2.fake_id_num) as id_num,
+ oo.nal_num as inn,
+ p.dog as part,
+ dr.sub_part,
+ dog.dog,
+ dog.dog_date,
+ v.price,
+ sum(v.litr) as litr,
+ sum(v.amount) as money,
+ sum(v.count_t) as weight,
+ to_date(drep.rep_date) as rep_date,
+ pfi.first_inst,
+ substr(oo.name, 1, 100) as org_name
+  from oil_daily_rep         drep,
+       oil_org               azs,
+       oil_dr_data           dr,
+       oil_rashod            r,
+       oil_part              p,
+       oil_vedomost          v,
+       oil_dog               dog,
+       oil_org               oo,
+       oil_org_det2          odet2,
+       v_oil_part_first_inst pfi
+ where drep.state = 'Y'
+   and dr.state = 'Y'
+   and dog.state(+) = 'Y'
+   and v.state = 'Y'
+   and dr.oper_type = 1
+   and trunc(drep.rep_date) between :BeginDate and :EndDate
+   and drep.azs_id = azs.id
+   and drep.azs_inst = azs.inst
+   and dr.rep_id = drep.id
+   and dr.rep_inst = drep.inst
+   and dr.ttn_id = r.id
+   and dr.ttn_inst = r.inst
+   and r.part_id = p.id
+   and r.part_inst = p.inst
+   and v.srep_id = dr.id
+   and v.srep_inst = dr.inst
+   and v.org_id = oo.id
+   and v.org_inst = oo.inst
+   and v.dog_id = dog.id(+)
+   and v.dog_inst = dog.inst(+)
+   and p.dog = pfi.dog(+)
+   and odet2.state(+) = 'Y'
+   and odet2.org_id(+) = oo.id
+   and odet2.org_inst(+) = oo.inst
+ group by azs.par,
+          azs.id,
+          oo.id_num,
+          oo.nal_num,
+          odet2.fake_id_num,
+          p.dog,
+          dr.sub_part,
+          dog.dog,
+          dog.dog_date,
+          v.price,
+          drep.rep_date,
+          substr(oo.name, 1, 100),
+          pfi.first_inst
+union all
+select sra.obl_id as filial_id,
+       sra.azs_id,
+       oo.id_num,
+       oo.nal_num as inn,
+       sra.dog as part,
+       sra.sub_part,
+       dog.dog,
+       dog.dog_date,
+       sra.price,
+       sum(sra.litr) as litr,
+       sum(round(sra.litr * sra.price, 2)) as money,
+       sum(sra.tonn) as weight,
+       sra.date_ as rep_date,
+       pfi.first_inst,
+       substr(oo.name, 1, 100) as org_name
+  from v_oil_talon_srae_base sra,
+       v_dual_org            oo,
+       v_dual_talon_dog      dog,
+       v_dual_date           ddate,
+       v_oil_part_first_inst pfi
+ where sra.date_ >= ddate.value
+   and sra.date_ between :BeginDate and :EndDate
+   and sra.dog = pfi.dog(+)
+   and is_np_docs = 1
+ group by sra.obl_id,
+          sra.azs_id,
+          oo.id_num,
+          oo.nal_num,
+          sra.dog,
+          sra.sub_part,
+          dog.dog,
+          dog.dog_date,
+          sra.price,
+          sra.date_,
+          substr(oo.name, 1, 100),
+          pfi.first_inst
+ order by Rep_Date
+
+[FIELDS]
+  NAME = FILIAL_ID
+  CAPTION =Код филиала@Код філії
+  WIDTH = 10
+
+  NAME = AZS_ID
+  CAPTION =Код АЗС@Код АЗС
+  WIDTH = 10
+
+  NAME = ID_NUM
+  CAPTION =Идентификационный код@Ідентифікаційний код
+  WIDTH = 15
+
+  NAME = INN
+  CAPTION =Податковий номер@Податковий номер
+  WIDTH = 15
+
+  NAME = PART
+  CAPTION =Партия@Партія
+  WIDTH = 10
+
+  NAME = SUB_PART
+  CAPTION =Подпартия@Подпартия
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION =Документ@Документ
+  WIDTH = 10
+
+  NAME = DOG_DATE
+  CAPTION =Дата документа@Дата документа
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION =Цена@Ціна
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION =Литры@Літри
+  WIDTH = 10
+
+  NAME = MONEY
+  CAPTION =Стоимость@Вартість
+  WIDTH = 15
+
+  NAME = WEIGHT
+  CAPTION =Вес@Вага
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION =Дата@Дата
+  WIDTH = 10
+
+  NAME = first_inst
+  CAPTION =Первый inst@Перший іnst
+  WIDTH = 10
+
+  NAME = org_name
+  CAPTION =Организация@Організація
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

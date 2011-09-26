@@ -1,0 +1,133 @@
+[GLOBAL]
+   TITLE = Отчет о реализации НП@Звіт з реалізації НП
+   VERSION = 1.3
+   MENU = Отчеты\Движение нефтепродуктов\Реализация НБ+АЗС@Реалізація НБ+АЗС
+   PAGES_WIDTH = 1
+   RAZM_SYMBOLS = NO
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный@Комісія,Власний
+         VALUES = 'K','O'
+      END
+   END
+
+   PANEL
+      CAPTION = Дополнительно@Додатково
+      ELEMENT NpList:List
+          CAPTION = Группы НП@Групи НП
+          OILVARNAME = NPGG_COMMON
+          TABLENAME = oil_np_group
+      END
+      ELEMENT IR:CheckBoxGroup
+         LIST = Внутрисистемная реализация@Внутрішньосистемна реалізація
+         VALUES = 1
+      END
+   END   
+   
+[VARIABLES]
+   VAR MANAGER_SHIP:varSql
+     select value from adm_settings where name='MANAGER_SHIP' and inst = ov.GetVal('INST')
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Тип товара:: :KOS.GetCaptions@Тип товару:: :KOS.GetCaptions
+   AFTER
+   \1LПредседатель(зам) правления\3L<Имя председателя>\2L:MANAGER_SHIP\2L<Имя директора>@\1LГолова(зам) правління\3L<Імя голови>\2L:MANAGER_SHIP\2L<Імя директора>
+   \1N\1LГлавный бухгалтер\2L<Имя бухгалтера>\3LСпециалист по учету\2L<Имя специалиста>@\1N\1LГоловний бухгалтер\2L<Імя бухгалтера>\3LСпеціаліст з обліку\2L<Імя спеціаліста>
+
+[SQL]
+   select nvl(pponname,oblname) as podrname,np_type,dog,dog_date,ss,
+          tonn,shtuki,price_no_nds,
+          summa-nds as summa_no_nds,nds,summa,summa_ss,delta
+   from v_oil_npmove
+   where operid in (11,12) and IsSummary<>'Y'
+         and date_ between :BeginDate and :EndDate
+         and :org1.id in (OblId,PponId,AzsId)
+         and :NpList.IsInList{np_groupid} 
+         and IsInsideReal<>decode(:IR.GetState{0},0,'Y','Q')
+
+[FIELDS]
+   NAME = podrname
+   CAPTION = Подразделение@Підрозділ
+   WIDTH=25
+
+   NAME = np_type
+   CAPTION = Вид НП
+   WIDTH = 15
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 15
+
+   NAME = dog_date
+   CAPTION = Дата дог.
+
+   NAME = ss
+   CAPTION = Учетная цена@Облікова ціна
+   FORMAT = 0.00
+
+   NAME = tonn
+   CAPTION = Реализация!тонн@Реалізація!тон
+   WIDTH = 15
+   TOSUM = TRUE
+   FORMAT = 0.000000
+   OPTIONAL = FALSE
+
+   NAME = shtuki
+   CAPTION = Реализация!шт@Реалізація!шт
+   WIDTH = 6
+   TOSUM = TRUE
+   FORMAT = 0
+   OPTIONAL = FALSE
+   HIDEIFEMPTY = TRUE
+
+   NAME = summa_no_nds
+   CAPTION = Стоимость без НДС@Вартість без ПДВ
+   WIDTH = 12
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+   NAME = nds
+   CAPTION = НДС@ПДВ
+   WIDTH = 12
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+   NAME = summa
+   CAPTION = Сумма с НДС@Сума з ПДВ
+   WIDTH = 12
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+   NAME = summa_ss
+   CAPTION = Сумма по уч.цене@Сума по обліковій ціні
+   WIDTH = 12
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+   NAME = delta
+   CAPTION = Дельта
+   WIDTH = 12
+   TOSUM = TRUE
+   FORMAT = 0.00
+   OPTIONAL = FALSE
+
+[TYPES]
+   
+   CAPTION = Основной@Основний
+   ITOGI = podrname

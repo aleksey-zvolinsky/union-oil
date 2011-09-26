@@ -1,0 +1,100 @@
+[GLOBAL]
+  TITLE = Расшифровка Остатков ОАО по резервуарам
+  MENU = Отчеты\Отчеты по нефтебазе\Резервуары в Остатках ОАО
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+    NUM = 1
+    CAPTION1 = На
+  END
+
+[DESCRIPTION]
+  На :BeginDate
+  
+[SQL]
+ select npt.np_grp,npt.np_grp_name,rz.id_org as dep_id,
+   oo.name as dep_name, rz.num, rz.name,
+   sum(rz.capacity) as RezervCapacity,
+   dns.density,
+   sum(rz.capacity)*dns.density as RezervCapacityTonn,
+   rzRest.rest as RezervRest,
+   sum(rz.capacity)*dns.density-rzRest.rest as RezervFreeSpace
+ from v_oil_rez_np_type rzn,oil_rezervuar rz,v_oil_np_type npt,v_oil_grp_density dns,
+   (select /*+ORDERED USE_HASH(vnp,rez,npt,rzn)*/
+      nvl(vnp.PponId,vnp.OblId) as PponId,npt.grp_id as Np_GroupId,
+        rez_id, rez_inst,
+        -sum(vnp.tonn) as rest
+    from v_oil_npmove vnp,oil_rezervuar rez,v_oil_rez_np_type rzn,oil_np_type npt
+    where vnp.date_<=:BeginDate and vnp.NbAzs=0
+          and vnp.rezid=rez.id and vnp.rezinst=rez.inst
+          and rzn.rez_id=rez.id and rzn.rez_inst=rez.inst
+          and :BeginDate between rzn.date_from and rzn.date_to
+          and rzn.np_type=npt.id
+    group by nvl(vnp.PponId,vnp.OblId),npt.grp_id, rez_id, rez_inst
+    having sum(tonn)<>0) rzRest, oil_org oo
+ where rz.state='Y' and rz.realvirt=1
+   and rzn.rez_id=rz.id and rzn.rez_inst=rz.inst
+   and rzn.np_type=npt.id
+   and :BeginDate between rzn.date_from and rzn.date_to
+   and :BeginDate between dns.date_from and dns.date_to
+   and npt.np_grp=dns.npgroup_id
+   and rzRest.PponId=rz.id_org and rzRest.PponId=rz.inst_org
+   /*and rzRest.Np_GroupId=npt.np_grp*/
+   and rz.id_org = oo.id
+   and rz.inst_org = oo.inst
+   and rz.id=rzRest.rez_id and rz.inst=rzRest.rez_inst
+ group by rz.num,rz.id_org,rz.inst_org,npt.np_grp,npt.np_grp_name,
+   oo.name,rz.name, rz.num, dns.density,rzRest.rest
+
+
+[FIELDS]
+
+  HEAD_DEPTH = 2
+
+  NAME = NP_GRP_NAME
+  CAPTION = Группа НП
+  WIDTH = 12
+
+  NAME = DEP_NAME
+  CAPTION = Подразделение
+  WIDTH = 25
+
+  NAME = NUM
+  CAPTION = Номер резервуара
+  WIDTH = 10
+
+  NAME = NAME
+  CAPTION = Название резервуара
+  WIDTH = 12
+
+  NAME = DENSITY
+  CAPTION = Плотность
+  WIDTH = 10
+  FORMAT = 0.000
+  
+  DEFAULT TOSUM = TRUE
+  DEFAULT WIDTH = 12
+
+  NAME = REZERVCAPACITY
+  CAPTION = Ёмкость (м.куб)
+  FORMAT = 0
+
+  NAME = REZERVCAPACITYTONN
+  CAPTION = Ёмкость (тонн)
+  FORMAT = 0.000
+
+  NAME = REZERVREST
+  CAPTION = Остаток (тонн)
+  FORMAT = 0.000000
+
+  NAME = REZERVFREESPACE
+  CAPTION = Свободное место (тонн)
+  FORMAT = 0.000000
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = NP_GRP_NAME, DEP_NAME

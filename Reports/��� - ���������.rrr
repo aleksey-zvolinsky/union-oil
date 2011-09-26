@@ -1,0 +1,96 @@
+[GLOBAL]
+   TITLE = Реализация по ведомости@Реалізація по відомості
+   MENU = Отчеты\Отчеты по АЗС\Реализация по ведомости@Реалізація по відомості
+   MENU_POSITION = 0
+   VERSION = 1.1
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+
+AFTER
+   \2LНачальник нефтебазы №_________________________@\2LНачальник нафтобази №_________________________
+   \2N\2LСт. специалист по учету _________________________@\2N\2LСт. спеціаліст по обліку _________________________
+
+[SQL]
+   select date_,clientname,clientokpo,dog,sub_part,np_type,
+          ud_weig,price,tonn,litr,shtuki,summa
+   from v_oil_npmove
+   where selltypeid=2 
+         and date_ between :BeginDate and :EndDate
+         and :org1.id in (OblId,PponId,AzsId)
+
+[FIELDS]
+   NAME = date_
+   CAPTION = Дата
+   WIDTH = 12
+
+   NAME = clientname
+   CAPTION = Организация@Організація
+   WIDTH = 25
+
+   NAME = clientokpo
+   CAPTION = Код ОКПО@Код ЄДРПОУ
+   WIDTH = 10
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 8
+
+   NAME = sub_part
+   CAPTION = Подпартия@Підпартія
+   WIDTH = 10
+
+   NAME = np_type
+   CAPTION = Вид нефтепродукта@Вид нафтопродукта
+   WIDTH = 15
+
+   NAME = ud_weig
+   CAPTION = Плотность@Щільність
+   WIDTH = 10
+
+   NAME = price
+   CAPTION = Цена@Ціна
+   WIDTH = 8
+
+   NAME = litr
+   CAPTION = Количество!литры@Кількість!літри
+   WIDTH = 10
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+   FORMAT = 0.000
+
+   NAME = tonn
+   CAPTION = Количество!тонны@Кількість!тони
+   WIDTH = 10
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+   FORMAT = 0.000000
+
+   NAME = shtuki
+   CAPTION = Количество!штуки@Кількість!штуки
+   WIDTH = 10
+   HIDEIFEMPTY = TRUE
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+   FORMAT = 0
+
+   NAME = summa
+   CAPTION = Сумма@Сума
+   WIDTH = 10
+   TOSUM = TRUE
+   OPTIONAL = FALSE
+   FORMAT = 0.00
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI = ClientName

@@ -1,0 +1,8 @@
+
+TCadSys42 Modified Delphi VCL Component
+
+Modified by Agócs László - StellaSOFT for geographic map system.
+Original Component by Piero Valagusa
+
+Free software!
+

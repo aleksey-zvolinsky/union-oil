@@ -1,0 +1,118 @@
+[GLOBAL]
+  TITLE = Движение бланков@Рух бланків
+  MENU = Отчеты\Отчеты по эл. карточкам\Бланки\Движение бланков@Рух бланків
+  VERSION = 1.3
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    CAPTION1=Филиал@Філія
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate по :EndDate
+  Филиал:: :org1.Name@Філія:: :org1.Name
+
+[SQL]
+
+select FILIAL,
+       before_cnt,
+       sum(is_anp) as cnt_anp,
+       sum(is_return) as cnt_return,
+       sum(is_sale) as cnt_sale,
+       avg(price) as price_sale,
+       sum(summ) as summ_sale,
+       sum(is_own) as cnt_own,
+       sum(is_write_off) as cnt_write_off,
+       sum(is_service) as cnt_service,
+       before_cnt + sum(is_anp) + sum(is_return) - sum(is_sale) -
+       sum(is_own) - sum(is_write_off) - sum(is_service) + sum(is_other) as after_cnt
+  from (select b.card_number,
+               b.oper_name,
+               b.price as price,
+               b.price as summ,
+               decode(b.oper_id, 254, 1, 0) as is_anp,
+               decode(b.oper_id, 252, 1, 0) as is_return,
+               decode(b.oper_id, 255, 1, 0) as is_sale,
+               decode(b.oper_id, 258, 1, 0) as is_own,
+               decode(b.oper_id, 257, 1, 0) as is_write_off,
+               decode(b.oper_id, 267, 1, 0) as is_service,
+               decode(b.oper_id, 254,0, 252,0, 255,0, 258,0, 257,0, 267,0, b.in_out) as is_other,
+               decode(b.in_out, -1, b.from_name, b.to_name) as filial,
+               bbefore.cnt as before_cnt
+          from v_card_blank_full_base b,
+               (select distinct q.filial_id,
+                                sum(cnt) over(partition by filial_id) as cnt
+                  from (select last_value(oper_id) over(partition by card_number order by date_ desc) last_oper_id,
+                               row_number() over(partition by card_number order by date_ desc) rn,
+                               1 as cnt,
+                               decode(in_out, -1, from_id, to_id) as filial_id
+                          from v_card_blank_full_base
+                         where date_ < :BeginDate
+                         ) q
+                 where rn = 1
+                   and last_oper_id not in (select id from oil_oper_type where grp = 18)) bbefore
+         where b.date_ between :BeginDate and :EndDate
+           and decode(b.in_out(+), -1, b.from_id(+), b.to_id(+)) = :org1.id
+           and bbefore.filial_id(+) = :org1.id
+        )
+ group by FILIAL, before_cnt
+
+[FIELDS]
+
+  NAME = FILIAL
+  CAPTION = Филиал@Філія
+  WIDTH = 50
+
+  NAME = before_cnt
+  CAPTION = Остаток на начало@Залишок на початок
+  WIDTH = 9
+
+  NAME = cnt_anp
+  CAPTION = Приход!От АНП@Прихід!Від АНП
+  WIDTH = 8
+
+  NAME = cnt_return
+  CAPTION = Приход!Возврат@Прихід!Повернення
+  WIDTH = 8
+
+  NAME = cnt_sale
+  CAPTION = Расход!Реализация!Количество@Відпуск!Реалізація!Кількість
+  WIDTH = 8
+
+  NAME = price_sale
+  CAPTION = Расход!Реализация!Цена@Відпуск!Реалізація!Ціна
+  WIDTH = 8
+
+  NAME = summ_sale
+  CAPTION = Расход!Реализация!Сумма@Відпуск!Реалізація!Сума
+  WIDTH = 8
+
+  NAME = cnt_own
+  CAPTION = Расход!Собств. нужды@Відпуск!Власні потреби
+  WIDTH = 8
+
+  NAME = cnt_write_off
+  CAPTION = Расход!Списано@Відпуск!Списано
+  WIDTH = 8
+
+  NAME = cnt_service
+  CAPTION = Расход!Служ. нужды@Відпуск!Службові потреби
+  WIDTH = 8
+
+  NAME = after_cnt
+  CAPTION = Остаток на конец@Залишок на кінець
+  WIDTH = 9
+
+[TYPES]
+
+  CAPTION = Основной
+  ITOGI =

@@ -1,0 +1,380 @@
+[GLOBAL]
+   FORMTITLE = Движение комиссионного товара@Рух комісійного товару
+   MENU = Отчеты\Отчеты для Авиаса\Движение комиссионного товара@Рух комісійного товару
+   MENU_POSITION = 0
+   VERSION = 1.2.3
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+   TITLE_COORD = M3
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+     NULLVALUE1=NO
+   END
+
+   PANEL
+      ELEMENT AzsList:List
+          CAPTION = АЗС:
+          TABLENAME = v_oil_azs
+          CONDITION = obl_id = ov.GetVal('INST')
+      END
+   END
+
+[VARIABLES]
+
+[DESCRIPTION]
+\{D3}MОТЧЕТ №________@\{D3}MЗВІТ №________
+\{C4}M:org1.name
+\{C5}Mо движении комиссионного товара@\{C5}Mпро рух комісійного товару
+\{C6}Mпо договору комиссии № ____ от _____@\{C6}Mпо договору комісії № ____ від _____
+\{C7}Mсогласно приказу №___ от ____@\{C7}Mзгідно з наказом №___ від ____
+\{C8}Mза период с :BeginDate по :EndDate г.@\{C8}Mза період з :BeginDate по :EndDate р.
+\{C9}Mпо АЗС №№: :AzsList.DESCRIPTION
+
+AFTER
+\2LДиректор филиала ______________@\2LДиректор филії ______________
+\2N\2LГлавный бухгалтер ______________@\2N\2LГоловний бухгалтер ______________
+
+[SQL]
+select npg_name,
+       dog,
+       rest_begin_tonn,
+       prihod_tonn,
+       real_tonn,
+       SN_tonn,
+       rash_inner_tonn,
+       prih_inner_tonn,
+       return_tonn,
+       rest_begin_tonn + prihod_tonn - real_tonn - SN_tonn - rash_inner_tonn + prih_inner_tonn - return_tonn as rest_tonn
+
+  from (
+
+         select npg_name,
+                npg_id,
+                dog,
+                sum(decode(tip, 1, tonn, 0)) as SN_tonn,
+                sum(decode(tip, 2, tonn, 0)) as real_tonn,
+                sum(decode(tip, 3, tonn, 0)) as prihod_tonn,
+                sum(decode(tip, 4, tonn, 0)) as rash_inner_tonn,
+                sum(decode(tip, 5, tonn, 0)) as prih_inner_tonn,
+                sum(decode(tip, 6, tonn, 0)) as rest_begin_tonn,
+                sum(decode(tip, 7, tonn, 0)) as return_tonn
+          from (/* Собственные нужды */
+                select 1 as tip, dog, npg_id, npg_name, sum(tonn) as tonn
+                   from (select dog,
+                                npg_id,
+                                npg_name,
+                                tonn as tonn
+                           from ( /* НБ,АЗС- Прочий отпуск */
+                                 select npm.dog,
+                                        npm.np_groupid as npg_id,
+                                        npm.np_group as npg_name,
+                                        sum(npm.tonn) as tonn
+                                   from v_oil_npmove npm, v_oil_oper_type oper
+                                  where npm.operid = oper.id
+                                    and oper.InsideNbAzs = 'N'
+                                    and npm.dog like 'ТД%'
+                                    and npm.dog not like 'ТД%/И'
+                                    and npm.selltypeid in (1, 3)
+                                    and npm.operid in (5,6,13,15,16,17,40,47,48,49,50,51,52,102,151,152)
+                                    and npm.date_ between :BeginDate and :EndDate
+                                    and :AzsList.IsInList{npm.AzsId}
+                                  group by npm.dog, npm.np_groupid, npm.np_group, operid
+
+                                 union all
+                                 /* Талоны - Спонсорская помощь и Собственные нужды или Излишки */
+                                 select t.Dog,
+                                        np.np_grp as npg_id,
+                                        np.np_grp_name as npg_name,
+                                        sum(t.tonn) as tonn
+                                   from v_oil_talon_real t, v_oil_np_type np, oil_part p
+                                  where p.state = 'Y'
+                                    and p.dog like 'ТД%'
+                                    and p.dog not like 'ТД%/И'
+                                    and t.part_id = p.id
+                                    and t.part_inst = p.inst
+                                    and p.np_type = np.id
+                                    and t.out_oper_id in (193, 245)
+                                    and trunc(t.rep_date) between :BeginDate and :EndDate
+                                    and :AzsList.IsInList{t.Azs_Id}
+                                  group by t.Dog, np.np_grp, np.np_grp_name, t.out_oper_id
+
+                                 union all
+                                 /* Смарт-карты- Собственные и Дуальные списания */
+                                 select nvl(c.part_fil, c.part) as dog,
+                                        decode(c.np_id, 4, 5, c.np_id) as npg_id,
+                                        npg.name as npg_name,
+                                        sum(weight) as tonn
+                                   from v_card_1c c, v_oil_np_group npg, oil_part p, v_card_azs azs
+                                  where nvl(c.part_fil, c.part) like 'ТД%'
+                                    and nvl(c.part_fil, c.part) not like 'ТД%/И'
+                                    and ((c.auto_id is not null and c.auto_inst is not null) or (IsDual = 1))
+                                    and npg.id = decode(c.np_id, 4, 5, c.np_id)
+                                    and (c.price_uch is not null or c.part is not null)
+                                    and trunc(c.Rep_Date) between :BeginDate and :EndDate
+                                    and p.state(+) = 'Y' and p.dog(+) = c.part
+                                    and p.to_inst(+) = ov.GetVal('INST')
+                                    and c.azs_id = azs.id
+                                    and c.azs_id = azs.inst
+                                    and ((azs.is_alien_azs = 1)
+                                         or
+                                         (azs.is_alien_azs = 0 and (:AzsList.IsInList{c.AZS_Id})))
+                                  group by nvl(c.part_fil, c.part), decode(c.np_id, 4, 5, c.np_id), npg.name
+                                  ))
+                  group by dog, npg_name, npg_id
+                 having sum(tonn) <> 0
+
+                 UNION ALL
+                 /* Комиссия */
+                 select 2 as tip, dog, npg_id, npg_name, sum(tonn) as tonn
+                   from (/* Реализация и банк.карты */
+                         select OblId, OblInst,
+                                date_,
+                                np_group as npg_name,
+                                np_groupid as npg_id,
+                                dog,
+                                tonn
+                           from v_oil_npmove
+                          where operid in (11, 12, 201)
+                            and nbazs = 1
+                            and IsSummary <> 'Y'
+                            and IsTalonDet <> 'Y'
+                            and rashprih = 0
+                            and :AzsList.IsInList{AzsId}
+
+                         union all
+                         /* "Не"дуальные смарт-карты */
+                         select card.GetObl(c.card_number, decode(c.is_ls, 1, trunc(c.dog_date), trunc(c.rec_date))) as OblId,
+                                card.GetObl(c.card_number, decode(c.is_ls, 1, trunc(c.dog_date), trunc(c.rec_date))) as OblInst,
+                                trunc(c.rep_date) as date_,
+                                npg.name as npg_name,
+                                npg.id as npg_id,
+                                nvl(part, part_fil) as dog,
+                                weight as tonn
+                           from v_card_1c c, oil_np_group npg, v_card_azs azs
+                          where decode(c.np_id, 4, 5, c.np_id) = npg.id
+                            and auto_id is null
+                            and isdual <> 1
+                            and c.azs_id = azs.id
+                            and c.azs_id = azs.inst
+                            and ((azs.is_alien_azs = 1)
+                                  or
+                                 (azs.is_alien_azs = 0 and (:AzsList.IsInList{c.AZS_Id})))
+
+                         union all
+                         /* Отоваривание проданых клиентам талонов */
+                         select azs.obl_id as OblId,
+                                azs.obl_id as OblInst,
+                                trunc(t.rep_date) as date_,
+                                np.np_grp_name as npg_name,
+                                np.np_grp as npg_id,
+                                p.dog,
+                                t.tonn
+                          from v_oil_talon_real t, v_oil_np_type np, oil_part p, v_oil_azs azs
+                         where auto_id is null
+                           and t.oper_id = 14
+                           /* Cобств. нужды и Спонсор. помощь*/
+                           and (t.out_oper_id not in (193, 245) or t.out_oper_id is null)
+                           and p.np_type = np.id
+                           and t.part_id = p.id
+                           and t.part_inst = p.inst
+                           and t.from_id = azs.id
+                           and t.from_inst = azs.inst
+                           and :AzsList.IsInList{t.Azs_Id}) v
+                  where npg_id <> 10
+                    and date_ between :BeginDate and :EndDate
+                    and OblId = ov.GetVal('INST')
+                    and OblInst = ov.GetVal('INST')
+                    and substr(v.dog, 1, 2) = 'ТД'
+                    and v.dog not like 'ТД%/И'
+                  group by npg_name, npg_id, dog
+                 having sum(tonn) <> 0
+
+                 UNION ALL
+                 /* Приходи партій ТД з н/б Авіаса */
+                 select 3 as tip,
+                        p.dog,
+                        np.np_grp as npg_id,
+                        np.np_grp_name as npg_name,
+                        sum(nvl(dr.pr_count,0)) as tonn
+                   from oil_daily_rep drep,
+                        oil_dr_data dr,
+                        oil_rashod r,
+                        oil_part p,
+                        v_oil_np_type np
+                 where dr.state='Y' and drep.state='Y' and r.state='Y' and p.state='Y'
+                   and dr.rep_id=drep.id
+                   and dr.rep_inst=drep.inst
+                   and dr.ttn_id=r.id
+                   and dr.ttn_inst=r.inst
+                   and dr.oper_type=0  /*прихід*/
+                   and r.oper_id in (7,10,44)
+                   and p.id = r.part_id
+                   and p.inst = r.part_inst
+                   and upper(p.dog) like 'ТД%'
+                   and upper(p.dog) not like 'ТД%/И'
+                   and p.np_type = np.id
+                   and :AzsList.IsInList{drep.azs_id}
+                   and not exists (select 'X'  /*беремо прихід лише з ненаших нафтобаз*/
+                                     from v_oil_org oo
+                                    where id = inst
+                                      and oo.oblinst = ov.GetVal('INST')
+                                      and oo.oblid = ov.GetVal('INST')
+                                      and oo.id = r.from_id and oo.inst = r.from_inst)
+                   and trunc(drep.rep_date) between :BeginDate and :EndDate
+                 group by p.dog, np.np_grp, np.np_grp_name
+
+                 UNION ALL
+                 /* Смарт-карты межфилиальные - 4-чужі на своїх; 5-свої на чужих*/
+                 select decode(azs.is_alien_azs,0,4,5) as tip,
+                        t.dog,
+                        decode(np.np_grp,4,5,np.np_grp) as npg_id,
+                        decode(np.np_grp,4,np2.name,np.np_grp_name) as npg_name,
+                        sum(nvl(t.tonn, 0)) as tonn
+                   from card_transit_part t,
+                        v_card_azs        azs,
+                        v_oil_np_type     np,
+                        v_oil_np_group    np2
+                  where t.state = 'Y'
+                    and trunc(t.oper_date) between :BeginDate and :EndDate
+                    and t.dog like 'ТД%'
+                    and t.dog not like 'ТД%/И'
+                    and t.azs_id = azs.id
+                    and t.azs_inst = azs.inst
+                    and np2.id = 5
+                    and ((azs.is_alien_azs = 1)
+                          or
+                         (azs.is_alien_azs = 0 and (:AzsList.IsInList{t.AZS_Id})))
+                    and decode(t.card_np_type, 4, 5, t.card_np_type) = np.id
+                  group by t.dog, decode(np.np_grp,4,5,np.np_grp), decode(np.np_grp,4,np2.name,np.np_grp_name), decode(azs.is_alien_azs,0,4,5)
+
+                  UNION ALL
+                  /*Смарт-карты - Дуальные на своих*/
+                  select 4 as tip,
+                         nvl(c.part_fil, c.part) as dog,
+                         decode(c.np_id, 4, 5, c.np_id) as npg_id,
+                         npg.name as npg_name,
+                         sum(weight) as tonn
+                    from v_card_1c c, v_oil_np_group npg, oil_part p, v_card_azs azs
+                   where nvl(c.part_fil, c.part) like 'ТД%'
+                     and nvl(c.part_fil, c.part) not like 'ТД%/И'
+                     and c.CardAlign = 1
+                     and c.AzsAlign = 0
+                     and c.auto_inst is null
+                     and npg.id = decode(c.np_id, 4, 5, c.np_id)
+                     and (c.price_uch is not null or c.part is not null)
+                     and trunc(c.Rep_Date) between :BeginDate and :EndDate
+                     and p.state(+) = 'Y'
+                     and p.dog(+) = c.part
+                     and p.to_inst(+) = ov.GetVal('INST')
+                     and c.azs_id = azs.id
+                     and c.azs_id = azs.inst
+                     and ((azs.is_alien_azs = 1) or
+                          (azs.is_alien_azs = 0 and (:AzsList.IsInList{c.AZS_Id})))
+                   group by nvl(c.part_fil, c.part), decode(c.np_id, 4, 5, c.np_id), npg.name
+
+                  UNION ALL
+                  /* Залишок на початок періоду*/
+                  select 6 as tip,
+                         p.dog,
+                         np.np_grp as npg_id,
+                         np.np_grp_name as npg_name,
+                         sum(decode(dr.oper_type, 1, -(dr.out_nal_count+
+                                                       dr.out_ved_count+
+                                                       dr.out_talon_count+
+                                                       dr.out_sn_count+
+                                                       dr.out_count),
+                                                  0, nvl(dr.pr_count,0))) as tonn
+                   from oil_daily_rep drep,
+                        oil_dr_data   dr,
+                        oil_rashod    r,
+                        oil_part      p,
+                        v_oil_np_type np
+                  where drep.state = 'Y' and dr.state = 'Y' and r.state = 'Y' and p.state = 'Y'
+                    and drep.id = dr.rep_id  and drep.inst = dr.rep_inst
+                    and dr.ttn_id = r.id     and dr.ttn_inst = r.inst
+                    and p.id = r.part_id     and p.inst = r.part_inst
+                    and p.np_type = np.id
+                    and upper(p.dog) like 'ТД%'
+                    and upper(p.dog) not like 'ТД%/И'
+                    and :AzsList.IsInList{drep.azs_id}
+                    and trunc(drep.rep_date) between '01.01.2009' and to_date(:BeginDate)-1
+                  group by p.dog, np.np_grp, np.np_grp_name
+
+                  UNION ALL
+                  /*Повернення на НБ*/
+                  select 7 as tip,
+                         npm.dog,
+                         npm.np_groupid as npg_id,
+                         npm.np_group as npg_name,
+                         sum(nvl(npm.tonn,0)) as tonn
+                   from v_oil_npmove npm
+                  where upper(npm.dog) like 'ТД%'
+                    and upper(npm.dog) not like 'ТД%/И'
+                    and :AzsList.IsInList{npm.AzsId}
+                    and trunc(npm.rep_date) between :BeginDate and :EndDate
+                    and nbazs=1
+                    and IsSummary<>'Y'
+                    and IsTalonDet<>'Y'
+                    and rashprih=0
+                    and npm.operid = 55
+                  group by npm.dog, npm.np_groupid, npm.np_group
+                  )
+         group by npg_name, npg_id, dog)
+ order by decode(npg_id, 3, 100, 62, 150, npg_id)
+
+[FIELDS]
+   NAME = rownum
+   CAPTION = №№ п/п
+   WIDTH = 15
+
+   NAME = npg_name
+   CAPTION = Тип НП
+   WIDTH = 15
+
+   NAME = dog
+   CAPTION = Партия@Партія
+   WIDTH = 12
+
+   DEFAULT WIDTH = 15
+   DEFAULT TOSUM = TRUE
+   DEFAULT OPTIONAL = FALSE
+   DEFAULT HIDEIFEMPTY = FALSE
+
+   FIELDS_GROUP
+      TAILS
+        NAME = tonn
+        CAPTION = !Кол-во,т@!К-сть,т
+        FORMAT = 0.000000
+     HEADS
+           NAME = rest_begin_
+           CAPTION = Остаток на начало периода@Залишок на початок періоду
+
+           NAME = prihod_
+           CAPTION = Приход@Прихід
+
+           NAME = real_
+           CAPTION = Реализіция@Реалізація
+
+           NAME = SN_
+           CAPTION = Разход на СН@Відпуск на власні потреби
+
+           NAME = rash_inner_
+           CAPTION = Расход по внутр. перем.@Відпуск по внутр. перем.
+
+           NAME = prih_inner_
+           CAPTION = Приход по внутр. перем.@Прихід по внутр. перем.
+
+           NAME = return_
+           CAPTION = Возврат на н/б@Повернення на н/б
+
+           NAME = rest_
+           CAPTION = Остаток на конец периода@Залишок на кінець періоду
+    END_GROUP
+
+[TYPES]
+   CAPTION = Основной@Основний
+   ITOGI =

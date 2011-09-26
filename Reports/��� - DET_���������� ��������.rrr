@@ -1,0 +1,146 @@
+[GLOBAL]
+  TITLE = Дисконтные карты@Дисконтні картки
+  MENU = Отчеты\Отчеты по АЗС\Информация с АЗС\Дисконтные карты@Дисконтні картки
+  VERSION = 1.3
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyynnynn
+    STARTCONDITION1=2
+  END
+
+[DESCRIPTION]
+  За период с :BeginDate по :EndDate@За період з :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select dr.azs_id,
+       dr.azs_inst,
+       o.name as azs_name,
+       dr.rep_date,
+       dr.rep_num,
+       dr.smena_num,
+       
+       d.np_id,
+       npg.name as np_name,
+       
+       d.id_client,
+       ov.family || ' ' || ov.name || ' ' || ov.patronymic as vip_org_name,
+       d.discnumber,
+       
+       d.id_discount,
+       dcv.discount as discount_vip_org,
+       d.discprocent as discount_azs,
+       d.litres,
+       d.summa as summa_with,
+       round(((d.summa) / (1 - (d.discprocent / 100))), 2) as summa_without,
+       round(((d.summa) / (1 - (d.discprocent / 100))) /
+             (decode(d.litres, 0, 1, null, 1, d.litres)),
+             2) as price,
+       (round((((d.summa) / (1 - (d.discprocent / 100)))), 2) - (d.summa)) as summa_discont,
+       d.counts
+  from oil_azs_discont   d,
+       oil_daily_rep     dr,
+       v_oil_np_group    npg,
+       v_org             o,
+       oil_vipclients    ov,
+       oil_discountvalue dcv
+ where dr.rep_date between :BeginDate and :EndDate
+   and ((dr.azs_id = :org1.id and dr.azs_inst = :org1.inst) or
+       (:org1.id is null and :org1.inst is null))
+   and dr.id = d.rep_id
+   and dr.inst = d.rep_inst
+   and dr.azs_id = o.id
+   and dr.azs_inst = o.inst
+   and npg.id = d.np_id
+   and d.state = 'Y'
+   and dr.state = 'Y'
+   and ov.state = 'Y'
+   and dcv.state = 'Y'
+   and ov.id(+) = d.id_client
+   and dcv.id(+) = d.id_discount
+ order by d.discnumber, dr.rep_date
+
+[FIELDS]
+  NAME = azs_name
+  CAPTION = Сменный отчёт!АЗС@Змінний звіт!АЗС
+  WIDTH = 20
+
+  NAME = rep_date
+  CAPTION = Сменный отчёт!Дата@Змінний звіт!Дата
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = rep_num
+  CAPTION = Сменный отчёт!Номер@Змінний звіт!Номер
+  WIDTH = 10
+
+  NAME = smena_num
+  CAPTION = Сменный отчёт!Смена@Змінний звіт!Зміна
+  WIDTH = 10
+
+  NAME = np_name
+  CAPTION = НП@НП
+  WIDTH = 15
+
+  NAME = vip_org_name
+  CAPTION = VIP клиент@VIP клієнт
+  WIDTH = 20
+
+  NAME = discnumber
+  CAPTION = Номер карты@Номер картки
+  WIDTH = 20
+
+  NAME = discount_vip_org
+  CAPTION = Скидка у клиента,%@Знижка у клієнта,%
+  WIDTH = 13
+  FORMAT = 0
+
+  NAME = discount_azs
+  CAPTION = Скидка на АЗС,%@Знижка на АЗС,%
+  WIDTH = 13
+  FORMAT = 0
+
+  NAME = price
+  CAPTION = Цена@Ціна
+  WIDTH = 10
+  FORMAT = 0.00
+
+  NAME = litres
+  CAPTION = Литры@Літри
+  WIDTH = 10
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = summa_without
+  CAPTION = Сума без скидки@Сума без знижки
+  WIDTH = 18
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = summa_with
+  CAPTION = Сума со скидкой@Сума зі знижкою
+  WIDTH = 18
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = summa_discont
+  CAPTION = Сумма скидки@Сума знижки
+  WIDTH = 18
+  FORMAT = 0.00
+  TOSUM = TRUE
+
+  NAME = counts
+  CAPTION = Кол-во@Кіл-ть
+  WIDTH = 10
+  FORMAT = 0
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = DISCNUMBER

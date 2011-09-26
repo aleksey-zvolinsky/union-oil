@@ -1,0 +1,88 @@
+[GLOBAL]
+  TITLE = АЗС - продажа за наличные@АЗС - продаж за готівку
+  VERSION = 1.1
+  MENU = Отчеты\Выгрузка в 1С\АЗС - продажа за наличные@АЗС - продаж за готівку
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+[SQL]
+select /*+ORDERED NO_MERGE USE_NL(Oil_Daily_Rep, AZS, Oil_DR_Data, Oil_Rashod, Oil_Part)*/
+       AZS.Par as Filial_Id,
+       AZS.Id as AZS_Id,
+       Oil_Part.Dog as Part,
+       Oil_DR_Data.Sub_Part,
+       Oil_DR_Data.S_Price as Price,
+       sum(Oil_DR_Data.Out_Nal_Litr) as Litr,
+       sum(Oil_DR_Data.Out_Nal_Money) as Money,
+       sum(Oil_DR_Data.Out_Nal_Count) as Weight,
+       to_date(Oil_Daily_Rep.Rep_Date) as Rep_Date
+  from Oil_Daily_Rep, Oil_Org AZS, Oil_DR_Data, Oil_Rashod, Oil_Part
+ where Oil_Daily_Rep.State = 'Y'
+   and Oil_DR_Data.State = 'Y'
+   and Oil_DR_Data.Oper_Type = 1
+   and to_date(Oil_Daily_Rep.Rep_Date) >= :BeginDate
+   and to_date(Oil_Daily_Rep.Rep_Date) <= :EndDate
+   and Oil_Daily_Rep.AZS_Id = AZS.Id
+   and Oil_Daily_Rep.AZS_Inst = AZS.Inst
+   and Oil_Daily_Rep.Id = Oil_DR_Data.Rep_Id
+   and Oil_Daily_Rep.Inst = Oil_DR_Data.Rep_Inst
+   and Oil_Rashod.Id = Oil_DR_Data.TTN_Id
+   and Oil_Rashod.Inst = Oil_DR_Data.TTN_Inst
+   and Oil_Part.Id = Oil_Rashod.Part_Id
+   and Oil_Part.Inst = Oil_Rashod.Part_Inst
+   and (nvl(Oil_DR_Data.Out_Nal_Litr, 0) <> 0 or nvl(Oil_DR_Data.Out_Nal_Count, 0) <> 0)
+ group by AZS.Par,
+       AZS.Id,
+       Oil_Part.Dog,
+       Oil_DR_Data.Sub_Part,
+       Oil_DR_Data.S_Price,
+       Oil_Daily_Rep.Rep_Date
+ order by Rep_Date
+
+[FIELDS]
+
+  NAME = FILIAL_ID
+  CAPTION =Код филиала@Код філії
+  WIDTH = 10
+
+  NAME = AZS_ID
+  CAPTION =Код АЗС
+  WIDTH = 10
+
+  NAME = PART
+  CAPTION =Партия@Партія
+  WIDTH = 15
+
+  NAME = SUB_PART
+  CAPTION =Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = PRICE
+  CAPTION =Цена@Ціна
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION =Литры@Літри
+  WIDTH = 10
+
+  NAME = MONEY
+  CAPTION =Стоимость@Вартість
+  WIDTH = 10
+
+  NAME = WEIGHT
+  CAPTION =Вес@Вага
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION =Дата
+  WIDTH = 10
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

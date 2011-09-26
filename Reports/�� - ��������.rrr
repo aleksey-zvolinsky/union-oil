@@ -1,0 +1,199 @@
+[GLOBAL]
+   TITLE = Перевалка@Перевалка
+   MENU = Отчеты\Отчеты по Нефтебазе\Перевалка@Перевалка
+   MENU_POSITION = 2
+   NAME_FOR_SAVE = Перевалка
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   За период с :BeginDate по :EndDate@За період з :BeginDate по :EndDate@
+   Организация:: :org1.name@Організація:: :org1.name
+AFTER
+   \2LНачальник нефтебазы _________________________@\2LНачальник нафтобази _________________________
+
+[SQL]
+
+select np_grp_name,
+       np_name,
+       sum(is_begin_period * -tonn)*1e3 as begin_rest_kg,
+       sum(is_current_period * prih_tonn)*1e3 as prih_kg,
+       sum(is_current_period * rash_tonn * is_11416)*1e3 as rash_11416_kg,
+       sum(is_current_period * rash_tonn * is_11415)*1e3 as rash_11415_kg,
+       sum(is_current_period * rash_tonn * is_11428)*1e3 as rash_11428_kg,
+       sum(is_current_period * rash_tonn * is_11452)*1e3 as rash_11452_kg,
+       sum(is_current_period * rash_tonn * is_other)*1e3 as rash_other_kg,
+       sum(is_current_period * rash_tonn * is_sale)*1e3  as rash_sale_kg,
+       sum(is_current_period * rash_tonn)*1e3 as rash_kg,
+
+       sum(is_current_period * rash_litr * is_11416) as rash_11416_litr,
+       sum(is_current_period * rash_litr * is_11415) as rash_11415_litr,
+       sum(is_current_period * rash_litr * is_11428) as rash_11428_litr,
+       sum(is_current_period * rash_litr * is_11452) as rash_11452_litr,
+       sum(is_current_period * rash_litr * is_other) as rash_other_litr,
+       sum(is_current_period * rash_litr * is_sale)  as rash_sale_litr,
+       sum(is_current_period * rash_litr) as rash_litr,       
+       
+       sum(is_end_period * -tonn)*1e3 as end_rest_kg
+  from (select np.np_grp_name,
+               np.name as np_name,
+               m.date_,
+               case when m.date_ <= :BeginDate  then 1 else 0 end 
+                 as is_begin_period,
+               case when m.date_ between :BeginDate and :EndDate  then 1 else 0 end 
+                 as is_current_period,
+               case when m.date_ <= :EndDate then 1 else 0 end 
+                 as is_end_period,
+               nvl(tonn,0) as tonn,
+               decode(m.selltypeid, 8, nvl(-tonn,0), 0) as prih_tonn,
+               decode(m.selltypeid, 1, nvl(tonn,0), 0) as rash_tonn,
+               decode(m.selltypeid, 1, litr, 0) as rash_litr,               
+               decode(a.obl_id, 11416, 1, 0) as is_11416,
+               decode(a.obl_id, 11415, 1, 0) as is_11415,
+               decode(a.obl_id, 11428, 1, 0) as is_11428,
+               decode(a.obl_id, 11452, 1, 0) as is_11452,
+               case
+                  when a.obl_id in (11416, 11415, 11428, 11452) or
+                       a.obl_id is null  then 0 else 1 end as is_other,
+               decode(a.obl_id, null, 1, 0) as is_sale
+          from (select 
+                       1 as SellTypeId, r.id, r.inst,from_id,from_inst,to_id,to_inst,r.part_id,r.part_inst,r.rez as rez_id,r.rez_inst,R.ttn_num,R.ttn_date,R.date_,R.oper_id,
+                       r.auto_id,r.auto_inst,r.nn_id,r.nn_inst,r.id as ttn_id,r.inst as ttn_inst,'A' as card_alien,
+                       r.dog as dog_id,r.dog_inst,r.dov_serial,r.dov_num,r.dov_date,
+                       to_char(null) as sub_part,r.ud_weig,r.temper,R.litr,R.count_ as tonn,
+                       decode(r.group_num,
+                         null,decode(R.uch_price,
+                                'N',NDS.GetWithNds_NoNds(round(R.price*R.count_,2),R.date_),
+                                round(R.price*R.count_,2)
+                              ),
+                         round(R.price*R.count_,2)
+                       ) as summa,
+                       decode(R.group_num,
+                         null,decode(R.uch_price,'N',NDS.GetWithNds_NoNds(R.price,R.date_),R.price),
+                         R.price
+                       ) as price,
+                       decode(R.group_num,null,R.price,NDS.GetNoNds_WithNds(R.price,R.date_)) as price_no_nds,
+                       decode(R.group_num,
+                         null,decode(R.uch_price,'N',NDS.GetNds_NoNds(round(R.price*R.count_,2),R.date_),0),
+                         NDS.GetNds_WithNds(round(R.price*R.count_,2),R.date_)
+                       ) as nds,
+                       to_number(null) as delta,
+                       0 as pr_ned_eu,0 as pr_ned_pi,0 as pr_ned_post,0 as pr_ned_rail,0 as pr_ned_tp, to_date(null) as rep_date, to_number(null) as smena_num, to_number(null) as rep_price,
+                       r.group_num, to_number(null) as doc_tonn
+                  from oil_rashod r
+                 where r.state='Y'
+                 UNION ALL
+                select 
+                       8 as SellTypeId, pr.id,pr.inst,pr.to_,pr.to_inst,pr.from_,pr.from_inst,pr.part_id,pr.part_inst,prd.rez as rez_id,prd.rez_inst,
+                       to_char(null) as ttn_num,to_date(null) as ttn_date,
+                       pr.date_,pr.oper_id,to_number(null) as auto_id,to_number(null) as auto_inst,to_number(null) as nn_id,to_number(null) as nn_inst,
+                       to_number(null) as ttn_id,to_number(null) as ttn_inst,'A' as card_alien,
+                       pr.dog as dog_id,pr.dog_inst,to_char(null) as dov_serial,to_char(null) as dov_num,to_date(null) as dov_date,
+                       to_char(null) as sub_part,to_number(null) as ud_weig,'' as temper,to_number(null) as litr,-prd.fact_count as tonn,
+                       0 as summa,0 as price,0 as price_no_nds,0 as nds,to_number(null) as delta,
+                       nvl(prd.ned_norm_ub,0) as pr_ned_eu,
+                       nvl(prd.ned_norm_er,0)-nvl(prd.izl_norm,0) as pr_ned_pi,
+                       nvl(prd.ned_post,0)-nvl(prd.izl_post,0) as pr_ned_post,
+                       nvl(prd.ned_rail,0) as pr_ned_rail,
+                       nvl(prd.tech_loss,0) as pr_ned_tp, to_date(null) as rep_date,to_number(null) as smena_num, to_number(null) as rep_price,
+                       pr.group_num, -prd.doc_count as doc_tonn
+                  from oil_prihod pr,oil_prih_det prd, oil_rezervuar rz
+                 where pr.state='Y' and prd.state='Y'
+                   and rz.id=prd.rez and rz.inst=prd.rez_inst
+                   and prd.prihod_id=pr.id and prd.inst=pr.inst) m,
+               oil_oper_type op,
+               v_oil_azs a,
+               oil_part p,
+               v_oil_np_type np
+         where m.inst = :org1.id
+           and m.selltypeid in (1, 8)
+           and m.oper_id = op.id
+           and m.oper_id not in (18)
+           and a.id(+) = m.to_id
+           and a.inst(+) = m.to_inst
+           and m.part_id = p.id
+           and m.part_inst = p.inst
+           and p.np_type = np.id)
+ group by np_grp_name, np_name
+ order by np_grp_name, np_name
+
+[FIELDS]
+   NAME = np_grp_name
+   CAPTION = Группа товара@Група товара
+   WIDTH = 15
+
+   NAME = np_name
+   CAPTION = Тип товара
+   WIDTH = 30
+
+   DEFAULT WIDTH = 9
+   DEFAULT TOSUM = TRUE
+   DEFAULT OPTIONAL = FALSE
+   DEFAULT HIDEIFEMPTY = TRUE
+
+   NAME = begin_rest_kg
+   CAPTION = Остаток на начало, кг@Залишок на початок, кг
+   WIDTH = 10
+   FORMAT = # ### ##0
+   TOSUM = TRUE
+   HIDEIFEMPTY = FALSE
+
+   NAME = prih_kg
+   CAPTION = Приход, кг@Прихід, кг
+   WIDTH = 10
+   FORMAT = # ### ##0
+   TOSUM = TRUE
+   HIDEIFEMPTY = FALSE
+
+   FIELDS_GROUP
+      TAILS
+        NAME = _litr
+        CAPTION = !л
+        FORMAT = # ### ##0
+
+        NAME = _kg
+        CAPTION = !кг
+        FORMAT = # ### ##0
+
+     HEADS
+
+           NAME = rash_11416
+           CAPTION = Расход!Нафта-Люкс@Відпуск!Нафта-Люкс
+
+           NAME = rash_11415
+           CAPTION = Расход!Укрнафта@Відпуск!Укрнафта
+
+           NAME = rash_11428
+           CAPTION = Расход!Волинський нафтовий дім@Відпуск!Волинський нафтовий дім
+
+           NAME = rash_11452
+           CAPTION = Расход!ТД Нафтопродукти@Відпуск!ТД Нафтопродукти
+
+           NAME = rash_other
+           CAPTION = Расход!Прочие@Відпуск!Інші
+
+           NAME = rash_sale
+           CAPTION = Расход!Опт@Відпуск!Опт
+
+           NAME = rash
+           CAPTION = Расход!Всего@Відпуск!Всього
+    END_GROUP
+
+   NAME = end_rest_kg
+   CAPTION = Остаток на конец, кг@Залишок на кінець, кг
+   WIDTH = 10
+   FORMAT = # ### ##0
+   HIDEIFEMPTY = FALSE
+
+[TYPES]
+   CAPTION = По группе
+   ITOGI = np_grp_name
+   UNCHECKED = 

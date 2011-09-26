@@ -1,0 +1,138 @@
+[GLOBAL]
+   TITLE = Транзакции по не закрытым пополнениям@Транзакції за незакритими поповненнями
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+    STARTCONDITION1=3
+   END
+
+   PANEL
+      CAPTION = Принадлежность карт@Приналежність карток
+      HEIGHT=90
+      WIDTH=150
+      ELEMENT CardAlign:RadioButtonGroup
+         LIST = Новый эмитент,Старый эмитент,Оба эмитента@Новий емітент,Старий емітент,Обидва емітента
+         VALUES = false,true,null
+         STOREDPROC = OV.SetCardInst
+      END
+   END
+
+
+[DESCRIPTION]
+   От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select 
+ oper_date,
+ r_oper_date,
+ r_doc_number,
+ card_number,
+ emitent_azs_name||' '||azs_name as azs,
+ checknum,
+ to_name,
+ np_name,
+ rn_date,
+ rn_num,
+ rn_obl_date,
+ rn_obl_num,
+ term_price,
+ price,
+ litr,
+ amount as term_amount, 
+ round(litr*price,2) as amount,
+ to_id,
+ to_inst
+from v_card_move_inst
+where date_ between :BeginDate and :EndDate
+and ( to_id = :org1.id or :org1.id is null )
+and ( to_inst = :org1.inst or :org1.isnt is null )
+
+
+[FIELDS]
+   NAME = oper_date
+   CAPTION = Дата операции@Дата операції
+   WIDTH = 15
+
+   NAME = to_name
+   CAPTION = Клиент@Клієнт
+   WIDTH = 40
+
+   NAME = r_doc_number
+   CAPTION = Заявка
+   WIDTH = 15
+
+   NAME = r_oper_date
+   CAPTION = Дата заявки.
+   WIDTH = 10
+
+   NAME = azs
+   CAPTION = АЗС
+   WIDTH = 50
+
+   NAME = checknum
+   CAPTION = Номер чека
+   WIDTH = 30
+  
+   NAME = np_name
+   CAPTION = Тип НП
+   WIDTH = 30
+
+   NAME = rn_num
+   CAPTION = РН@ВН
+   WIDTH = 10
+
+   NAME = rn_date
+   CAPTION = Дата РН@Дата ВН
+   WIDTH = 15
+
+   NAME = rn_obl_num
+   CAPTION = РН (Обл)@ВН (Обл)
+   WIDTH = 15
+
+   NAME = rn_obl_date
+   CAPTION = Дата РН (Обл)@Дата ВН (Обл)
+   WIDTH = 15
+
+   NAME = term_price
+   CAPTION = Цена АЗС@Ціна АЗС
+   DEFAULT FORMAT = 0.00
+   WIDTH = 10
+
+   NAME = Price
+   CAPTION = Цена пополн.@Ціна поповнення
+   DEFAULT FORMAT = 0.00
+   WIDTH = 10
+
+   NAME = Litr
+   CAPTION = К-во@К-сть
+   DEFAULT FORMAT = 0.00
+   WIDTH = 10
+   TOSUM = TRUE 
+
+   NAME = term_amount
+   CAPTION = Сумма (Цена АЗС)@Сума (Ціна АЗС)
+   DEFAULT FORMAT = 0.00
+   WIDTH = 20
+   TOSUM = TRUE 
+
+   NAME = amount
+   CAPTION = Сумма (Цена пополн.)@Сума (Ціна поповнення)
+   DEFAULT FORMAT = 0.00
+   WIDTH = 20
+   TOSUM = TRUE 
+
+[TYPES]
+   CAPTION = Итоги по клиенту, типу НП@Результати по клієнту, типу НП
+   ITOGI = to_name, np_name
+
+   CAPTION = Итоги по РН@Результати по ВН
+   ITOGI  =  rn_num, rn_date, np_name
+
+   CAPTION = Итоги по РН (Обл)@Результати по ВН (Обл)
+   ITOGI  =  rn_obl_num, rn_obl_date, np_name

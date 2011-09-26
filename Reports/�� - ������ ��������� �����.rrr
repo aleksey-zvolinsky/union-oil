@@ -1,0 +1,230 @@
+[GLOBAL]
+   VERSION = 1.5
+   MENU = Отчеты\Отчеты по Нефтебазе\Реестр приходных актов с расшифровкой@Реєстр прихідних актів з розшифровкою
+   TITLE = Реестр приходных актов с расшифровкой по недостачам и излишкам@Реєстр прихідних актів з розшифровкою по нестачам та надлишкам
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+[DESCRIPTION]
+   Организация:: :org1.name
+   :DATE_DESCRIPTION
+
+[SQL]
+select
+  wagons,
+  from_org,
+  np_name,
+  price,
+  part_dog,
+  nakl_date,
+  date_peredachi,
+  to_org,
+  /*rez_num,*/
+  /*rez_type,*/
+  doc_count,
+  fact_count,
+  tech_loss, tech_loss_sum,
+  -ned_ub as ned_ub,
+  -ned_ub_sum as ned_ub_sum,
+  
+  -decode(sign(ned_pogr-izl_pogr)-1,0,ned_pogr-izl_pogr) as ned_pogr,
+  -decode(sign(ned_pogr_sum-izl_pogr_sum)-1,0,ned_pogr_sum-izl_pogr_sum) as ned_pogr_sum,
+  
+  -decode(sign(ned_post-izl_post),-1,0,ned_post-izl_post) as ned_post,
+  -decode(sign(ned_post_sum-izl_post_sum),-1,0, ned_post_sum-izl_post_sum) as ned_post_sum,
+ 
+  decode(sign(izl_pogr-ned_pogr)-1,0,izl_pogr-ned_pogr) as izl_pogr,
+  decode(sign(izl_pogr_sum-ned_pogr_sum)-1,0,izl_pogr_sum-ned_pogr_sum) as izl_pogr_sum,
+  
+  decode(sign(izl_post-ned_post),-1,0,izl_post-ned_post) as izl_post,
+  decode(sign(izl_post_sum-ned_post_sum),-1,0,izl_post_sum-ned_post_sum) as izl_post_sum
+from
+(
+  select
+   substr(transp_records(p.pr_id,p.pr_inst),1,100) as wagons,
+   fromorg.name as from_org,
+   np.name as np_name,
+   part.ss as price,
+   part.dog as part_dog,
+   p.date_ as nakl_date,
+   p.date_doc as date_peredachi,
+   toorg.name as to_org,
+   /*rez.num as rez_num,*/
+   /*decode(rza.rez_id,null,'Собств.','Аренд.') as rez_type,*/
+   sum(p.doc_count) as doc_count,
+   sum(p.fact_count) as fact_count,
+   sum(p.ned_norm_ub) as ned_ub,
+   Round(sum(p.ned_norm_ub*part.ss),2) as ned_ub_sum,
+   sum(p.ned_norm_er) as ned_pogr,
+   Round(sum(p.ned_norm_er*part.ss),2) as ned_pogr_sum,
+   sum(p.ned_post) as ned_post,
+   sum(p.tech_loss) as tech_loss,
+   Round(sum(p.tech_loss*part.ss),2) as tech_loss_sum,
+   Round(sum(p.ned_post*part.ss),2) as ned_post_sum,
+   sum(p.izl_norm) as izl_pogr,
+   Round(sum(p.izl_norm*part.ss),2) as izl_pogr_sum,
+   sum(p.izl_post) as izl_post,
+   Round(sum(p.izl_post*part.ss),2) as izl_post_sum,
+   sum(p.pr_id) as group_id,
+   sum(p.pr_inst) as group_inst
+  from 
+   (
+    select p.date_,p.date_doc,p.from_,p.from_inst,p.to_,p.to_inst,
+      p.part_id,p.part_inst,pd.*, p.id as pr_id, p.inst as pr_inst
+    from oil_prihod p,oil_prih_det pd
+    where p.state='Y' and pd.state='Y' 
+      and pd.prihod_id=p.id
+      and pd.inst=p.inst
+      and p.oper_id in (1,2,53,228)
+      and p.date_ between :BeginDate and :EndDate
+   ) p,
+   oil_part part,
+   oil_rezervuar rez,
+   v_oil_rez_arenda rza,
+   oil_org fromorg,
+   oil_org toorg,
+   v_oil_np_type np,
+   V_oil_dim odim
+  where
+   part.np_type = np.id and
+   p.from_ = fromorg.id and
+   p.from_inst = fromorg.inst and
+   'Y' = fromorg.state and
+   p.to_ = toorg.id and
+   p.to_inst = toorg.inst and
+   'Y' = toorg.state and
+   p.part_id = part.id and
+   p.part_inst = part.inst and
+   'Y' = part.state and
+   part.dim_id = odim.id and
+   p.rez=rez.id and p.rez_inst=rez.inst and
+   p.rez=rza.rez_id(+) and p.rez_inst=rza.rez_inst(+) and
+   p.date_>=rza.date_from(+) and p.date_<=rza.date_to(+) and
+   rza.oper_type(+)=1 and
+   odim.IsShtuki  = 'N' and
+   p.date_ between :BeginDate and :EndDate and 
+   (toorg.id=toorg.inst and :org1.id in (toorg.id,toorg.par) or :org1.id is null)
+  group by   
+   substr(transp_records(p.pr_id,p.pr_inst),1,100),
+   fromorg.name,
+   np.name,
+   part.ss,
+   part.dog,
+   p.date_,
+   p.date_doc,
+   toorg.name  
+) 
+
+[FIELDS]
+    
+   NAME = nakl_date
+   CAPTION = Дата акта
+   WIDTH=10
+
+   NAME = date_peredachi
+   CAPTION = Дата передачи@Дата передачі
+   WIDTH=10
+
+   NAME = wagons
+   CAPTION =№ Цистерны@№Цистерни
+   WIDTH=20
+
+   NAME = to_org
+   CAPTION = Подразделение@Підрозділ
+   WIDTH=25
+
+   NAME = np_name
+   CAPTION = Нефтепродукт@Нафтопродукт
+   WIDTH=15
+
+   NAME = price
+   CAPTION = Цена@Ціна
+   WIDTH=10
+
+   NAME = part_dog
+   CAPTION = Партия@Партія
+   WIDTH=10
+
+   NAME = from_org
+   CAPTION = Поставщик, Отправитель@Постачальник, Відправник
+   WIDTH=25
+
+   DEFAULT TOSUM = TRUE
+   DEFAULT OPTIONAL = FALSE
+   DEFAULT FORMAT = 0.000
+
+   NAME = doc_count
+   CAPTION = Кол-во по документу (т)@К-ть за документом (т)
+   WIDTH=10
+
+   NAME = fact_count
+   CAPTION = Кол-во факт (т)@К-ть факт (т)
+   WIDTH=10
+
+   NAME = ned_ub
+   CAPTION = Недостачи!Ест.Уб.@Нестача!Природні втрати
+   WIDTH=10
+
+   NAME = ned_ub_sum
+   CAPTION = Недостачи!Сумма@Нестача!Сума
+   WIDTH=10
+   FORMAT = 0.00
+
+   NAME = ned_pogr
+   CAPTION = Недостачи!Погр.измер.@Нестача!Похибка вим.
+   WIDTH=10
+
+   NAME = ned_pogr_sum
+   CAPTION = Недостачи!Сумма@Нестача!Сума
+   WIDTH=10
+   FORMAT = 0.00
+
+   NAME = ned_post
+   CAPTION = Недостачи!за сч.пост.@Нестача!за рах. пост.
+   WIDTH=10
+
+   NAME = ned_post_sum
+   CAPTION = Недостачи!Сумма@Нестача!Сума
+   WIDTH=10
+   FORMAT = 0.00
+   
+   NAME = tech_loss
+   CAPTION =  Недостачи!Тех. потери@Нестача!Тех. втрати
+   WIDTH=10
+
+   NAME = tech_loss_sum
+   CAPTION = Недостачи!Сумма@Нестача!Сума
+   WIDTH=10
+   FORMAT = 0.00
+
+   NAME = izl_pogr
+   CAPTION = Излишки!Погр.измер.@Надлишки!Похибка вим.
+   WIDTH=10
+
+   NAME = izl_pogr_sum
+   CAPTION = Излишки!Сумма@Надлишки!Сума
+   WIDTH=10
+   FORMAT = 0.00
+
+   NAME = izl_post
+   CAPTION = Излишки!за сч.пост.@Надлишки!за рах. пост.
+   WIDTH=10
+
+   NAME = izl_post_sum
+   CAPTION = Излишки!Сумма@Надлишки!Сума
+   WIDTH=10
+   FORMAT = 0.00
+
+[TYPES]
+   CAPTION = По поставщику
+   ITOGI =  from_org
+   ORDER = to_org,from_org,nakl_date 
+  

@@ -1,0 +1,226 @@
+[GLOBAL]
+  TITLE = Договор+Налоговая+Отпуск@Договір+Податкова+Відпуск
+  MENU = Отчеты\Налоговые накладные\Договор+Налоговая+Отпуск@Договір+Податкова+Відпуск
+  VERSION = 1.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+  
+  ORGPANEL
+    NUM = 2
+    CAPTION1 = Поставщик@Постачальник
+    CAPTION2 = Клиент@Клієнт
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Поставщик:: :org1.Name@Постачальник:: :org1.Name
+  Клиент:: :org2.Name@Клієнт:: :org2.Name
+
+[SQL]
+select dd.*,
+       dd.dog_sum-dd.ras_sum rest_sum_ras, 
+       dd.dog_count_-dd.ras_count_ rest_count_ras, 
+       dd.dog_sum-dd.nn_sum rest_sum_nn,
+       dd.dog_count_-dd.nn_count_ rest_count_nn,
+       oto.name to_name,
+       ofrom.name from_name
+  from oil_org ofrom,
+       oil_org oto,
+       (
+select d.from_,
+       d.from_inst,
+       d.to_,
+       d.to_inst,
+       d.dog,
+       d.dog_date,
+       dog_det.price,
+       dog_det.price2,
+       dog_det.np_id np_id,
+       dog_det.npname np_name,
+       nvl(dog_det.count_,0) dog_count_,
+       nvl(round(nds.GetWithNDS_NoNDS(dog_det.count_*dog_det.price,d.dog_date),2),0)dog_sum,
+       nvl(nnNb.count_,0) nn_count_,
+       nvl(nnNb.sum_nn,0) nn_sum,
+       nvl(ras.ras_count_,0)ras_count_,
+       nvl(nds.GetWithNDS_NoNDS(ras.ras_summa,d.dog_date,2),0) ras_sum
+  from (select OIL_DOG_DETAIL.*,
+               NP.NAME as NPNAME,
+               NP.NP_GRP as NPGRP_ID,
+               NPB.NAME as NPBNAME,
+               DM.NAME DIM_NAME,
+               np.petrol_id,
+               np.id np_id
+          from OIL_DOG_DETAIL,
+               v_OIL_NP_TYPE NP,
+               OIL_NP_TYPE NPB,
+               OIL_DIMENSION DM
+         where OIL_DOG_DETAIL.STATE = 'Y'
+           and OIL_DOG_DETAIL.NP_TYPE = NP.ID(+)
+           and OIL_DOG_DETAIL.BARTERNP = NPB.ID(+)
+           and OIL_DOG_DETAIL.DIM_ID = DM.ID(+) ) dog_det,
+       (select sum(g.sum_nn) sum_nn,
+               d.dog_type,
+               sum(g.count_) count_,
+               g.tov_id np_id,
+               d.id dog_id,
+               d.inst dog_inst
+          from OIL_DOG d,
+               (/*symma po oplatnim NN*/
+                select nvl(sum(bd.nds_t),0) sum_nn,
+                       bd.tov_id,
+                       nvl(sum(bd.kol),0) count_,
+                       d.id dog_id,
+                       d.inst dog_inst
+                  from Oil_Sale_Book     sb,
+                       Oil_sale_book_det bd,
+                       oil_dog           d,
+                       oil_money         m
+                 where sb.id = bd.nn_id(+)
+                   and sb.inst = bd.nn_inst(+)
+                   and sb.state = 'Y'
+                   and bd.state = 'Y'
+                   and sb.id = m.nn_id
+                   and sb.inst = m.nn_inst
+                   and d.id = m.dog_id
+                   and d.inst = m.dog_inst
+                 group by bd.tov_id,
+                          d.id,
+                          d.inst
+                Union All
+                /*symma po NN s NB*/
+                select nvl(sum(sdet.nds_t),0) sum_nn,
+                       sdet.tov_id tov_id,
+                       nvl(sum(sdet.kol), 0) count_,
+                       d.id,
+                       d.inst
+                  from Oil_Sale_Book sb,
+                       oil_dog         d,
+                       Oil_Rashod      r,
+                       oil_sale_book_det sdet
+                 where sb.id(+) = r.nn_id
+                   and sb.inst(+) = r.nn_inst
+                   and d.id = r.dog
+                   and d.inst = r.dog_inst
+                   and sdet.nn_id(+) = sb.id
+                   and sdet.nn_inst(+) = sb.inst
+                   and sdet.state(+)='Y' and sb.state(+) ='Y'
+                 group by sdet.tov_id,
+                          d.id,
+                          d.inst) g
+         where d.id = g.dog_id
+           and d.inst = g.dog_inst
+           and d.dog_type ='N'
+         group by g.tov_id,
+               d.dog_type,
+               d.id,
+               d.inst)nnNb,
+       oil_dog d,
+       (select dog,
+               dog_inst,
+               sum(count_) ras_count_,
+               sum(litr) ras_litr,
+               sum(summa)ras_summa
+          from oil_rashod
+         group by dog,
+               dog_inst)ras
+ where dog_det.np_id = nnnb.np_ID(+)
+   and dog_det.dog_id = nnNb.dog_id(+) and dog_det.dog_inst = nnNb.dog_inst(+)
+   and d.id = dog_det.dog_id
+   and d.inst = dog_det.dog_inst
+   and d.id = ras.dog(+) and d.inst = ras.dog_inst(+)
+   and ((d.from_ = :org2.id and d.from_inst = :org2.inst) or (:org2 is null))
+   and ((d.to_ = :org1.id and d.to_inst = :org1.inst) or (:org1 is null))
+   and d.dog_date between :BeginDate and :EndDate)dd
+ where dd.from_ = ofrom.id(+) and dd.from_inst = ofrom.inst(+)
+   and dd.to_ = oto.id(+) and dd.to_inst = oto.inst(+)
+
+
+
+[FIELDS]
+
+  NAME = DOG_DATE
+  CAPTION =Договор!Дата@Договір!Дата
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION =Договор!Название@Договір!Назва
+  WIDTH = 10
+
+  NAME = to_name
+  CAPTION =Договор!Клиент@Договір!Клієнт
+  WIDTH = 25
+
+  NAME = from_name
+  CAPTION =Договор!Поставщик@Договір!Постачальник
+  WIDTH = 25
+
+  NAME = PRICE
+  CAPTION =Цена!без НДС@Ціна!без ПДВ
+  WIDTH = 10
+
+  NAME = PRICE2
+  CAPTION =Цена!с НДС@Ціна!з ПДВ
+  WIDTH = 10
+
+  NAME = NP_NAME
+  CAPTION =Тип нефтепродукта@Тип нафтопродукта
+  WIDTH = 20
+
+  NAME = DOG_COUNT_
+  CAPTION =Договор!Количество@Договір!Кількість
+  WIDTH = 10
+  TOSUM=TRUE
+
+  NAME = DOG_SUM
+  CAPTION =Договор!Сумма@Договір!Сума
+  WIDTH = 10
+  TOSUM=TRUE
+
+  NAME = NN_COUNT_
+  CAPTION =Налоговая!Количество@Податкова!Кількість
+  WIDTH = 10
+  TOSUM=TRUE
+  
+  NAME = NN_SUM
+  CAPTION =Налоговая!Сумма@Податкова!Сума
+  WIDTH = 10
+  TOSUM=TRUE
+  
+  NAME = RAS_COUNT_
+  CAPTION =Отпуск!Количество@Відпуск!Кількість
+  WIDTH = 10
+  TOSUM=TRUE
+  
+  NAME = RAS_SUM
+  CAPTION =Отпуск!Сумма@Відпуск!Сума
+  WIDTH = 10
+  TOSUM=TRUE
+  
+  NAME = rest_sum_ras
+  CAPTION =Остаток!Отпуск!Сумма@Залишок!Відпуск!Сума
+  WIDTH = 10
+  TOSUM=TRUE
+  
+  NAME = rest_count_ras
+  CAPTION =Остаток!Отпуск!Количество@Залишок!Відпуск!Кількість
+  WIDTH = 10
+  TOSUM=TRUE
+  
+  NAME = rest_sum_nn
+  CAPTION =Остаток!Налоговая!Сумма@Залишок!Податкова!Сума
+  WIDTH = 10
+  TOSUM=TRUE
+  
+  NAME = rest_count_nn
+  CAPTION =Остаток!Налоговая!Количество@Залишок!Податкова!Кількість
+  WIDTH = 10
+  TOSUM=TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = 

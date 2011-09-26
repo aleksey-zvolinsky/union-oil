@@ -1,0 +1,73 @@
+[GLOBAL]
+  TITLE = Эмиссия талонов@Емісія талонів
+  MENU = Отчеты\Отчеты по талонам\Эмиссия талонов@Емісія талонів
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select oo.name as dep_name,
+       p.Date_ as prih_date,
+       npg.name as np_group,
+       p.nominal,
+       p.ser,
+       p.num,
+       1 as cnt,
+       p.nominal as litr
+  from v_oil_talon_op p, oil_org oo, oil_np_group npg
+ where p.tip = 'P'
+   and p.dep_id = oo.id
+   and p.dep_inst = oo.inst
+   and p.npgrp_id = npg.id
+   and p.oper_id = 183
+   and p.date_ between :BeginDate and :EndDate
+
+[FIELDS]
+  NAME = DEP_NAME
+  CAPTION = Нефтебаза@Нафтобаза
+  WIDTH = 30
+
+  NAME = NP_GROUP
+  CAPTION = Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = SER
+  CAPTION = Серия@Серія
+  WIDTH = 10
+
+  NAME = PRIH_DATE
+  CAPTION = Дата эмиссии@Дата емісії
+  WIDTH = 10
+
+  NAME = NOMINAL
+  CAPTION = Номинал@Номінал
+  WIDTH = 10
+
+  NAME = NUM
+  CAPTION = Номер
+  WIDTH = 10
+
+  NAME = CNT
+  CAPTION = Кол-во@К-сть
+  WIDTH = 10
+  TOSUM = TRUE
+
+  NAME = LITR
+  CAPTION = Литров@Літрів
+  WIDTH = 10
+  TOSUM = TRUE
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = DEP_NAME,NP_GROUP,SER
+
+  CAPTION = Без номеров@Без номерів
+  ITOGI = DEP_NAME,NP_GROUP,SER
+  UNCHECKED = NUM

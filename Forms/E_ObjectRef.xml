@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Финансы\Справочники" caption="Объекты" tablename="E_OBJECT">
+	<sql>
+select id, inst, name, date_, comments from e_object where state = 'Y' order by id
+</sql>
+<editclass 
+	classname = "TE_ObjectForm"
+	resultfilter = "EditNumber">
+</editclass>
+	<columns>
+		<column align="left" width="200">
+			<caption align="center">Объект</caption>
+			<fieldname>name</fieldname>
+		</column>
+		<column align="left" width="160">
+			<caption align="center">Дата ввода в эксплуатацию</caption>
+			<fieldname>date_</fieldname>
+		</column>
+		<column align="left" width="150">
+			<caption align="center">Примечание</caption>
+			<fieldname>comments</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<edit left="10" top="10" width="300" wholevalue="false">
+			<name>name</name>
+			<caption>Объект:</caption>
+			<fieldname>name</fieldname>
+		</edit>
+	</filters>
+</form>

@@ -1,0 +1,85 @@
+[GLOBAL]
+  TITLE = Бланки в кассе@Бланки в касі
+  MENU = Отчеты\Отчеты по эл. карточкам\Бланки\Бланки в кассе@Бланки в касі
+  VERSION = 1.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+    NUM = 1
+    CAPTION1 = На
+  END
+
+  ORGPANEL
+    NUM = 1
+    CAPTION1=Кому
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+  PANEL
+    ELEMENT OperList:List
+      CAPTION = Операции:@Операцiї
+      TABLENAME = oil_oper_type
+      CONDITION = grp = 17
+    END
+  END
+
+[DESCRIPTION]
+  На :BeginDate@На :BeginDate
+  Филиал:: :org1.Name@Філія:: :org1.Name
+  Операции:: :OperList.NameList@Операції:: :OperList.NameList
+
+[SQL]
+
+select to_name,
+       card_number,
+       date_,
+       numb,
+       oper_name,
+       from_name   
+  from (select last_value(b.in_out) over(partition by card_number 
+                 order by date_, order_ ) last_in_out,
+               row_number() over(partition by card_number 
+                 order by date_ desc, order_ desc ) rn,
+               b.*
+          from v_card_blank_full_base b
+         where date_ < :BeginDate)q
+ where rn = 1
+   and last_in_out = 1
+   and :OperList.IsInList{oper_id}
+   and to_id=nvl(:org1.id,to_id)
+   and to_inst=nvl(:org1.inst,to_inst)
+
+[FIELDS]
+
+  NAME = TO_NAME
+  CAPTION = Владелец@Власник
+  WIDTH = 50
+
+  NAME = CARD_NUMBER
+  CAPTION = Бланк@Бланк
+  WIDTH = 15
+
+  NAME = DATE_
+  CAPTION = Последний приход!Дата@Останній прихід!Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = NUMB
+  CAPTION = Последний приход!Номер@Останній прихід!Номер
+  WIDTH = 10
+
+  NAME = OPER_NAME
+  CAPTION = Последний приход!Операция@Останній прихід!Операція
+  WIDTH = 25
+
+  NAME = FROM_NAME
+  CAPTION = Последний приход!От кого@Останній прихід!Від кого
+  WIDTH = 50
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 

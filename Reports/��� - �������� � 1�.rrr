@@ -1,0 +1,175 @@
+[GLOBAL]
+  TITLE = Выгрузка в 1С по карточкам@Вивантаження в 1С за картками
+  MENU = Отчеты\Отчеты по эл. карточкам\Выгрузка в 1С по картам@Вивантаження в 1С за картками
+  VERSION = 1.7.2
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+
+[SQL]
+select spistype,
+       oo.name as obl_name,
+       azs.id as azs_id,
+       azs.name as azs_name,
+       client_name,
+       client_okpo,
+       rep_date,
+       card_number,
+       dog,
+       dog_date,
+       sub_part,
+       npg.fullname as np_group,
+       part,
+       price_card,
+       price_azs,
+       litr,
+       weight,
+       auto_id,
+       auto_inst,
+       price_uch,
+       part_fil,
+       summ_uch,
+       round(price_card * litr, 2) as summ_card,
+       round(price_azs * litr, 2) as summ_azs,
+       ocard.name as card_obl_name,
+       decode(is_ls,1,dog_date,rec_date) as card_obl_id
+  from v_card_1c c, oil_org oo, oil_org azs, oil_np_group npg, oil_org ocard
+ where c.obl_id = oo.id
+   and c.obl_id = oo.inst
+   and c.azs_id = azs.id
+   and c.azs_id = azs.inst
+   and c.np_id = npg.id
+   and c.rep_date between :BeginDate and :EndDate
+   and auto_id is null
+   and ocard.id(+) = CARD.GetObl(card_number, nvl(decode(is_ls,1,dog_date,rec_date),sysdate))
+   and ocard.inst(+) = CARD.GetObl(card_number, nvl(decode(is_ls,1,dog_date,rec_date),sysdate))
+
+[FIELDS]
+  HEAD_DEPTH = 2
+
+  NAME = SPISTYPE
+  CAPTION = Тип списания@Тип списання
+  WIDTH = 15
+
+  NAME = OBL_NAME
+  CAPTION = Эмитент АЗС@Емітент АЗС
+  WIDTH = 50
+
+  NAME = AZS_ID
+  CAPTION = Код АЗС
+  WIDTH = 10
+
+  NAME = AZS_NAME
+  CAPTION = №АЗС
+  WIDTH = 25
+
+  NAME = CARD_OBL_NAME
+  CAPTION = Эмитент карты@Емітент картки
+  WIDTH = 50
+
+  NAME = CLIENT_NAME
+  CAPTION = Клиент@Клієнт
+  WIDTH = 30
+
+  NAME = CLIENT_OKPO
+  CAPTION = ОКПО Клиента@ЕДРПОУ клієнта
+  WIDTH = 15
+
+  NAME = CARD_NUMBER
+  CAPTION = № карточки@№ картки
+  WIDTH = 10
+
+  NAME = REP_DATE
+  CAPTION = Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = DOG
+  CAPTION = Договор@Договір
+  WIDTH = 10
+
+  NAME = DOG_DATE
+  CAPTION = Дата договора@Дата договору
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = SUB_PART
+  CAPTION = Подпартия@Підпартія
+  WIDTH = 10
+
+  NAME = NP_GROUP
+  CAPTION = Тип НП@Тип НП
+  WIDTH = 10
+
+  NAME = PART
+  CAPTION = Партия@Партія
+  WIDTH = 10
+
+  NAME = PRICE_CARD
+  CAPTION = Цена пополнения@Ціна поповнення
+  WIDTH = 10
+
+  NAME = PRICE_AZS
+  CAPTION = Цена АЗС@Ціна АЗС
+  WIDTH = 10
+
+  NAME = AUTO_ID
+  CAPTION = ID авто
+  WIDTH = 10
+
+  NAME = AUTO_INST
+  CAPTION = INST авто
+  WIDTH = 10
+
+  NAME = LITR
+  CAPTION = К-во (л)@К-сть (л)
+  WIDTH = 10
+  FORMAT = 0.000
+  TOSUM = TRUE
+
+  NAME = WEIGHT
+  CAPTION = К-во (т)@К-сть (т)
+  WIDTH = 10
+  FORMAT = 0.000000
+  TOSUM = TRUE
+
+  NAME = PRICE_UCH
+  CAPTION = Уч.цена (чужая)@Обл.ціна (чужа)
+  WIDTH = 10
+
+  NAME = PART_FIL
+  CAPTION = Партия (чужая)@Партія (чужа)
+  WIDTH = 10
+
+  DEFAULT FORMAT = 0.00
+  DEFAULT TOSUM = TRUE
+  DEFAULT FORMAT = 0.00
+
+  NAME = SUMM_UCH
+  CAPTION = Сумма (уч.цена(чужая))@Сума (обл.ціна(чужа))
+  WIDTH = 10
+
+  NAME = SUMM_CARD
+  CAPTION = Сумма(ц.пополнения)@Сума(ціна поповнення)
+  WIDTH = 10
+
+  NAME = SUMM_AZS
+  CAPTION = Сумма (ц.АЗС)@Сума(ціна АЗС)
+  WIDTH = 16
+
+[TYPES]
+
+  CAPTION = Итоговый@Сумарний
+  ITOGI = 
+  UNCHECKED = AZS_ID,AZS_NAME,CLIENT_NAME,CLIENT_OKPO,CARD_NUMBER,REP_DATE,DOG,DOG_DATE,SUB_PART,PART,PRICE_CARD,PRICE_AZS,AUTO_ID,AUTO_INST,PRICE_UCH,PART_FIL,SUMM_UCH,SUMM_CARD
+  ORDER = CARD_OBL_NAME, OBL_NAME, SPISTYPE, NP_GROUP, LITR, SUMM_AZS, WEIGHT
+
+  CAPTION = Основной@Основний
+  ITOGI = NP_GROUP,CLIENT_NAME

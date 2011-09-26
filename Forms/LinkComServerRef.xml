@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" width="850" height="500"  menu="Справочники" caption="Транзакции LinkComServer">
+	<sql>
+  select * from v_card_modem_call
+  order by call_date desc
+  </sql>
+	<columns>
+		<column align="center" width="110">
+			<caption align="center">Дата</caption>
+			<fieldname>call_date</fieldname>
+		</column>
+		<column align="right" width="70">
+			<caption align="center">К-во тр.</caption>
+			<fieldname>num_of_tr</fieldname>
+		</column>
+		<column align="left" width="250">
+			<caption align="center">Событие</caption>
+			<fieldname>call_type_text</fieldname>
+		</column>
+		<column align="left" width="250">
+			<caption align="center">Организация</caption>
+			<fieldname>fil_name</fieldname>
+		</column>
+		<column align="left" width="200">
+			<caption align="center">АЗС</caption>
+			<fieldname>azs_name</fieldname>
+		</column>
+	</columns>
+	<filters>
+		<dateedit left="10" top="10" width="100" direction="fromdate">
+			<name>deFromDate</name>
+			<caption>Дата с:</caption>
+			<fieldname>call_date</fieldname>
+		</dateedit>
+		<dateedit left="130" top="10" width="100" direction="todate">
+			<name>deToDate</name>
+			<caption>по:</caption>
+			<fieldname>call_date</fieldname>
+		</dateedit>
+		<xmlform width="250" left="250" top="10" wholevalue="true">
+			<name>CallTypeRef</name>
+			<caption>Событие</caption>
+			<link>
+				<srcfield> call_type </srcfield>
+				<destfield> call_type </destfield>
+			</link>
+			<textfield>name</textfield>
+		</xmlform>
+	</filters>
+</form>

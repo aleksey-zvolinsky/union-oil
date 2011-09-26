@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="Windows-1251"?>
+<form filters="true" editbuttons="true" menu="Справочники" caption="Заявки на SMS послуги" menuposition="6" tablename="CARD_CARTING">
+
+<sql>
+select distinct 
+       id,inst,
+       client_name,
+       mob_tel,
+       date_begin,
+       date_end
+ from v_card_carting_full
+order by date_begin, client_name, mob_tel, date_end
+</sql>
+<editclass classname="TCartingForm" resultfilter="name" printable="true">
+	<print></print>
+</editclass>
+<columns>
+   <column align="left" width="250">
+     <caption>Клієнт</caption>
+     <fieldname>client_name</fieldname>
+   </column>
+   <column align="left" width="100">
+     <caption>Моб.тел.</caption>
+     <fieldname>mob_tel</fieldname>
+   </column>
+   <column align="left" width="120">
+     <caption>Початок послуги</caption>
+     <fieldname>date_begin</fieldname>
+   </column>
+   <column align="left" width="120">
+     <caption>Закінчення послуги</caption>
+     <fieldname>date_end</fieldname>
+   </column>
+</columns>
+<filters>
+	<xmlform width="250" left="10" top="50" wholevalue="true" orgref="true" orgtype="3" enableflags="yyy">
+		<name>ClientName</name>
+		<caption>Клієнт:</caption>
+		<link>
+			<srcfield>id</srcfield>
+			<destfield>client_id</destfield>
+		</link>
+		<link>
+			<srcfield>inst</srcfield>
+			<destfield>client_inst</destfield>
+		</link>
+		<textfield>name</textfield>
+	</xmlform>
+	<edit left="300" top="50" width="100" wholevalue="false">
+		<name>EditNumber</name>
+		<caption>Моб.тел.:</caption>
+		<fieldname>mob_tel</fieldname>
+	</edit>
+</filters>
+</form>

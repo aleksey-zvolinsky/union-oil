@@ -1,0 +1,330 @@
+[GLOBAL]
+   TITLE = Движение собственного товара по нефтебазе и АЗС@Движение власного товару по нефтебазі та АЗС
+   VERSION = 1.4
+   MENU = Отчеты\Движение нефтепродуктов\Собственный НБ+АЗС@Власний НБ+АЗС
+   PAGES_WIDTH = 1
+   RAZM_SYMBOLS = NO
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      CAPTION = Дополнительно@Додатково
+      ELEMENT IR:CheckBoxGroup
+         LIST = Внутрисистемная реализация@Внутрішньосистемна реалізація
+         VALUES = 1
+      END
+      ELEMENT NotInNbAZS:CheckBoxGroup
+         LIST = Включать отпуски на АЗС и возвраты@Включати відпуски на АЗС та повернення
+         VALUES = 1
+      END
+   END
+
+[VARIABLES]
+   VAR MANAGER_SHIP:varSql
+     select value from adm_settings where name='MANAGER_SHIP' and inst = ov.GetVal('INST')
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate@За період від :BeginDate до :EndDate
+   Организация:: :org1.name@Організація:: :org1.name
+   AFTER
+   \1LПредседатель(зам) правления\3L<Имя председателя>\2L:MANAGER_SHIP\2L<Имя директора>@\1LГолова(зам) правління\3L<Імя голови>\2L:MANAGER_SHIP\2L<Імя директора>
+   \1N\1LГлавный бухгалтер\2L<Имя бухгалтера>\3LСпециалист по учету\2L<Имя специалиста>@\1N\1LГоловний бухгалтер\2L<Імя бухгалтера>\3LСпеціаліст з обліку\2L<Імя спеціаліста>
+
+[SQL]
+
+select Org_Name,PponId,OblId,Dog,Dog_Date,partid,partinst,np_group,np_group_id,ss,
+
+       sum(rest_tonn) as rest_tonn, sum(rest_shtuki) as rest_shtuki, sum(rest_money) as rest_money,
+       sum(prihod_tonn) as prihod_tonn,sum(prihod_shtuki) as prihod_shtuki,sum(prihod_money) as prihod_money,
+       sum(rash_tonn) as rash_tonn,sum(rash_shtuki) as rash_shtuki,sum(rash_money) as rash_money,
+
+       sum(rest_tonn+prihod_tonn-rash_tonn) as rest_end_tonn,
+       sum(rest_shtuki+prihod_shtuki-rash_shtuki) as rest_end_shtuki,
+       decode(sum(rest_tonn+prihod_tonn-rash_tonn)+sum(rest_shtuki+prihod_shtuki-rash_shtuki),0,0,
+              sum(rest_money+prihod_money-rash_money)) as rest_end_money,
+
+       sum(prc*prihod_tonn) as prc_tonn,
+       sum(prc*prihod_shtuki) as prc_shtuki,
+       sum(prc*prihod_money) as prc_money,
+
+       sum(pri*prihod_tonn) as pri_tonn,
+       sum(pri*prihod_shtuki) as pri_shtuki,
+       sum(pri*prihod_money) as pri_money,
+
+       sum((1-sign(prc+pri+pvazs))*prihod_tonn) as prih_tonn,
+       sum((1-sign(prc+pri+pvazs))*prihod_shtuki) as prih_shtuki,
+       sum((1-sign(prc+pri+pvazs))*prihod_money) as prih_money,
+
+       sum(bnal*rash_tonn) as bnal_tonn,
+       sum(bnal*rash_shtuki) as bnal_shtuki,
+       sum(bnal*rash_money) as bnal_money,
+
+       sum(rcard*rash_tonn) as rcard_tonn,
+       sum(rcard*rash_shtuki) as rcard_shtuki,
+       sum(rcard*rash_money) as rcard_money,
+
+       sum(nal*rash_tonn) as nal_tonn,
+       sum(nal*rash_shtuki) as nal_shtuki,
+       sum(nal*rash_money) as nal_money,
+
+       sum(rto*rash_tonn) as rto_tonn,
+       sum(rto*rash_shtuki) as rto_shtuki,
+       sum(rto*rash_money) as rto_money,
+
+       sum(roc*rash_tonn) as roc_tonn,
+       sum(roc*rash_shtuki) as roc_shtuki,
+       sum(roc*rash_money) as roc_money,
+
+       sum(oper_40*auto_1*rash_tonn) as legk_tonn,
+       sum(oper_40*auto_1*rash_shtuki) as legk_shtuki,
+       sum(oper_40*auto_1*rash_money) as legk_money,
+
+       sum(oper_40*auto_2*rash_tonn) as gruz_tonn,
+       sum(oper_40*auto_2*rash_shtuki) as gruz_shtuki,
+       sum(oper_40*auto_2*rash_money) as gruz_money,
+
+       sum(oper_40*(1-sign(auto_1+auto_2))*rash_tonn) as obor_tonn,
+       sum(oper_40*(1-sign(auto_1+auto_2))*rash_shtuki) as obor_shtuki,
+       sum(oper_40*(1-sign(auto_1+auto_2))*rash_money) as obor_money,
+
+       sum(rov*tonn) as rov_tonn,
+       sum(rov*shtuki) as rov_shtuki,
+       sum(rov*money) as rov_money,
+
+       sum((roo+oper_40*auto_4)*rash_tonn) as roo_tonn,
+       sum((roo+oper_40*auto_4)*rash_shtuki) as roo_shtuki,
+       sum((roo+oper_40*auto_4)*rash_money) as roo_money,
+
+       sum(rob*rash_tonn) as rob_tonn,
+       sum(rob*rash_shtuki) as rob_shtuki,
+       sum(rob*rash_money) as rob_money,
+
+       sum(rop*rash_tonn) as rop_tonn,
+       sum(rop*rash_shtuki) as rop_shtuki,
+       sum(rop*rash_money) as rop_money,
+
+       sum(roz*rash_tonn) as roz_tonn,
+       sum(roz*rash_shtuki) as roz_shtuki,
+       sum(roz*rash_money) as roz_money,
+
+       sum(ron*rash_tonn) as ron_tonn,
+       sum(ron*rash_shtuki) as ron_shtuki,
+       sum(ron*rash_money) as ron_money,
+
+       sum(roe*rash_tonn) as roe_tonn,
+       sum(roe*rash_shtuki) as roe_shtuki,
+       sum(roe*rash_money) as roe_money,
+
+       sum(roi*rash_tonn) as roi_tonn,
+       sum(roi*rash_shtuki) as roi_shtuki,
+       sum(roi*rash_money) as roi_money,
+
+       sum(rpr*rash_tonn) as rpr_tonn,
+       sum(rpr*rash_shtuki) as rpr_shtuki,
+       sum(rpr*rash_money) as rpr_money,
+
+       sum(pvazs*prihod_tonn) as pvazs_tonn,
+       sum(pvazs*prihod_shtuki) as pvazs_shtuki,
+       sum(pvazs*prihod_money) as pvazs_money,
+
+       sum(pazs*prihod_tonn) as pazs_tonn,
+       sum(pazs*prihod_shtuki) as pazs_shtuki,
+       sum(pazs*prihod_money) as pazs_money,
+
+       sum(razs*rash_tonn) as razs_tonn,
+       sum(razs*rash_shtuki) as razs_shtuki,
+       sum(razs*rash_money) as razs_money
+from
+
+(select Q.*,
+       -decode(rashprih,0,0,tonn) as prihod_tonn,
+       -decode(rashprih,0,0,shtuki) as prihod_shtuki,
+       -decode(rashprih,0,0,money) as prihod_money,
+       decode(rashprih,0,tonn,0) as rash_tonn,
+       decode(rashprih,0,shtuki,0) as rash_shtuki,
+       decode(rashprih,0,money,0) as rash_money,
+       decode(operid,18,1,0) as prc,
+       decode(operid,57,1,0) as pri,
+       decode(operid,11,1,0) as bnal,
+       decode(operid,153,1,0) as rcard,
+       decode(operid,12,1,0) as nal,
+       decode(operid,14,1,0) as rto,
+       decode(operid,18,1,0) as roc,
+       decode(operid,40,1,0) as oper_40,
+       decode(auto_groupid,1,1,0) as auto_1,
+       decode(auto_groupid,2,1,0) as auto_2,
+       decode(auto_groupid,4,1,0) as auto_4,
+       decode(operid,47,1,0) as roo,
+       decode(operid,5,1,0) as rob,
+       decode(operid,52,1,0) as rop,
+       decode(operid,42,1,0) as roz,
+       decode(operid,19,1,0) as ron,
+       decode(operid,16,1,0) as roe,
+       decode(operid,150,1,0) as roi,
+       decode(operid,6,1,48,1,49,1,51,1,151,1,152,1,0) as rov,
+       decode(operid,5,0,6,0,11,0,12,0,14,0,16,0,18,0,19,0,40,0,42,0,47,0,48,0,49,0,51,0,52,0,150,0,151,0,152,0,153,0,1) as rpr,
+
+       decode(operid,54,1,0) as pvazs,
+       decode(selltypeid,7,1,0) as pazs,
+       decode(selltypeid,1,decode(operid,7,1,10,1,44,1,0),0) as razs
+ from
+  (select Org_Name,PponId,OblId,Dog,Dog_Date,partid,partinst,np_group,np_group_id,ss,rashprih,InsideNbAzs,IsInsideReal,selltypeid,
+         -decode(restreal,-1,tonn,0) as rest_tonn,operid,auto_groupid,
+         -decode(restreal,-1,shtuki,0) as rest_shtuki,
+         -decode(restreal,-1,money,0) as rest_money,
+         decode(restreal,-1,0,tonn) as tonn,
+         decode(restreal,-1,0,shtuki) as shtuki,
+         decode(restreal,-1,0,money) as money
+   from
+     (select nvl(PponName,OblName) as Org_Name,PponId,OblId,Dog,Dog_Date,partid,partinst,np_group,np_groupid as np_group_id,ss,
+            1 as restreal,rashprih,operid,auto_groupid,InsideNbAzs,IsInsideReal,selltypeid,
+            tonn,shtuki,summa_ss as money
+      from v_oil_npmove
+      where date_ between :BeginDate and :EndDate and selltypeid<>9 and own_goods='O' and operid<>56
+            and IsTalonDet<>'N' and IsSummary<>'Y' and InsideNbAzs<>decode(:NotInNbAZS.GetState{0},0,'Y','Q') and IsInsideReal<>decode(:IR.GetState{0},0,'Y','Q')
+      UNION ALL
+      select nvl(PponName,OblName) as Org_Name,PponId,OblId,Dog,Dog_Date,partid,partinst,np_group,np_groupid as np_group_id,ss,
+            -1 as restreal,rashprih,operid,auto_groupid,InsideNbAzs,IsInsideReal,selltypeid,
+            tonn,shtuki,summa_ss as money
+      from v_oil_npmove
+      where date_ < :BeginDate and IsSummary<>'N' and own_goods='O' and operid<>56
+     )
+  )Q
+)Q1
+where :org1.id in (PponId,OblId)
+group by Org_Name,PponId,OblId,Dog,Dog_Date,partid,partinst,np_group,np_group_id,ss
+having (sum(rash_tonn)<>0 or sum(rash_shtuki)<>0 or sum(prihod_tonn)<>0 or sum(prihod_shtuki)<>0 or sum(rest_shtuki)<>0 or sum(rest_tonn)<>0) 
+order by np_group,org_name,dog
+
+[FIELDS]
+   NAME = np_group
+   CAPTION = Продукт
+   WIDTH = 12
+
+   NAME = Org_Name
+   CAPTION = Подразделение@Підрозділ
+   WIDTH=25
+
+   NAME = Dog
+   CAPTION = Договор@Договір
+   WIDTH=15
+
+   NAME = Dog_Date
+   CAPTION = Дата договора@Дата договору
+   WIDTH=25
+
+   NAME = ss
+   CAPTION = Учетная цена@Облікова ціна
+   WIDTH=25
+
+    DEFAULT TOSUM = TRUE
+    DEFAULT OPTIONAL = FALSE
+    DEFAULT HIDEIFEMPTY = TRUE
+
+    FIELDS_GROUP
+    TAILS
+      NAME = tonn
+      CAPTION = !т
+      WIDTH = 12
+      FORMAT = 0.000000
+
+      NAME = shtuki
+      CAPTION = !шт
+      WIDTH = 6
+      FORMAT = 0
+
+      NAME = money
+      CAPTION = !грн
+      WIDTH = 12
+      FORMAT = 0.00
+
+
+    HEADS
+      NAME = rest_
+      CAPTION = ОСТАТОК НА НАЧАЛО ПЕРИОДА@ЗАЛИШОК НА ПОЧАТОК ПЕРІОДУ
+
+      NAME = prc_
+      CAPTION = Переброска с карточки на карточку@Перекидання з картки на картку
+
+      NAME = pri_
+      CAPTION = Приход по внутреннему перемещению@Прихід по внутрішньому переміщенню
+
+      NAME = pvazs_
+      CAPTION = Возвраты с АЗС@Повернення з АЗС
+
+      NAME = prih_
+      CAPTION = Основной приход@Основний прихід
+
+      NAME = pazs_
+      CAPTION = Приходы на АЗС@Приходи на АЗС
+
+      NAME = razs_
+      CAPTION = Расходы на АЗС@Видатки на АЗС
+
+      NAME = nal_
+      CAPTION = РАСХОД!Реализация за нал. средства@ВИДАТКИ!Реалізація за наявний р-к
+
+      NAME = bnal_
+      CAPTION = РАСХОД!Реализация за безнал. р-т@ВИДАТКИ!Реалізація за безготівковий р-к
+
+      NAME = rcard_
+      CAPTION = РАСХОД!Отпуск по электронным карточкам (клиентам)@ВИДАТКИ!Відпуск по електронним карткам (клієнтам)
+
+      NAME = rto_
+      CAPTION = РАСХОД!Отоваривание талонов (ТО)@ВИДАТКИ!Отоварення талонів (ТО)
+
+      NAME = roc_
+      CAPTION = РАСХОД!Переброска с карточки на карточку@ВИДАТКИ!Перекидання з картки на картку
+
+      NAME = legk_
+      CAPTION = РАСХОД!Собственные технические средства (ОС)!Легковые авто@ВИДАТКИ!Власні технічні засоби!Легкові авто
+
+      NAME = gruz_
+      CAPTION = РАСХОД!Собственные технические средства (ОС)!Грузовые авто@ВИДАТКИ!Власні технічні засоби!Вантажні авто
+
+      NAME = roo_
+      CAPTION = РАСХОД!Собственные технические средства (ОС)!Отопительное оборуд.@ВИДАТКИ!Власні технічні засоби!Опалювальне обладн.
+
+      NAME = obor_
+      CAPTION = РАСХОД!Собственные технические средства (ОС)!Прочие тех.средства@ВИДАТКИ!Власні технічні засоби!Інші тех.засоби
+
+      NAME = rov_
+      CAPTION = РАСХОД!Взаимозачет (ОВ)@ВИДАТКИ!Взаємозалік (ОВ)
+
+      NAME = rob_
+      CAPTION = РАСХОД!Бартер (ОБ)@ВИДАТКИ!Бартер (ОБ)
+
+      NAME = rop_
+      CAPTION = РАСХОД!Спонсорская помощь (ОП)@ВИДАТКИ!Спонсорська допомога (ОП)
+
+      NAME = roz_
+      CAPTION = РАСХОД!Зачистка резервуаров (ОЗ)@ВИДАТКИ!Зачищення резервуарів (ОЗ)
+
+      NAME = ron_
+      CAPTION = РАСХОД!Сверхнормативные недостачи (ОН)@ВИДАТКИ!Наднормативні недостачі (ОН)
+
+      NAME = roe_
+      CAPTION = РАСХОД!Ест. убыль@ВИДАТКИ!Природні втрати
+
+      NAME = roi_
+      CAPTION = РАСХОД!Внутреннее перемещение@ВИДАТКИ!Внутрішнє переміщення
+
+      NAME = rpr_
+      CAPTION = РАСХОД!Прочие цели (все остальные операции)@ВИДАТКИ!Всі інші операції
+
+      NAME = rash_
+      CAPTION = РАСХОД!ИТОГО РАСХОД@ВИДАТКИ!ВСЬОГО ВИДАТКИ
+
+      NAME = rest_end_
+      CAPTION = ОСТАТОК НА КОНЕЦ ПЕРИОДА@ЗАЛИШОК НА КІНЕЦЬ ПЕРІОДУ
+   END_GROUP
+
+[TYPES]
+      CAPTION = Основной@Основний
+      ITOGI = Org_Name

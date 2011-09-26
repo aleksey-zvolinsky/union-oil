@@ -1,0 +1,128 @@
+[GLOBAL]
+  TITLE = Карточка клиента@Картка клієнта - 2
+  MENU = Отчеты\Дебет и Кредит\Карточка клиента - 2@Картка клієнта - 2
+  VERSION = 1.4
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyyyyy
+    STARTCONDITION1=4
+  END
+
+  PANEL
+     ELEMENT KOS:CheckBoxGroup
+        LIST = Комисионная,Собственная,Прочая@Комісійна,Власна,Інша
+        VALUES = 'K','O','S'
+     END
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate до :EndDate
+  Организация:: :org1.name@Організація:: :org1.name
+  Оплата:: :KOS.GetCaptions@Оплата:: :KOS.GetCaptions
+
+[SQL]
+select Dep_Name,
+       deb_date,
+       debet,
+       credit,
+       litr,
+       tonn,
+       shtuki,
+       NumbPlat,
+       Price,
+       azs_name,
+       np_group_name,
+       oper_type_name,
+       own_goods_name,
+       goal_part_type_name,
+       dog_name,
+       dog_date,
+       dog_type
+  from v_oil_debitorka
+ where deb_date between :BeginDate and :EndDate
+   and org_id = :org1.id
+   and org_inst = :org1.inst
+   and ov.GetVal('INST') in (dep_id, obl_id)
+ order by deb_date, NP_GROUP_NAME
+
+[FIELDS]
+  NAME = Dep_Name
+  CAPTION = Подразделение@Підрозділ
+  WIDTH = 40
+
+  NAME = deb_date
+  CAPTION = Дата
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = debet
+  CAPTION = Дт
+  WIDTH = 12
+  TOSUM = TRUE
+
+  NAME = credit
+  CAPTION = Кт
+  WIDTH = 12
+  TOSUM = TRUE
+
+  NAME = litr
+  CAPTION = Кол-во, л@К-сть,л
+  WIDTH = 12
+
+  NAME = tonn
+  CAPTION = Кол-во, т@К-сть,т
+  WIDTH = 12
+
+  NAME = shtuki
+  CAPTION = Кол-во, ш@К-сть,шт
+  WIDTH = 12
+
+  NAME = NumbPlat
+  CAPTION = № платежного поручения@№ платіжного поручення
+  WIDTH = 12
+
+  NAME = Price
+  CAPTION = Цена,грн@Ціна,грн
+  WIDTH = 12
+
+  NAME = azs_name
+  CAPTION = № АЗС/опт.
+  WIDTH = 12
+
+  NAME = np_group_name
+  CAPTION = Вид топлива@Вид палива
+  WIDTH = 13
+
+  NAME = oper_type_name
+  CAPTION = Тип договора
+  WIDTH = 20
+
+  NAME = own_goods_name
+  CAPTION = Операция@Операція
+  WIDTH = 14
+
+  NAME = goal_part_type_name
+  CAPTION = Целевое назначение@Цільове призначення
+  WIDTH = 21
+
+  NAME = dog_name
+  CAPTION = Договор!Назва@Договір!Назва
+  WIDTH = 12
+
+  NAME = dog_date
+  CAPTION = Договор!Дата@Договір!Дата
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = dog_type
+  CAPTION = Договор!Тип@Договір!Тип
+  WIDTH = 8
+
+[TYPES]
+  CAPTION = Основной@Основний

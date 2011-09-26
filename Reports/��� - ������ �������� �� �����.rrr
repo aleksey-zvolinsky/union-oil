@@ -1,0 +1,243 @@
+[GLOBAL]
+  TITLE = Ğååñòğ ñïèñàíèÿ ïî òèïàì@Ğåºñòğ ñïèñàííÿ çà òèïàìè
+  MENU = Îò÷åòû\Îò÷åòû ïî ıë. êàğòî÷êàì\Ğååñòğ ñïèñàíèÿ ïî òèïàì@Ğåºñòğ ñïèñàííÿ çà òèïàìè
+  VERSION = 2.1
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    NUM=2
+    CAPTION1=Ïîñòàâùèê@Ïîñòà÷àëüíèê
+    CAPTION2=Ïîëó÷àòåëü@Îòğèìóâà÷
+    NULLVALUE1=NO
+    NULLVALUE2=YES
+    STARTCONDITION1=0
+    STARTCONDITION2=3
+  END
+
+
+  PANEL
+    CAPTION = Òèï ÀÇÑ
+    ELEMENT AZSAlign:CheckBoxGroup
+      LIST =  Ñâîè íà ñâîèõ,Ñâîè íà ÷óæèõ(îáëû),Ñâîè íà ÷óæèõ(ôèëèàëû),Ñâîè íà äóàëüíûõ,Äóàëüíûå íà ÷óæèõ(ôèëèàëû),Äóàëüíûå íà ÷óæèõ(îáëû),Äóàëüíûå íà ñâîèõ,Äóàëüíûå íà äóàëüíûõ,×óæèå(îáëû) íà ñâîèõ,×óæèå(ôèëèàëû) íà ñâîèõ
+      VALUES ='Ñâîè íà ñâîèõ','Ñâîè íà ÷óæèõ(îáëû)','Ñâîè íà ÷óæèõ(ôèëèàëû)','Ñâîè íà äóàëüíûõ','Äóàëüíûå íà ÷óæèõ(ôèëèàëû)','Äóàëüíûå íà ÷óæèõ(îáëû)','Äóàëüíûå íà ñâîèõ','Äóàëüíûå íà äóàëüíûõ','×óæèå(îáëû) íà ñâîèõ','×óæèå(ôèëèàëû) íà ñâîèõ'
+    END
+  END
+
+
+
+[DESCRIPTION]
+  Îò \B:BeginDate\b ïî \B:EndDate\b@Â³ä \B:BeginDate\b äî \B:EndDate\b
+  Îğãàíèçàöèÿ:: \B:org1.Name\b@Îğãàí³çàö³ÿ:: \B:org1.Name\b
+
+[SQL]
+select
+  oper_date,
+  date_,
+  time_,
+  rep_date,
+  r_date_,
+  card_number,
+  azs_id,
+  azs_inst,
+  azs_name,
+  azs_obl_id,
+  azs_obl_name,
+  azs_is_filial,
+  cardalign,
+  azsalign,
+  spistype,
+  np_name,
+  price,
+  price_azs,
+  litr,
+  summ_card,
+  summ_azs,
+  client_name,
+  to_id,
+  to_inst,
+  card_obl_id,
+  card_obl_name
+from
+(
+select
+  v.* ,
+  trunc(drep.rep_date) as rep_date,
+  np.fullname as np_name,
+  client.name as client_name,
+  ocard.name as card_obl_name
+from
+  (select
+     0 as q_id,
+     oil_id,
+     oil_inst,
+     oper_date,
+     date_,
+     time_,
+     r_oper_date,
+     r_date_,
+     card_number,
+     azs_id,
+     azs_inst,
+     azs_name,
+     azs_obl_id,
+     azs_obl_name,
+     azs_is_filial,
+     CardAlign,
+     AzsAlign,
+     SpisType,
+     np_type,
+     price,
+     term_price as price_azs,
+     litr,
+     round(litr*price,2) as summ_card,
+     round(litr*term_price,2) as summ_azs,
+     vc.To_Id,
+     vc.To_Inst,
+     Card.GetObl(vc.card_number,vc.r_date_) as card_obl_id
+   from v_card_equal vc
+   union all
+   select
+     1 as q_id,
+     v.oil_id,
+     v.oil_inst,
+     v.oper_date,
+     v.date_,
+     v.time_,
+     to_date(null) as r_oper_date,
+     to_date(null) as r_date_,
+     v.card_number,
+     v.azs_id,
+     v.azs_id,
+     v.azs_name,
+     v.azs_obl_id,
+     v.azs_obl_name,
+     v.azs_is_filial,
+     v.CardAlign,
+     v.AzsAlign,
+     v.SpisType,
+     v.np_type,
+     to_number(null) as price,
+     v.term_price as price_azs,
+     v.litr,
+     to_number(null) as summ_card,
+     round(v.litr*v.term_price,2) as summ_azs,
+     Card.GetDep(v.card_number,v.oper_date) as to_id,
+     Card.GetDep(v.card_number,v.oper_date) as to_inst,
+     v.card_obl_id
+   from v_card_transit_equal v
+  ) v, oil_np_group np, oil_org client, vu_oil_daily_rep drep,
+  oil_org ocard
+  where v.np_type = np.petrol_id (+)
+    and v.to_id = client.id (+)
+    and v.to_inst = client.inst (+)
+    and client.state (+) = 'Y'
+    and v.azs_id=drep.azs_id(+)
+    and v.azs_inst=drep.azs_inst(+)
+    and v.oper_date>=drep.rep_date(+)
+    and v.oper_date<drep.next_date(+)
+    and ocard.id(+) = v.card_obl_id
+    and ocard.inst(+) = v.card_obl_id
+ )
+where date_ between :BeginDate and :EndDate
+  and (to_id = :org2.id or :org2.id is null)
+  and (to_inst = :org2.inst or :org2.inst is null)
+
+[FIELDS]
+
+  NAME = DATE_
+  CAPTION =Äàòà
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = REP_DATE
+  CAPTION = Äàòà ñì. îò÷åòà@Äàòà çì.çâ³òó
+  WIDTH = 10
+  FORMAT = dd.mm.yyyy
+
+  NAME = CARD_OBL_NAME
+  CAPTION = İìèòåíò êàğòû@Åì³òåíò êàğòêè
+  WIDTH = 50
+
+  NAME = CLIENT_NAME
+  CAPTION = Âëàäåëåö êàğòû@Âëàñíèê êàğòêè
+  WIDTH = 40
+
+  NAME = CARD_NUMBER
+  CAPTION = Íîìåğ êàğòû@Íîìåğ êàğòêè
+  WIDTH = 13
+
+  NAME = R_DATE_
+  CAPTION =Äàòà ïîïîëí.@Äàòà ïîïîâíåííÿ
+  WIDTH = 12
+  FORMAT = dd.mm.yyyy
+
+  NAME = AZS_OBL_NAME
+  CAPTION = İìèòåíò ÀÇÑ@Åì³òåíò ÀÇÑ
+  WIDTH = 50
+
+  NAME = AZS_NAME
+  CAPTION =ÀÇÑ
+  WIDTH = 30
+
+  NAME = SPISTYPE
+  CAPTION = Òèï ñïèñàíèÿ@Òèï ñïèñàííÿ
+  WIDTH = 15
+
+  NAME = NP_NAME
+  CAPTION =Òèï ÍÏ
+  WIDTH = 18
+
+  NAME = PRICE
+  CAPTION = Öåíà ïîïîëíåíèÿ@Ö³íà ïîïîâíåííÿ
+  WIDTH = 14
+  FORMAT = 0.00
+
+  NAME = PRICE_AZS
+  CAPTION = Öåíà ÀÇÑ@Ö³íà ÀÇÑ
+  WIDTH = 13
+  FORMAT = 0.00
+
+  NAME = LITR
+  CAPTION = Ê-âî (ë)@Ê-ñòü (ë)
+  WIDTH = 10
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = SUMM_CARD
+  CAPTION = Ñóììà(ö.ïîïîëíåíèÿ)@Ñóìà(ö³íà ïîïîâíåííÿ)
+  WIDTH = 16
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+  NAME = SUMM_AZS
+  CAPTION = Ñóììà (ö.ÀÇÑ)@Ñóìà(ö³íà ÀÇÑ)
+  WIDTH = 16
+  TOSUM = TRUE
+  FORMAT = 0.00
+
+[TYPES]
+
+  CAPTION = Îñíîâíûé
+  ITOGI =
+  UNCHECKED = DATE_,REP_DATE,CLIENT_NAME,CARD_NUMBER,R_DATE_,AZS_NAME,PRICE_AZS,PRICE,SUMM_CARD
+
+  CAPTION = Ïî ıìèòåíòó êàğòû, ÍÏ, ıìèòåíòó ÀÇÑ@Çà åì³òåíòîì êàğòû, ÍÏ, åì³òåíòó ÀÇÑ
+  ITOGI = CARD_OBL_NAME, NP_NAME, AZS_OBL_NAME
+
+  CAPTION = Ïî ıìèòåíòó, ÀÇÑ@Çà åì³òåíòîì, ÀÇÑ
+  ITOGI = AZS_OBL_NAME, AZS_NAME
+
+  CAPTION = Ïî êëèåíòó, êàğòå@Çà êë³ºíòîì, êàğòêîş
+  ITOGI = CLIENT_NAME, CARD_NUMBER
+
+  CAPTION = Ïî êëèåíòó, òèïó ÍÏ@Çà êë³ºíòîì, òèïîì ÍÏ
+  ITOGI = CLIENT_NAME,  NP_NAME
+
+  CAPTION = Ïî äàòå@Çà äàòîş
+  ITOGI = oper_date

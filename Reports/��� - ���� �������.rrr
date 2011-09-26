@@ -1,0 +1,136 @@
+[GLOBAL]
+  TITLE = Отоваривание талонов, отпущеных по спонсорской помощи@Отоварювання талонів, відпущених по спонсорській допомозі
+  MENU = Отчеты\Отчеты по талонам\Отоваривание спонсорской помощи@Отоварювання спонсорської допомоги
+  VERSION = 1.0
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@Від :BeginDate по :EndDate
+  Организация отоварившая:: :org1.Name@Організація отоваривша:: :org1.Name
+
+[SQL]
+select to_.name to_name,
+       from_.name as from_name,
+       client.name as client_name,
+       np.name as np_group_name,
+       p.dog,
+       t.ss,
+       azs.name as azs_name,
+       t.nominal,
+       t.prev_date as out_date,
+       t.date_ as prih_date,
+       t.prev_price out_price,
+       t.litr_azs,
+       t.tonn_azs,
+       round(t.litr_azs * t.prev_price, 2) sumnds,
+       round(t.tonn_azs * t.ss, 4) sumss,
+       1 as cnt
+  from v_oil_talon_sropl t,
+       v_org to_,
+       v_org from_,
+       v_org client,
+       v_oil_np_group np,
+       oil_part p,
+       v_org azs
+ where (t.prev_oper_id = 245 and t.oper_id = 180)
+   and (t.to_id = to_.id and t.to_inst = to_.inst)
+   and to_.id = to_.inst
+   and (t.prev_from_id = from_.id and t.prev_from_inst = from_.inst)
+   and from_.id = from_.inst
+   and (t.prev_to_id = client.id and t.prev_to_inst = client.inst)
+   and t.npgrp_id = np.id
+   and (t.part_id = p.id and t.part_inst = p.inst)
+   and (t.from_id = azs.id and t.from_inst = azs.inst)
+   and t.date_ between :BeginDate and :EndDate
+   and trunc(t.rep_date) between :BeginDate and :EndDate
+   and (:org1.id in (to_.id, to_.par) or :org1.id is null)
+
+[FIELDS]
+
+  NAME = TO_NAME
+  CAPTION =Оприходовавшее подразделение@Оприбуткувавший підрозділ
+  WIDTH = 40
+
+  NAME = FROM_NAME
+  CAPTION =Отпустившее подразделение@Відпустивший підрозділ
+  WIDTH = 40
+
+  NAME = CLIENT_NAME
+  CAPTION =Клиент@Клієнт
+  WIDTH = 40
+
+  NAME = NP_GROUP_NAME
+  CAPTION =Группа НП@Група НП
+  WIDTH = 10
+
+  NAME = DOG
+  CAPTION =Договор@Договір
+  WIDTH = 15
+
+  NAME = SS
+  CAPTION = Учетная цена@Облікова ціна
+  WIDTH = 15
+  FORMAT=0.0000
+
+  NAME = AZS_NAME
+  CAPTION =АЗС@АЗС
+  WIDTH = 20
+
+  NAME = NOMINAL
+  CAPTION =Номинал@Номінал
+  WIDTH = 10
+
+  NAME = OUT_DATE
+  CAPTION =Дата отпуска@Дата відпуску
+  WIDTH = 15
+
+  NAME = PRIH_DATE
+  CAPTION =Дата прихода@Дата приходу
+  WIDTH = 15
+
+  NAME = OUT_PRICE
+  CAPTION =Цена отпуска@Ціна відпуску
+  WIDTH = 10
+
+  NAME = CNT
+  CAPTION =Количество@Кількість
+  WIDTH = 10
+  TOSUM=TRUE
+
+  NAME = LITR_AZS
+  CAPTION =Литры@Літри
+  WIDTH = 10
+  TOSUM=TRUE
+
+  NAME = TONN_AZS
+  CAPTION =Тонны@Тони
+  WIDTH = 10
+  TOSUM=TRUE
+  FORMAT=0.000000
+
+  NAME = SUMNDS
+  CAPTION =Сумма!по цене отпуска@Сума!по ціні відпуску
+  WIDTH = 18
+  TOSUM=TRUE
+  FORMAT=0.00
+
+  NAME = SUMSS
+  CAPTION =Сумма!по учетной цене@Сума!по обліковій ціні
+  WIDTH = 18
+  TOSUM=TRUE
+  FORMAT=0.0000
+
+[TYPES]
+  CAPTION = Основной
+  ITOGI = 

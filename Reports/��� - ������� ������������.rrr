@@ -1,0 +1,89 @@
+# REGISTERED
+[GLOBAL]
+   TITLE = Отоваривание Броварских талонов на Филиале
+   VERSION = 1.0
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+[DESCRIPTION]
+   За период от :BeginDate до :EndDate
+
+[SQL]
+select oo.name as org_name,oo.id_num as org_okpo,npg.name as np_group,
+  azs.name as azs_name,tal.nominal,tal.ser,tal.num,tal.out_date,tal.prih_date,
+  tal.price,1 as shtuki,nominal as litr,round(price*nominal,2) as summa
+from v_oil_talon_merge tal,oil_org oo,oil_org azs,oil_np_group npg
+where tal.to_id=oo.id and tal.to_inst=oo.inst
+  and tal.from_id=azs.id and tal.from_inst=azs.inst
+  and tal.npgrp_id=npg.id
+  and tip='P' and prev_tip='O'
+  and tal.prih_date between :BeginDate and :EndDate
+
+[FIELDS]
+   NAME = org_name
+   CAPTION = Подтребитель
+   WIDTH=25
+
+   NAME = org_okpo
+   CAPTION = Код ОКПО
+   WIDTH = 12
+
+   NAME = np_group
+   CAPTION = НП
+   WIDTH = 10
+
+   NAME = azs_name
+   CAPTION = АЗС
+   WIDTH = 15
+
+   NAME = nominal
+   CAPTION = Номинал
+   WIDTH=15
+
+   NAME = ser
+   CAPTION = Серия
+   WIDTH = 6
+
+   NAME = num
+   CAPTION = Номер
+   WIDTH = 8
+
+   NAME = out_date
+   CAPTION = Дата отпуска
+   WIDTH = 12
+
+   NAME = prih_date
+   CAPTION = Дата прихода
+   WIDTH = 12
+
+   NAME = price
+   CAPTION = Цена
+   WIDTH = 10
+   FORMAT = 0.00
+
+   NAME = shtuki
+   CAPTION = Кол-во
+   WIDTH = 8
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = litr
+   CAPTION = Литры
+   WIDTH = 10
+   FORMAT = 0
+   TOSUM = TRUE
+
+   NAME = summa
+   CAPTION = Сумма (грн)
+   WIDTH = 12
+   FORMAT = 0.00
+   TOSUM = TRUE
+
+[TYPES]
+   
+   CAPTION = Потребитель - Группа НП
+   ITOGI = org_name,np_group

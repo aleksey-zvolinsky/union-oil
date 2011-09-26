@@ -1,0 +1,174 @@
+[GLOBAL]
+  TITLE = Чековые+сменные отчеты@Чекові+змінні звіти
+  MENU = Отчеты\Налоговые накладные\Чековые+сменные отчеты@Чекові+змінні звіти
+  VERSION = 1.4
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+  SHOW_INFO = NO
+
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+  END
+  
+  PANEL
+      CAPTION = Дополнительно@Додатково
+      ELEMENT NpList:List
+          CAPTION = Группы НП@Групи НП
+          TABLENAME = oil_np_group
+      END
+   END   
+
+[DESCRIPTION] 
+
+  Организация :org1.name@Організація :org1.name
+  Дата с :BeginDate по :EndDate@Дата з :BeginDate по :EndDate
+  Группы нефтепродуктов:: :NpList.Description@Групи нафтопродуктів:: :NpList.Description
+
+[SQL]
+select dat.*,oo.name azs_name
+  from oil_np_group grp,
+       oil_org oo,
+       (select 'см.отчет' type_caption,
+               1 type_,
+               drd.inst,
+               to_number(np.id) np_id,
+               sum(nvl(drd.out_nal_money, 0)) /* money_dr*/ nds_t,
+               dr.rep_date date_,
+               '' num,
+               '' organ_name,
+               '' f_doc,
+               /*       sum(drd.out_nal_litr) litr,
+                            round(sum(drd.out_nal_litr) * drd.s_price, 2) rasch_money,*/
+               round(sum(drd.out_nal_money) / drd.s_price, 3) /*rasch_litr_dr*/ kol,
+               drd.s_price price,
+               trunc(dr.rep_date) det_date,
+               '' det_text,
+               np.name np_name,
+               np.grp_id,
+               dr.azs_id,
+               dr.azs_inst
+          from oil_dr_data drd,
+               oil_daily_rep dr,
+               oil_rashod ras,
+               oil_part p,
+               oil_np_type np
+         where drd.rep_id = dr.id
+           and drd.rep_inst = dr.inst
+           and drd.ttn_id = ras.id
+           and drd.ttn_inst = ras.inst
+           and ras.part_id = p.id
+           and ras.part_inst = p.inst
+           and dr.state = 'Y'
+           and drd.state = 'Y'
+           and ras.state = 'Y'
+           and p.state = 'Y'
+           and np.id = p.np_type
+           and drd.s_price <> 0
+           and drd.out_nal_money <> 0
+           and( (drd.inst = :org1.id) or (:org1.id is null) )
+         group by s_price,
+                  np.name,
+                  np.id,
+                  dr.rep_date,
+                  drd.inst,
+                  np.grp_id,
+                  dr.azs_id,
+                  dr.azs_inst
+        union all
+        select t.name_ type_caption,
+               decode(sb.nn_type_id, 3, 3, 2) type_,
+               sb.inst,
+               to_number(sb.tov_id),
+               sb.nds_t nds_t,
+               sb.s_date,
+               sb.num,
+               oo.name organ_name,
+               sb.f_doc,
+               sb.kol,
+               sb.price_nds,
+               sb.det_date,
+               decode(sb.nn_type_id, 3, '',sb.det_text)det_text,
+               np.name np_name,
+               np.grp_id,
+               sb.azs_id,
+               sb.azs_inst
+          from v_oil_sale_book_det sb,
+               oil_org oo,
+               oil_np_type np,
+               oil_nn_cause c,
+               oil_nn_type t
+         where sb.nn_cause_id in (9, 26)
+           and oo.id = sb.organ
+           and oo.inst = sb.organ_inst
+           and np.id = sb.tov_id
+           and c.id = sb.nn_cause_id
+           and t.id = sb.nn_type_id) dat
+ where grp.id = grp_id
+   and oo.id=oo.inst and oo.id = dat.azs_id and oo.inst = dat.azs_inst
+   and (trunc(det_date) between :BeginDate and :EndDate)
+   and ( (dat.inst = :org1.id) or (:org1.id is null) )
+   and :NpList.IsInList{grp.id}
+
+[FIELDS]
+
+  NAME = type_caption
+  CAPTION = Тип записи@Тип запису
+  WIDTH = 13
+
+  NAME = det_date
+  CAPTION = Дата отпуска@Дата відпуску
+  WIDTH = 18
+  FORMAT = dd.mm.yyyy
+
+  NAME = date_
+  CAPTION = Дата выписки НН@Дата виписки НН
+  WIDTH = 18
+  FORMAT = dd.mm.yyyy 
+
+  NAME = np_name
+  CAPTION =Тип товара@Тип товару
+  WIDTH = 40
+
+  NAME = azs_name
+  CAPTION =АЗС
+  WIDTH = 40
+
+  NAME = price
+  CAPTION =Цена@Ціна
+  WIDTH = 12
+
+  NAME = kol
+  CAPTION =Количество@Кількість
+  TOSUM = TRUE
+  WIDTH = 12
+
+  NAME = nds_t
+  CAPTION = Сумма с ПДВ@Сума з ПДВ
+  TOSUM = TRUE
+  WIDTH = 20
+
+  NAME = num
+  CAPTION = Номер НН
+  WIDTH = 15
+
+  NAME = organ_name
+  CAPTION = Покупатель в НН@Покупець в НН
+  WIDTH = 30
+
+  NAME = f_doc
+  CAPTION = Первичный документ@Первинний документ
+  WIDTH = 25
+
+  NAME = det_text
+  CAPTION = Номер чека
+  WIDTH = 20
+
+[TYPES]
+
+  CAPTION = Основной@Основний
+  ITOGI = det_date, np_name, type_caption

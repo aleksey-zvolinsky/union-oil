@@ -1,0 +1,146 @@
+[GLOBAL]
+  TITLE = Отчет по сопутствующему - 3@Звіт по супутньому - 3
+  MENU = Отчеты\Отчеты по АЗС\Движение сопутств.товара - 3@Рух супутн.товара - 3
+  VERSION = 1.4
+  RAZM_SYMBOLS = NO
+  PAGES_WIDTH = 1
+
+[PANELS]
+
+  DATEPANEL
+  END
+
+  ORGPANEL
+    OPTIONS1=yyyyynnn
+    STARTCONDITION1=0
+  END
+
+[DESCRIPTION]
+  От :BeginDate по :EndDate@від :BeginDate до :EndDate
+  Организация:: :org1.Name@Організація:: :org1.Name
+
+[SQL]
+select
+  Q.*,
+  decode(ss,0,0,rash_money-round(rash*ss,2)) as nacenka
+from
+   (select
+      podrname, azsname, azsnum, np_name, us_subgroup_name,
+      max(IsLastDay*price) as price, 
+      max(IsOnlyPart*ss) as ss,
+      sum(prih-rash-rash_other) as rest,
+      round(sum(prih-rash)*max(IsLastDay*price),2) as rest_money,
+      sum(prih*IsLastDay) as prih,
+      sum(round(prih*price*IsLastDay,2)) as prih_money,
+      sum(rash*IsLastDay) as rash,
+      sum(round(rash_money*IsLastDay,2)) as rash_money,
+      sum(rash*IsPeriod) as rash_period,
+      sum(rash_money*IsPeriod) as rash_money_period,
+      sum(rash_other*IsPeriod) as rash_other_period
+    from
+       (select
+          trunc(drep.rep_date) as date_,
+          nvl(azs.pponname,azs.oblname) as podrname,
+          azs.azsname,
+          to_number(
+	    decode(instr(azs.name,'№'),0,null,
+	      substr(azs.name,instr(azs.name,'№')+1,decode( nvl(instr(azs.name,' ',instr(azs.name,'№')+1),0) ,0,1000, nvl(instr(azs.name, ' ', instr(azs.name, '№')+1), 0) )-instr(azs.name,'№')-1)
+	    )
+	  ) as azsnum,
+          p.dog, npt.name as np_name, npt.us_subgroup_name,
+          NDS.GetWithNDS_NoNDS(p.ss,drep.rep_date,2) as ss,
+          decode(sign(trunc(rep_date)-to_date(:BeginDate)),-1,0,1) as IsPeriod,
+          decode(trunc(rep_date),to_date(:EndDate),1,0) as IsLastDay,
+          decode(count(distinct p.id) over (partition by drep.azs_id, npt.id, trunc(rep_date)),1,1,0) as IsOnlyPart,
+          dr.s_price as price,
+          nvl(dr.pr_count,0) as prih,
+          nvl(dr.out_nal_count,0)+nvl(dr.out_ved_count,0) as rash,
+          nvl(dr.out_nal_money,0)+nvl(dr.out_ved_money,0) as rash_money,
+          nvl(dr.out_sn_count,0)+nvl(dr.out_count,0) as rash_other
+        from
+          oil_daily_rep drep, oil_dr_data dr, oil_rashod r, oil_part p,
+          v_oil_org_norek azs, v_oil_np_type npt, v_oil_dim dim
+        where drep.state='Y' and dr.state='Y' and r.state='Y' and p.state='Y'
+          and dr.rep_id=drep.id and dr.rep_inst=drep.inst
+          and dr.ttn_id=r.id and dr.ttn_inst=r.inst
+          and r.part_id=p.id and r.part_inst=p.inst
+          and drep.azs_id=azs.id and drep.azs_inst=azs.inst
+          and p.np_type=npt.id
+          and p.dim_id=dim.id
+          and npt.us_subgroup_id is not null
+          and trunc(drep.rep_date)<=:EndDate
+          and nvl(:org1.id,oblid) in (oblid,pponid)
+          and dim.IsShtuki='Y'
+        )
+    group by podrname, azsname, azsnum, np_name, us_subgroup_name
+    having sum(prih-rash)<>0 or sum(prih*IsLastDay)<>0 or sum(rash*IsLastDay)<>0
+         or sum(rash*IsPeriod)<>0
+   ) Q
+
+[FIELDS]
+
+  NAME = PODRNAME
+  CAPTION = Подразделение@Підрозділ
+  WIDTH = 25
+
+  NAME = US_SUBGROUP_NAME
+  CAPTION = Группа@Група
+  WIDTH = 15
+
+  NAME = NP_NAME
+  CAPTION = Продукт
+  WIDTH = 15
+
+  NAME = AZSNAME
+  ITOGIFIELD = AZSNUM
+  CAPTION = АЗС
+  WIDTH = 15
+
+  DEFAULT TOSUM = TRUE
+  DEFAULT WIDTH = 10
+  DEFAULT FORMAT = 0.00
+
+  NAME = REST
+  CAPTION = Остатки на конец!шт.@Залишки на кінець!шт.
+  FORMAT = 0
+
+  NAME = REST_MONEY
+  CAPTION = Остатки на конец!грн.@Залишки на кінець!грн.
+
+  NAME = PRIH
+  CAPTION = Приход за посл.день!шт.@Прихід за останній день!шт.
+  FORMAT = 0
+
+  NAME = PRIH_MONEY
+  CAPTION = Приход за посл.день!грн.@Прихід за останній день!грн.
+
+  NAME = RASH
+  CAPTION = Реализация за посл.день!шт.@Реалізація за останній день!шт.
+  FORMAT = 0
+
+  NAME = RASH_MONEY
+  CAPTION = Реализация за посл.день!грн.@Реалізація за останній день!грн.
+
+  NAME = PRICE
+  CAPTION = Цена!реал.@Ціна!реал.
+  TOSUM = FALSE
+
+  NAME = SS
+  CAPTION = Цена!покупки@Ціна!купівлі
+  TOSUM = FALSE
+
+  NAME = NACENKA
+  CAPTION = Наценка@Націнка
+
+  NAME = RASH_PERIOD
+  CAPTION = Реализация за период!шт.@Реалізація за період!шт.
+
+  NAME = RASH_MONEY_PERIOD
+  CAPTION = Реализация за период!грн.@Реалізація за період!грн.
+  
+  NAME = RASH_OTHER_PERIOD
+  CAPTION = Прочие отпуски за период@Інші відпуски за період
+
+[TYPES]
+  CAPTION = Основной@Основний
+  ITOGI = PODRNAME,US_SUBGROUP_NAME,NP_NAME

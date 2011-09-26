@@ -1,0 +1,133 @@
+[GLOBAL]
+    TITLE = Сводный по реализации нефтепродуктов@Звідний з реалізації нафтопродуктів
+    MENU = Отчеты\Движение нефтепродуктов\Сводный по реализации@Звідний з реалізації
+    MENU_POSITION = 10
+    TITLE_COORD = I3
+    RAZM_SYMBOLS = NO
+    VERSION = 2.3
+    PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+     NUM=1
+     CAPTION1=На
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+  PANEL
+      ELEMENT DAYS: Edit
+          CAPTION = Кол-во дней@К-сть днів
+          TEXT = 1
+      END
+  END
+
+[DESCRIPTION]
+   На :BeginDate
+   Организация:: :org1.name@Організація:: :org1.name
+   Вид товара:: :KOS.GetCaptions@Вид товару:: :KOS.GetCaptions
+
+[SQL]
+select podrname, int_code,
+       decode(int_code,
+       	1,'_МО',
+       	2,'АЗС',
+       	3,'Талоны отоварен.',
+       	4,'Эл.карты отоварен.',
+       	5,'Банк.карты') as rec_type,
+       decode(np_groupid,3,tonn_day,0)      as dt_day,
+       decode(np_groupid,3,tonn_month,0)    as dt_month,
+       decode(np_groupid,4,tonn_day,0)      as a76_day,
+       decode(np_groupid,4,tonn_month,0)    as a76_month,
+       decode(np_groupid,5,tonn_day,0)      as a80_day,
+       decode(np_groupid,5,tonn_month,0)    as a80_month,
+       decode(np_groupid,6,tonn_day,0)      as a92_day,
+       decode(np_groupid,6,tonn_month,0)    as a92_month,
+       decode(np_groupid,7,tonn_day,0)      as a95_day,
+       decode(np_groupid,7,tonn_month,0)    as a95_month,
+       decode(np_groupid,10,tonn_day,0)     as a98_day,
+       decode(np_groupid,10,tonn_month,0)   as a98_month,
+       decode(np_groupid,76,tonn_day,0)     as a95prem_day,
+       decode(np_groupid,76,tonn_month,0)   as a95prem_month
+
+from
+   (select nvl(pponname,oblname) as podrname,np_groupid,
+           decode(nbazs,0,1,decode(operid,11,2,12,2,14,3,153,4,201,5)) as int_code,
+           decode(sign(trunc(date_)-to_date(:BeginDate)+to_number(:DAYS)-1),-1,0,tonn) as tonn_day,
+           tonn as tonn_month
+    from v_oil_npmove
+    where rashprih=0
+          and trunc(date_) between trunc(to_date(:BeginDate),'month') and :BeginDate
+          and (:org1.id in (AzsId,PponId,OblId) or :org1.id is null)
+          and own_goods in (:KOS.GetValues)
+          and selltypeid<>4 and np_groupid in (3,4,5,6,7,10,76)
+          and operid in (12,11,14,153,201)
+          and IsInsideReal='N'
+   )
+
+[EXEC_BEFORE]
+begin
+  ov.SetRepBeginDate(trunc(to_date(:BeginDate),'month'));
+  ov.SetRepEndDate(:BeginDate);
+end;
+
+[FIELDS]
+   NAME = podrname
+   CAPTION = Подразделение@Підрозділ
+   WIDTH = 25
+
+   NAME = rec_type
+   ITOGIFIELD = int_code
+   CAPTION = Тип реализации@Тип Реалізації
+   WIDTH = 20
+
+   DEFAULT WIDTH=10
+   DEFAULT TOSUM = TRUE
+   DEFAULT FORMAT = 0.000
+   DEFAULT OPTIONAL = FALSE
+
+   FIELDS_GROUP
+      TAILS
+        NAME = day
+        CAPTION = !за день
+
+        NAME = month
+        CAPTION = !за месяц@!за місяць
+
+      HEADS
+        NAME = dt_
+        CAPTION = ДТ@ДП
+
+        NAME = a76_
+        CAPTION = A76
+
+        NAME = a80_
+        CAPTION = A80
+
+        NAME = a92_
+        CAPTION = A92
+
+        NAME = a95_
+        CAPTION = A95
+
+        NAME = a98_
+        CAPTION = A98
+
+        NAME = a95prem_
+        CAPTION = A95 Прем.
+
+   END_GROUP
+
+
+[TYPES]
+
+   CAPTION = Основной@Основний
+   UNCHECKED = podrname

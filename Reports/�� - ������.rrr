@@ -1,0 +1,174 @@
+[GLOBAL]
+   VERSION = 1.3
+   MENU = Отчеты\Отчеты по Нефтебазе\Отчет по приходу@Звiт по приходу
+   TITLE = Отчет по приходу на нефтебазу@Звiт по приходу на нафтабазу
+   RAZM_SYMBOLS = NO
+   PAGES_WIDTH = 1
+
+[PANELS]
+   DATEPANEL
+   END
+
+   ORGPANEL
+   END
+
+   PANEL
+      ELEMENT PART:ComboEdit
+	 CAPTION = Партия@Партiя
+	 TYPE = OIL_PART
+      END
+      ELEMENT NpList:List
+	  CAPTION = Группы НП:@Групи НП:
+          TABLENAME = oil_np_group
+	  OILVARNAME = NPGG_COMMON
+      END
+   END
+
+   PANEL
+      CAPTION = Тип товара@Тип товару
+      ELEMENT KOS:CheckBoxGroup
+         LIST = Комиссия,Собственный,Хранение@Комісія,Власний,Зберігання
+         VALUES = 'K','O','S'
+      END
+   END
+
+   PANEL
+      ELEMENT OperList:List
+	  CAPTION = Операции:@Операцiї
+          TABLENAME = oil_oper_type
+	  CONDITION = grp in (7,9)
+      END
+   END
+
+[DESCRIPTION]
+   Организация:: :org1.name@Организацiя:: :org1.name
+   :DATE_DESCRIPTION
+   Тип товара:: :KOS.Description@Тип товару:: :KOS.Description
+   Партия:: :PART.Description@Партiя:: :PART.Description
+   Группы нефтепродуктов:: :NpList.Description@Группи нафтапродуктiв:: :NpList.Description
+   Операции:: :OperList.Description@Операцiї:: :OperList.Description
+
+[SQL]
+select /*+ORDERED USE_HASH(p,pd,part,rez,oo,rail,dim,npt,op)*/  
+       OO.name as orgname,P.part_id,rez.num as rez_num,op.name as opername,part.dog,
+       npt.name as np_name,npt.np_grp_name,P.date_,P.oper_id,RAIL.name as rail_name,
+       P.date_otpr,PD.tank,PD.nakl,
+       decode(dim.IsShtuki,'Y',0,PD.fact_count) as fact_count,
+       decode(dim.IsShtuki,'Y',0,PD.doc_count) as doc_count,
+       decode(dim.IsShtuki,'Y',0,PD.fact_count - PD.doc_count) as diff_count,
+       decode(dim.IsShtuki,'N',0,PD.fact_count) as fact_count_shtuki,
+       decode(dim.IsShtuki,'N',0,PD.doc_count) as doc_count_shtuki,
+       part.ss, round(decode(dim.IsShtuki,'Y',0,PD.fact_count)*part.ss,2) as fact_summ
+       
+from oil_prihod P,oil_prih_det PD,oil_rezervuar rez,oil_part part, v_oil_org_norek oo,
+     v_oil_dim dim,v_oil_np_type npt,oil_rail_stat rail,oil_oper_type op 
+     
+where P.state='Y' and PD.state='Y' and part.state='Y' and P.rash is null
+      and PD.inst=P.inst and PD.prihod_id=P.id 
+      and PD.rez=rez.id and PD.rez_inst=rez.inst 
+      and P.oper_id=op.id and part.np_type=npt.id 
+      and PD.fact_count<>0 and PD.doc_count<>0        
+      and P.rail_st=RAIL.id(+) and P.rail_inst=RAIL.inst(+)
+      and P.date_ between :BeginDate and :EndDate
+      and P.part_id=part.id and P.part_inst=part.inst and part.dim_id=dim.id
+      and P.to_=oo.id and P.to_inst=OO.inst  
+      and :org1.id in (PponId,OblId) and oo.id=oo.inst 
+      and (:PART.id=part.id and :PART.inst=part.inst or :PART.id is null)
+      and part.own_goods in (:KOS.GetValues)
+      and :NpList.IsInList{npt.np_grp}
+      and :OperList.IsInList{op.id}
+
+
+[FIELDS]
+   NAME = orgname
+   CAPTION = Организация@Организацiя
+   WIDTH = 20
+
+   NAME = np_name
+   ITOGIFIELD = np_grp_name
+   CAPTION = Тип Н/П
+   WIDTH = 15
+
+   NAME = opername
+   CAPTION = Операция@Операцiя
+   WIDTH = 15
+
+   NAME = dog
+   CAPTION = Партия@Партiя
+   WIDTH = 15
+
+   NAME = ss
+   CAPTION = Учётная цена@Облікова ціна
+   WIDTH = 15
+
+   NAME = date_
+   CAPTION = Дата прихода@Дата приходу
+   WIDTH = 15
+
+   NAME = rez_num
+   CAPTION = Резервуар
+   WIDTH = 10
+
+   NAME = rail_name
+   CAPTION = Станция@Станцiя
+   WIDTH = 10
+
+   NAME = date_otpr
+   CAPTION = Дата отправки@Дата відправлення
+   WIDTH = 10
+
+   NAME = tank
+   CAPTION = № цистерны@№ цистерни
+   WIDTH = 10
+
+   NAME = nakl
+   CAPTION = № накладной@№ накладної
+   WIDTH = 10
+
+   DEFAULT TOSUM = TRUE
+   DEFAULT OPTIONAL = FALSE
+   
+   NAME = fact_count
+   CAPTION = Кол.факт.
+   FORMAT = 0.000
+   
+   NAME = doc_count
+   CAPTION = Кол.док.
+   FORMAT = 0.000
+  
+   NAME = diff_count
+   CAPTION = Кол.разница
+   FORMAT = 0.000
+   
+   NAME = fact_count_shtuki
+   CAPTION = Кол.факт.(шт.)
+   FORMAT = 0
+   HIDEIFEMPTY = TRUE
+   
+   NAME = doc_count_shtuki
+   CAPTION = Кол.док.(шт.)
+   FORMAT = 0
+   HIDEIFEMPTY = TRUE
+
+   NAME = fact_summ
+   CAPTION = Сумма факт. по уч. цене@Сума факт. по об. ціні
+   FORMAT = 0.00
+   WIDTH = 20
+
+[TYPES]
+   
+   CAPTION = По партиям (без цистерн)@По партiям (без цистерн)
+   ITOGI = orgname,np_name,dog
+   UNCHECKED = rail_name,date_otpr,tank,nakl
+
+   CAPTION = По резервуарам (без цистерн)
+   ITOGI = orgname,np_name,rez_num
+   ORDER = orgname,np_name,opername,rez_num,date_,dog
+   UNCHECKED = rail_name,date_otpr,tank,nakl
+
+   CAPTION = По партиям (с цистернами)@По партiям (с цистернами)
+   ITOGI = orgname,np_name,dog
+
+   CAPTION = По резервуарам (с цистернами)
+   ITOGI = orgname,np_name,rez_num
+   ORDER = orgname,np_name,opername,rez_num,date_,dog
